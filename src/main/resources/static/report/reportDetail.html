@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>신고 상세</title>
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/index.css" />
+</head>
+<body>
+<div id="wrap">
+    <div>
+        <header id="header"></header>
+    </div>
+    <div class="container">
+        <h1>신고 상세</h1>
+        <div>
+            <p><strong>신고자:</strong> 예시신고자123</p>
+            <p><strong>피신고자:</strong> 예시피신고자456</p>
+            <p><strong>신고 사유:</strong> 욕설 및 비방</p>
+            <p><strong>설명:</strong> 채팅방에서 지속적으로 욕설을 하여 신고합니다.</p>
+            <p>
+                <strong>증거 이미지:</strong><br />
+                <img src="/images/evidence-placeholder.jpg" alt="증거 이미지" />
+            </p>
+            <form action="/report/suspend/12345" method="post">
+                <button type="submit" name="suspend" value="10">10일 정지</button>
+                <button type="submit" name="suspend" value="30">30일 정지</button>
+                <button type="submit" name="suspend" value="180">6개월 정지</button>
+                <button type="submit" name="suspend" value="365">1년 정지</button>
+                <button type="submit" name="suspend" value="730">2년 정지</button>
+                <button type="submit" name="suspend" value="0">영구 정지</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="../js/header.js"></script>
+</body>
+</html>

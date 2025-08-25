@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>신고 목록</title>
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/reportList.css" />
+    <link rel="stylesheet" href="../css/index.css" />
+    <style>
+        /* EJS 템플릿에 있던 CSS 스타일을 그대로 유지합니다. */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        th,
+        td {
+          border: 1px solid #ccc;
+          padding: 10px;
+          text-align: center;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+        img {
+          max-width: 100px;
+          height: auto;
+        }
+    </style>
+</head>
+<body>
+<div id="wrap">
+    <div>
+        <header id="header"></header>
+    </div>
+    <div class="container">
+        <h1>신고 목록</h1>
+        <table>
+            <thead>
+            <tr>
+                <th>번호</th>
+                <th>신고자</th>
+                <th>피신고자</th>
+                <th>신고 사유</th>
+                <th>설명</th>
+                <th>증거 이미지</th>
+                <th>신고일</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>
+                    <a href="/report/detail/123">1</a>
+                </td>
+                <td>예시신고자1</td>
+                <td>예시피신고자A</td>
+                <td>욕설 및 비방</td>
+                <td class="description-cell">
+                    채팅방에서 반복적으로 욕설을 하여 신고합니다.
+                </td>
+                <td>
+                    <img
+                            src="/images/evidence1.jpg"
+                            alt="증거 이미지"
+                    />
+                </td>
+                <td>2025.08.25</td>
+            </tr>
+            <tr>
+                <td>
+                    <a href="/report/detail/456">2</a>
+                </td>
+                <td>예시신고자2</td>
+                <td>예시피신고자B</td>
+                <td>허위 사실 유포</td>
+                <td class="description-cell">
+                    상품에 대한 허위 정보를 게시하였습니다.
+                </td>
+                <td>없음</td>
+                <td>2025.08.24</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script src="../js/header.js"></script>
+</body>
+</html>

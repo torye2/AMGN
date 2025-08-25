@@ -1,0 +1,6 @@
+td.description-cell {
+  max-width: 200px; /* 너비 제한 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
