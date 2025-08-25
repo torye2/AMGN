@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/index.css" />
+    <link rel="stylesheet" href="../css/salesRegistration.css" />
+</head>
+<body>
+<div id="wrap">
+    <div>
+        <header id="header"></header>
+    </div>
+    <div class="container">
+        <fieldset class="sales-box">
+            <h2>판매 글 작성</h2>
+            <form
+                    action="/product/write"
+                    method="POST"
+                    enctype="multipart/form-data"
+            >
+                <div>
+                    <label
+                    >제품 이름
+                        <input type="text" name="productname" required /></label
+                    ><br />
+                </div>
+                <div>
+                    <label
+                    >제품 가격
+                        <input type="number" name="productprice" required /></label
+                    ><br />
+                </div>
+                <div>
+                    <label
+                    >카테고리
+                        <select name="category" required>
+                            <option value="디지털기기">디지털기기</option>
+                            <option value="남성의류">남성의류</option>
+                            <option value="여성의류">여성의류</option>
+                            <option value="남성신발">남성신발</option>
+                            <option value="여성신발">여성신발</option>
+                            <option value="가전제품">가전제품</option>
+                            <option value="상품권">상품권</option>
+                            <option value="가구">가구</option>
+                            <!-- 추가 가능 -->
+                        </select> </label
+                    ><br />
+                </div>
+                <div>
+                    <label
+                    >제품 설명
+                        <textarea name="introduct" required></textarea></label
+                    ><br />
+                </div>
+                <div>
+                    <label>제품 사진 <input type="file" name="productimg" /></label
+                    ><br />
+                </div>
+                <button type="submit">등록하기</button>
+            </form>
+        </fieldset>
+    </div>
+</div>
+<script src="../js/header.js"></script>
+</body>
+</html>
