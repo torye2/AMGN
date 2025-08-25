@@ -1,0 +1,56 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="amgn.amu.mapper.UserMapper">
+
+    <resultMap id="UserMap" type="amgn.amu.domain.User">
+        <id property="id" column="ID"/>
+        <result property="userId" column="USER_ID"/>
+        <result property="passwordHash" column="PASSWORD_HASH"/>
+        <result property="email" column="EMAIL"/>
+        <result property="nickName" column="NICK_NAME"/>
+        <result property="gender" column="GENDER"/>
+        <result property="phoneNumber" column="PHONE_NUMBER"/>
+        <result property="birthYear" column="BIRTH_YEAR"/>
+        <result property="birthMonth" column="BIRTH_MONTH"/>
+        <result property="birthDay" column="BIRTH_DAY"/>
+        <result property="province" column="PROVINCE"/>
+        <result property="city" column="CITY"/>
+        <result property="detailAddress" column="DETAIL_ADDRESS"/>
+        <result property="status" column="STATUS"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+    </resultMap>
+
+    <select id="existsByUserId" resultType="boolean">
+        SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
+        FROM USERS WHERE USER_ID = #{userId}
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
+        FROM USERS WHERE EMAIL = #{email}
+    </select>
+
+    <select id="existsByPhone" resultType="boolean">
+        SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
+        FROM USERS WHERE PHONE_NUMBER = #{phoneNumber}
+    </select>
+
+    <select id="findByUserId" resultMap="UserMap">
+        SELECT * FROM USERS WHERE USER_ID = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="amgn.amu.domain.User">
+        <selectKey keyProperty="id" resultType="long" order="BEFORE">
+            SELECT USERS_SEQ.NEXTVAL FROM dual
+        </selectKey>
+        INSERT INTO USERS (
+        ID, USER_ID, PASSWORD_HASH, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
+        BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, PROVINCE, CITY, DETAIL_ADDRESS, STATUS, CREATED_AT, UPDATED_AT
+        ) VALUES (
+        #{id}, #{userId}, #{passwordHash}, #{email}, #{nickName}, #{gender}, #{phoneNumber},
+        #{birthYear}, #{birthMonth}, #{birthDay}, #{province}, #{city}, #{detailAddress},
+        'ACTIVE', SYSTIMESTAMP, SYSTIMESTAMP
+        )
+    </insert>
+</mapper>
