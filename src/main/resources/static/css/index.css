@@ -1,0 +1,367 @@
+@charset "utf-8";
+
+/*스킵 네비게이션*/
+#skip {
+  position: relative;
+}
+
+#skip a {
+  position: absolute;
+  left: 0px;
+  top: -35px;
+  border: 1px solid #fff;
+  color: #fff;
+  background: #333;
+  line-height: 30px;
+  width: 140px;
+  text-align: center;
+}
+
+#skip a:active,
+#skip a:focus {
+  top: 0;
+}
+
+/*레이아웃*/
+#wrap {
+  width: 100%;
+}
+
+#header {
+  width: 100%;
+  height: 120px;
+}
+
+#contents {
+  width: 100%;
+  min-height: calc(100vh - 320px); /* 화면 높이 - header(120) - footer(200) */
+  overflow: auto; /* 필요하면 내부 스크롤 */
+}
+
+#footer {
+  width: 100%;
+  height: 200px;
+}
+
+/*컨텐츠 레이아웃*/
+#cont_nav {
+  width: 100%;
+  height: 200px;
+}
+
+#cont_tit {
+  width: 100%;
+  height: 200px;
+}
+
+#cont_ban {
+  width: 100%;
+  height: 200px;
+}
+
+#cont_cont {
+  width: 100%;
+  height: 200px;
+}
+
+/*컨테이너*/
+.container {
+  width: 990px;
+  height: inherit;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/*헤더*/
+.header {
+}
+
+.header .header-menu {
+  text-align: right;
+}
+
+.header .header-menu a {
+  padding: 10px;
+  display: inline-block;
+}
+
+.header .header-menu a:hover {
+  color: #666;
+}
+
+.header .header-tit {
+  text-align: left;
+}
+
+.header .header-tit h1 {
+  background-color: #fff;
+  font-size: 28px;
+  padding: 10px;
+  display: inline-block;
+  margin: 10px;
+  position: relative;
+  top: -40px; /* 위로 30px 이동 */
+}
+
+/*검색칸*/
+.search {
+  display: flex;
+  justify-content: center;
+  margin-top: -100px;
+}
+
+#searchInput {
+  width: 400px;
+  height: 40px;
+  padding: 0 15px;
+  border: 2px solid black;
+  border-radius: 3px 0 0 3px;
+  font-size: 16px;
+  outline: none;
+  transition: border 0.3s;
+}
+
+#searchInput:focus {
+  border-color: #00b140;
+}
+
+#searchBtn {
+  height: 40px;
+  padding: 0 20px;
+  background-color: #222;
+  color: white;
+  border: none;
+  border-radius: 0 3px 3px 0;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#searchBtn:hover {
+  background-color: #00b140;
+}
+
+/*카테고리 메뉴*/
+.header .header-icon {
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  font-size: 20px;
+  font-weight: 900;
+  margin-top: 20px;
+}
+
+.menu {
+  position: relative;
+}
+
+.submenu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 120px;
+  padding: 10px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  box-shadow: none;
+  border: none;
+}
+
+.submenu div {
+  padding: 8px 15px;
+  font-size: 16px;
+  font-weight: normal;
+  color: #333;
+  white-space: nowrap;
+}
+
+.submenu div:hover {
+  background-color: #f0f0f0;
+}
+
+/* 마우스 오버 시 하위 메뉴 표시 */
+.menu:hover .submenu {
+  display: block;
+}
+
+/*게시판 레이아웃*/
+.cont {
+  overflow: hidden;
+  padding-top: 30px;
+}
+
+.cont .navcol {
+  width: 300px;
+  height: 250px;
+  float: left;
+  margin: 0 20px 30px 0;
+  padding-right: 20px;
+  position: relative;
+}
+
+/*공지사항 게시판*/
+.tab_menu {
+  position: relative;
+  border: 1px solid #ccc;
+  padding: 8px;
+  height: 105px;
+}
+
+.tab_menu ul {
+  overflow: hidden;
+  border-bottom: 1px solid #ccc;
+}
+
+.tab_menu ul li {
+  float: left;
+  border: 1px solid #ccc;
+  margin-right: -1px;
+  margin-bottom: -1px;
+}
+
+.tab_menu ul,
+.tab_menu ul li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tab_menu ul li a {
+  padding: 5px 10px;
+  display: block;
+}
+
+.tab_menu ul li ul {
+  position: absolute;
+  left: 5;
+  top: 48px;
+  width: 270px;
+  border: 0;
+}
+
+.tab_menu ul li ul li {
+  float: none;
+  border: 0;
+}
+
+.tab_menu ul li ul li a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  padding: 0 0 3px 0;
+}
+
+.tab_menu ul li.active {
+  background: black;
+}
+
+.tab_menu ul li.active a {
+  color: #fff;
+}
+
+.tab_menu ul li.active ul li a {
+  color: #333;
+}
+
+.notice1 {
+  position: relative;
+  border: 1px solid #ccc;
+}
+
+.notice1 h4 {
+  border-bottom: 1px solid #ccc;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.notice1 ul {
+  padding: 10px;
+}
+
+.notice1 li {
+  overflow: hidden;
+}
+
+.notice1 li a {
+  float: left;
+  width: 60%;
+}
+
+.notice1 li span {
+  float: right;
+  width: 30%;
+  text-align: right;
+}
+
+.notice1 a.more {
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 오른쪽 경계선 (줄 끝 이전 컬럼들) */
+.cont .navcol1,
+.cont .navcol2,
+.cont .navcol4,
+.cont .navcol5 {
+  border-right: 1px solid #c8c8c8;
+}
+
+/* 줄 끝 컬럼들: margin 제거 */
+.cont .navcol3,
+.cont .navcol6 {
+  margin-right: 0;
+  padding-right: 0;
+}
+
+/*많이 하는 문의 게시판*/
+.notice2 {
+  position: relative;
+}
+
+.notice2 h4 {
+  font-size: 14px;
+  padding-bottom: 3px;
+  font-weight: bold;
+}
+
+.notice2 ul {
+}
+
+.notice2 ul li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice2 ul li a {
+}
+
+.notice2 a.more {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: block;
+}
+
+.notice2 h3 {
+  border-top: 1px solid #ccc;
+  padding-top: 5px;
+  margin-top: 10px;
+}
+/*많이 하는 문의 게시판*/
+
+/*갤러리*/
+.gallery_img img {
+  width: 100%;
+}
