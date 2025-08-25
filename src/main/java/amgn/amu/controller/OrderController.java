@@ -18,7 +18,7 @@ import amgn.amu.service.OrderService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/orders.html")
 public class OrderController {
 
     private final OrderService orderService;
