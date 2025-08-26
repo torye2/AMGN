@@ -10,7 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SignupDto {
-    private String userId;
+    private String id;
     private String password;
     private String nickName;
     private String email;

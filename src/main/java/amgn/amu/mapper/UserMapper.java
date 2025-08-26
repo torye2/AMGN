@@ -8,12 +8,12 @@ import java.util.Optional;
 
 @Mapper
 public interface UserMapper {
-    boolean existsByUserId(@Param("userId") String userId);
+    boolean existsById(@Param("id") String id);
     boolean existsByEmail(@Param("email") String email);
     boolean existsByPhone(@Param("phoneNumber") String phoneNumber);
 
 
-    Optional<User> findByUserId(@Param("userId") String userId);
+    Optional<User> findById(@Param("id") String id);
 
     int insert(User user);
 }
