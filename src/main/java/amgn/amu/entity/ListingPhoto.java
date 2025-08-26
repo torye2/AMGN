@@ -14,7 +14,13 @@ public class ListingPhoto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long photoId;
 
-    private Long listingId; // listings 테이블의 listing_id와 매핑
+    @Transient // 이 어노테이션을 추가하여 DB 매핑에서 제외시킵니다.
+    private Long listingId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", referencedColumnName = "listingId")
+    private Listing listing;
+
     private String url;
     private Integer sortOrder;
     private Timestamp createdAt;

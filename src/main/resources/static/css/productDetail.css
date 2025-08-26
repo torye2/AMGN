@@ -69,3 +69,25 @@ hr {
   margin: 80px auto 0;
   margin-top: 500px;
 }
+
+.chat-button-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.chat-button {
+    background-color: black;
+    color: white; /* 글자색 */
+    border: none;
+    border-radius: 5px;
+    padding: 10px 180px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-left: 530px;
+    margin-top: 320px;
+}
+
+.chat-button:hover {
+    background-color: gray; /* 마우스 오버 시 색상 변경 */
+}

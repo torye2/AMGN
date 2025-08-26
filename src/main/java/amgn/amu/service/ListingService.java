@@ -1,12 +1,12 @@
 package amgn.amu.service;
 
+import amgn.amu.entity.Listing;
+import amgn.amu.domain.User;
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
-import amgn.amu.entity.Listing;
-import amgn.amu.entity.ListingAttr;
 import amgn.amu.repository.ListingAttrsRepository;
 import amgn.amu.repository.ListingPhotosRepository;
 import amgn.amu.repository.ListingRepository;
@@ -14,8 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -111,7 +111,8 @@ public class ListingService {
         dto.setRegionId(listing.getRegionId());
         dto.setSafePayYn(listing.getSafePayYn());
         dto.setSellerId(listing.getSellerId());
-        // 추가 필드 (예: photoUrl, sellerNickname)도 포함시켜야 합니다.
+
+        // 추가 필드 (예: photoUrl, sellerNickname)도 포함시켜야함
         // 예시: dto.setPhotoUrl(listing.getPhotos().get(0).getUrl());
         // 예시: dto.setSellerNickname(listing.getSeller().getNickname());
         return dto;

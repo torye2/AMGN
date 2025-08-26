@@ -35,7 +35,7 @@ public class LoginController {
         try {
             LoginUserDto loginUser = loginService.login(req);
             session.setAttribute("loginUser", loginUser);
-            return "redirect:/";
+            return "redirect:/main.html";
         } catch (IllegalArgumentException e) {
             ra.addFlashAttribute("loginError", e.getMessage());
             return "redirect:/login.html";
