@@ -17,10 +17,10 @@ import java.time.OffsetDateTime;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
     @Column(unique = true, nullable = false, length = 50)
-    private String userId;
+    private String id;
 
     @Column(nullable = false)
     private String passwordHash;

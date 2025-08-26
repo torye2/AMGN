@@ -14,7 +14,7 @@ public class LoginService {
     private final UserMapper userMapper;
 
     public LoginUserDto login(LoginRequest req) {
-        User user = userMapper.findByUserId(req.getUserId())
+        User user = userMapper.findById(req.getId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
         if(!user.getPasswordHash().equals(req.getPasswordHash())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
@@ -23,7 +23,7 @@ public class LoginService {
         if(!user.getStatus().equals("ACTIVE")) {
             throw new IllegalArgumentException("휴면 계정입니다.");
         }
-        return new LoginUserDto(user.getUserId(), user.getUserName()
+        return new LoginUserDto(user.getId(), user.getUserName()
                 , user.getEmail(), user.getNickName(), user.getPhoneNumber()
                 , user.getBirthYear(), user.getBirthMonth(), user.getBirthDay()
                 , user.getProvince(), user.getCity(), user.getDetailAddress());

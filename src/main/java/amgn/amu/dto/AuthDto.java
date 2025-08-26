@@ -5,7 +5,7 @@ import jakarta.validation.constraints.*;
 public class AuthDto {
 
     public record CheckIdRequest(
-            @NotBlank @Size(min=4, max=20) String userId
+            @NotBlank @Size(min=4, max=20) String id
     ) {}
 
     public record CheckIdResponse(boolean available) {}
@@ -22,7 +22,7 @@ public class AuthDto {
     ) {}
 
     public record SignupRequest(
-            @NotBlank @Size(min=4, max=20) String userId,
+            @NotBlank @Size(min=4, max=20) String id,
             @NotBlank @Size(min=8, max=64) String password,
             @NotBlank @Email String email,
             @NotBlank String nickName,
@@ -36,5 +36,5 @@ public class AuthDto {
             @NotBlank String detailAddress
     ) {}
 
-    public record AuthUserDto(Long id, String userId, String nickName) {}
+    public record AuthUserDto(Long userId, String id, String nickName) {}
 }
