@@ -8,11 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 import java.util.HashMap;
@@ -65,6 +61,18 @@ public class ListingController {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "상품 등록 중 오류가 발생했습니다.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+
+    @GetMapping("/all")
+    public ResponseEntity<List<ListingDto>> getAllProducts() {
+        try {
+            List<ListingDto> allListings = listingService.getAllListings();
+            return ResponseEntity.ok(allListings);
+        } catch (Exception e) {
+            log.error("모든 상품을 불러오는 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

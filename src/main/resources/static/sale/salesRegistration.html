@@ -147,7 +147,7 @@
                 itemCondition: formData.get('itemCondition'),
                 description: formData.get('description'),
                 tradeType: formData.get('tradeType'),
-                // ⚠️ 주의: 'region'은 백엔드에서 'regionId'로 변환해야 함
+                // 주의: 'region'은 백엔드에서 'regionId'로 변환해야 함
                 region: formData.get('region'),
                 safePayYn: formData.get('safePayYn') ? 'Y' : 'N'
             };
@@ -173,7 +173,11 @@
             if (response.ok) {
                 messageDiv.textContent = result.message;
                 messageDiv.style.color = "green";
-                salesForm.reset();
+                if (result.listingId) {
+                    window.location.href = `/productDetail.html?id=${result.listingId}`;
+                } else {
+                    salesForm.reset();
+                }
             } else {
                 messageDiv.textContent = result.error || "알 수 없는 오류가 발생했습니다.";
                 messageDiv.style.color = "red";

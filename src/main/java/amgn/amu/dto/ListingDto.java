@@ -18,4 +18,6 @@ public class ListingDto {
     private String tradeType;
     private Integer regionId; // HTML에서 지역 이름을 ID로 변환해야 함
     private String safePayYn; // 'Y' 또는 'N'
+    private Long listingId;
+    private Long sellerId;
 }
