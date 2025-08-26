@@ -42,12 +42,12 @@
     // DOMContentLoaded 이벤트는 HTML 문서의 모든 요소가 로드된 후에 실행됩니다.
     document.addEventListener('DOMContentLoaded', () => {
       // 현재 URL에서 상품 ID를 추출합니다.
-      const pathSegments = window.location.pathname.split('/');
-      const listingId = pathSegments[pathSegments.length - 1];
+      const urlParams = new URLSearchParams(window.location.search);
+      const listingId = urlParams.get('id');
 
       if (listingId) {
         // 비동기 통신을 사용하여 백엔드 API에서 상품 정보를 가져옵니다.
-        fetch(`/api/product/${listingId}`)
+        fetch(`/product/${listingId}`)
           .then(response => {
             if (!response.ok) {
               // HTTP 상태 코드가 200번대가 아닐 경우 에러 처리

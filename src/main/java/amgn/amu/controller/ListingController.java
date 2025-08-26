@@ -75,4 +75,19 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/{listingId}")
+    public ResponseEntity<ListingDto> getProductDetail(@PathVariable("listingId") long listingId) {
+        try {
+            ListingDto listingDto = listingService.getListingById(listingId);
+            if (listingDto != null) {
+                return ResponseEntity.ok(listingDto);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 Not Found
+            }
+        } catch (Exception e) {
+            log.error("상품 정보를 불러오는 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 Internal Server Error
+        }
+    }
 }
