@@ -18,10 +18,11 @@ import amgn.amu.service.OrderService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/orders.html")
+@RequestMapping("/orders")
 public class OrderController {
 
     private final OrderService orderService;
+    
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
@@ -29,7 +30,13 @@ public class OrderController {
 
     @PostMapping
     public OrderDto create(@RequestParam Long userId, @Valid @RequestBody OrderCreateRequest req) {
+    	System.out.println("요청 데이터: " + req);
         return orderService.create(userId, req);
+    }
+    
+    @GetMapping
+    public List<OrderDto> myOrders(@RequestParam Long userId) {
+        return orderService.myOrders(userId);
     }
 
     @PostMapping("/{id}/pay")
@@ -67,8 +74,4 @@ public class OrderController {
         return orderService.inputTracking(userId, id, req).toString();
     }
 
-    @GetMapping
-    public List<OrderDto> myOrders(@RequestParam Long userId) {
-        return orderService.myOrders(userId);
-    }
 }

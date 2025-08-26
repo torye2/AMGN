@@ -12,6 +12,7 @@ public interface UserMapper {
     boolean existsByEmail(@Param("email") String email);
     boolean existsByPhone(@Param("phoneNumber") String phoneNumber);
 
+
     Optional<User> findByUserId(@Param("userId") String userId);
 
     int insert(User user);
