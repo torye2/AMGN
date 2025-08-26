@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>주문 관리</title>
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="wrap">
+    <header id="header">
+        <h1>주문 관리 페이지</h1>
+    </header>
+
+    <div id="contents">
+        <div class="container">
+
+            <!-- 주문 등록 폼 -->
+            <section id="orderFormSection">
+                <h2>주문 등록</h2>
+                <form id="orderForm">
+                    <input type="number" name="listingId" placeholder="상품 ID" required />
+                    <select name="method">
+                        <option value="MEETUP">직거래</option>
+                        <option value="DELIVERY">배송</option>
+                    </select>
+                    <input type="text" name="recvName" placeholder="수령인 이름" />
+                    <input type="text" name="recvPhone" placeholder="수령인 전화" />
+                    <input type="text" name="recvAddr1" placeholder="직거래 장소" />
+                    <input type="text" name="recvAddr2" placeholder="택배 주소" />
+                    <input type="text" name="recvZip" placeholder="우편번호" />
+                    <button type="submit">주문 등록</button>
+                </form>
+            </section>
+
+            <!-- 주문 내역 테이블 -->
+            <section id="ordersSection">
+                <h2>내 주문 내역</h2>
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>주문 ID</th>
+                            <th>상품 ID</th>
+                            <th>거래 방식</th>
+                            <th>상태</th>
+                            <th>가격</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- JS에서 fetch로 주문 리스트 채움 -->
+                    </tbody>
+                </table>
+            </section>
+
+        </div>
+    </div>
+
+    <footer id="footer">
+        <div class="container">footer</div>
+    </footer>
+</div>
+
+<!-- JS 분리 -->
+<script src="/order/js/order.js"></script>
+</body>
+</html>
