@@ -38,6 +38,6 @@ public class Listing {
     @Column(insertable = false, updatable = false)
     private Timestamp updatedAt;
 
-    @JoinColumn(name = "seller_id", referencedColumnName = "user_id") // DB의 외래키 컬럼을 지정
-    private User seller;
+//    @JoinColumn(name = "seller_id", referencedColumnName = "user_id") // DB의 외래키 컬럼을 지정
+//    private User seller;
 }

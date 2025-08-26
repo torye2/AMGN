@@ -16,7 +16,7 @@ import amgn.amu.service.ReviewService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/reviews.html")
+@RequestMapping("/api/reviews")
 public class ReviewController {
 
     private final ReviewService reviewService;
@@ -27,15 +27,17 @@ public class ReviewController {
 
     // POST /api/reviews?uid=123
     @PostMapping
-    public ReviewDto create(@RequestParam("uid") Long uid,
-                            @Valid @RequestBody ReviewCreateRequest req) {
+    public ReviewDto create(
+            @RequestParam(name = "uid") Long uid,
+            @Valid @RequestBody ReviewCreateRequest req) {
         return reviewService.create(uid, req);
     }
 
     // GET /api/reviews/users/{userId}?limit=20
     @GetMapping("/users/{userId}")
-    public List<ReviewDto> userReviews(@PathVariable Long userId,
-                                       @RequestParam(defaultValue = "20") int limit) {
+    public List<ReviewDto> userReviews(
+            @PathVariable(name = "userId") Long userId,
+            @RequestParam(name = "limit", defaultValue = "20") int limit) {
         return reviewService.listForUser(userId, limit);
     }
 }

@@ -17,6 +17,7 @@ import java.time.OffsetDateTime;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
     private Long userId;
 
     @Column(unique = true, nullable = false, length = 50)

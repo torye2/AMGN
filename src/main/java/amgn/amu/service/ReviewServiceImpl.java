@@ -31,20 +31,20 @@ public class ReviewServiceImpl implements ReviewService {
         Order order = orderRepository.findById(req.orderId())
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
 
-        // 리뷰 대상은 판매자
-        Long rateeId;
-        if (raterId.equals(order.getBuyerId())) {
-            rateeId = order.getSellerId();
-        } else {
-            throw new IllegalArgumentException("주문과 작성자(raterId)가 일치하지 않습니다.");
+        // 구매자만 작성 가능
+        if (!raterId.equals(order.getBuyerId())) {
+            throw new IllegalStateException("구매자만 리뷰를 작성할 수 있습니다.");
         }
 
-        // 중복 리뷰 체크
+        // 중복 리뷰 방지
         if (reviewRepository.existsByOrderIdAndRaterId(req.orderId(), raterId)) {
             throw new IllegalStateException("이미 리뷰가 존재합니다.");
         }
 
-        // Review 엔티티 생성
+        // 판매자 ID
+        Long rateeId = order.getSellerId();
+
+        // 리뷰 생성
         Review review = new Review();
         review.setOrderId(req.orderId());
         review.setRaterId(raterId);
@@ -67,6 +67,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReviewDto> listForUser(Long rateeId, int limit) {
         return reviewRepository.findByRateeIdOrderByCreatedAtDesc(rateeId)
                 .stream()
@@ -84,6 +85,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public double ratingAverage(Long rateeId) {
         List<Review> reviews = reviewRepository.findByRateeIdOrderByCreatedAtDesc(rateeId);
         return reviews.stream()
