@@ -6,6 +6,7 @@
         <id property="userId" column="USER_ID"/>
         <result property="id" column="ID"/>
         <result property="passwordHash" column="PASSWORD_HASH"/>
+        <result property="userName" column="USER_NAME"/>
         <result property="email" column="EMAIL"/>
         <result property="userName" column="USER_NAME"/>
         <result property="nickName" column="NICK_NAME"/>
@@ -46,10 +47,10 @@
             SELECT USERS_SEQ.NEXTVAL FROM dual
         </selectKey>
         INSERT INTO USERS (
-        USER_ID, ID, PASSWORD_HASH, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
+        USER_ID, ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
         BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, PROVINCE, CITY, DETAIL_ADDRESS, STATUS, CREATED_AT, UPDATED_AT
         ) VALUES (
-        #{userId}, #{id}, #{passwordHash}, #{email}, #{nickName}, #{gender}, #{phoneNumber},
+        #{userId}, #{id}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
         #{birthYear}, #{birthMonth}, #{birthDay}, #{province}, #{city}, #{detailAddress},
         'ACTIVE', SYSTIMESTAMP, SYSTIMESTAMP
         )
