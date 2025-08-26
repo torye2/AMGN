@@ -1,72 +1,69 @@
 .sales-box {
-  width: 100%;
-  max-width: 430px;
-  margin: 0 auto;
-  margin-top: 8%;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-  box-sizing: border-box;
-}
-
-.sales-box h2 {
-  text-align: center;
-  margin-bottom: 10px;
-  font-size: 20px;
-  color: #333;
-}
-
-.sales-box div {
-  margin-bottom: 15px;
-}
-
-.sales-box label {
-  font-size: 14px;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 3px;
-}
-
-.sales-box input,
-.sales-box select,
-.sales-box textarea {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-  font-family: inherit;
-  background-color: #fff;
-}
-
-.sales-box input:focus,
-.sales-box select:focus,
-.sales-box textarea:focus {
-  border-color: #007bff;
-  outline: none;
-}
-
-.sales-box textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-.sales-box button {
-  background-color: black;
-  color: white;
-  border: none;
-  cursor: pointer;
-  padding: 12px 15px;
-  border-radius: 4px;
-  font-size: 16px;
-  width: 100%;
-  margin-top: 10px;
-  transition: background-color 0.3s ease;
-}
-
-.sales-box button:hover {
-  background-color: gray;
-}
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .sales-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .sales-box label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .sales-box input[type="text"],
+        .sales-box input[type="number"],
+        .sales-box textarea,
+        .sales-box select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        .sales-box textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .radio-group label, .checkbox-group label {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .attr-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .attr-item input {
+            flex-grow: 1;
+        }
+        .attr-buttons button {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+        button[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: black;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: black;
+        }
+        .sales-box input:focus,
+        .sales-box select:focus,
+        .sales-box textarea:focus {
+          border: 2px solid black;
+          outline: none;
+        }

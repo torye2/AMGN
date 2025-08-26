@@ -16,54 +16,110 @@
     <div class="container">
         <fieldset class="sales-box">
             <h2>판매 글 작성</h2>
+            <!-- 서버로 전송할 form -->
             <form
                     action="/product/write"
                     method="POST"
                     enctype="multipart/form-data"
             >
                 <div>
-                    <label
-                    >제품 이름
-                        <input type="text" name="productname" required /></label
+                    <label>제품 이름
+                        <input type="text" name="title" required /></label
                     ><br />
                 </div>
                 <div>
-                    <label
-                    >제품 가격
-                        <input type="number" name="productprice" required /></label
+                    <label>제품 가격
+                        <input type="number" name="price" required /></label
                     ><br />
                 </div>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="negotiable" value="Y" />
+                        가격 협상 가능
+                    </label>
+                </div>
                 <div>
-                    <label
-                    >카테고리
-                        <select name="category" required>
-                            <option value="디지털기기">디지털기기</option>
-                            <option value="남성의류">남성의류</option>
-                            <option value="여성의류">여성의류</option>
-                            <option value="남성신발">남성신발</option>
-                            <option value="여성신발">여성신발</option>
-                            <option value="가전제품">가전제품</option>
-                            <option value="상품권">상품권</option>
-                            <option value="가구">가구</option>
-                            <!-- 추가 가능 -->
+                    <label>카테고리
+                        <select name="category_id" required>
+                            <option value="1">디지털기기</option>
+                            <option value="2">남성의류</option>
+                            <option value="3">여성의류</option>
+                            <option value="4">남성신발</option>
+                            <option value="5">여성신발</option>
+                            <option value="6">가전제품</option>
+                            <option value="7">상품권</option>
+                            <option value="8">가구</option>
+                            <!-- 실제 데이터베이스의 category_id에 맞춰 옵션 값을 설정해야 합니다 -->
                         </select> </label
                     ><br />
                 </div>
-                <div>
-                    <label
-                    >제품 설명
-                        <textarea name="introduct" required></textarea></label
-                    ><br />
+                <div class="radio-group">
+                    <p>제품 상태:</p>
+                    <label><input type="radio" name="item_condition" value="NEW" required /> 새상품</label>
+                    <label><input type="radio" name="item_condition" value="LIKE_NEW" /> 거의 새것</label>
+                    <label><input type="radio" name="item_condition" value="GOOD" /> 사용감 적음</label>
+                    <label><input type="radio" name="item_condition" value="FAIR" /> 사용감 많음</label>
+                    <label><input type="radio" name="item_condition" value="POOR" /> 고장/파손</label>
                 </div>
                 <div>
-                    <label>제품 사진 <input type="file" name="productimg" /></label
+                    <label>제품 설명
+                        <textarea name="description" required></textarea></label
                     ><br />
                 </div>
+                <div class="radio-group">
+                    <p>거래 방식:</p>
+                    <label><input type="radio" name="trade_type" value="DELIVERY" required /> 택배</label>
+                    <label><input type="radio" name="trade_type" value="MEETUP" /> 직거래</label>
+                    <label><input type="radio" name="trade_type" value="BOTH" checked /> 모두 가능</label>
+                </div>
+                <div id="location-field">
+                    <label>거래 희망 지역
+                        <!-- 지역 입력 필드를 항상 보이도록 수정 -->
+                        <input type="text" name="location" required /></label>
+                </div>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="safe_pay_yn" value="Y" />
+                        안전 결제 가능
+                    </label>
+                </div>
+                <div>
+                    <label>제품 사진
+                        <input type="file" name="product_photos[]" multiple /></label
+                    ><br />
+                </div>
+
+                <div class="attr-section">
+                    <h3>제품 부가 정보 (선택 사항)</h3>
+                    <div id="attributes">
+                        <div class="attr-item">
+                            <input type="text" name="attr_key[]" placeholder="속성명 (예: 사이즈)" />
+                            <input type="text" name="attr_value[]" placeholder="속성값 (예: XL)" />
+                        </div>
+                    </div>
+                    <div class="attr-buttons">
+                        <button type="button" onclick="addAttributeField()">항목 추가</button>
+                    </div>
+                </div>
+
                 <button type="submit">등록하기</button>
             </form>
         </fieldset>
     </div>
 </div>
+<script>
+    function addAttributeField() {
+        const attributesDiv = document.getElementById('attributes');
+        const newItem = document.createElement('div');
+        newItem.classList.add('attr-item');
+        newItem.innerHTML = `
+            <input type="text" name="attr_key[]" placeholder="속성명 (예: 색상)" />
+            <input type="text" name="attr_value[]" placeholder="속성값 (예: 흰색)" />
+            <button type="button" onclick="this.parentNode.remove()">삭제</button>
+        `;
+        attributesDiv.appendChild(newItem);
+    }
+</script>
 <script src="../js/header.js"></script>
 </body>
 </html>
