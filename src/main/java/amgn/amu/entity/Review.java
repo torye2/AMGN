@@ -8,7 +8,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "rater_id"}))
+@Table(
+    name = "reviews",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "rater_id"})
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,10 +34,8 @@ public class Review {
     private int score;
 
     @Column(length = 500)
-    private String comment;
+    private String rvComment;
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-
 }
