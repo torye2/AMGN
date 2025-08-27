@@ -50,4 +50,26 @@ public class Order {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @Column(name = "recv_name")
+    private String receiverName;
+
+    @Column(name = "recv_phone")
+    private String receiverPhone;
+
+    @Column(name = "recv_addr1")
+    private String receiverAddress1;
+    
+    @Column(name = "recv_addr2")
+    private String receiverAddress2;
+    
+    @Column(name = "recv_zip")
+    private String receiverZip;
+    
+//    @Column(name = "meetup_time")
+//    private LocalDateTime meetupTime;
+
+//    @Column(name = "meetup_place")
+//    private String meetupPlace;
+
 }
