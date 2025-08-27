@@ -1,4 +1,4 @@
-package amgn.amu.service;
+package amgn.amu.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

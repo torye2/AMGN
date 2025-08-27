@@ -1,5 +1,6 @@
 package amgn.amu.service;
 
+import amgn.amu.dto.ReportCreateRequest;
 import amgn.amu.dto.ReportDto;
 
 public interface SafetyService {

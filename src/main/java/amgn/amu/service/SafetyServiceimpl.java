@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import org.springframework.stereotype.Service;
 
+import amgn.amu.dto.ReportCreateRequest;
 import amgn.amu.dto.ReportDto;
 import amgn.amu.entity.Block;
 import amgn.amu.entity.Block.PK;
