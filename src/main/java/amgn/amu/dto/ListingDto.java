@@ -1,5 +1,6 @@
 package amgn.amu.dto;
 
+import amgn.amu.entity.Listing;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,4 +21,21 @@ public class ListingDto {
     private String safePayYn; // 'Y' 또는 'N'
     private Long listingId;
     private Long sellerId;
+
+
+    public Listing toEntity() {
+        return Listing.builder()
+                .listingId(this.listingId)
+                .title(this.title)
+                .price(this.price)
+                .negotiable(this.negotiable)
+                .categoryId(this.categoryId)
+                .itemCondition(this.itemCondition)
+                .description(this.description)
+                .tradeType(this.tradeType)
+                .regionId(this.regionId)
+                .safePayYn(this.safePayYn)
+                .sellerId(this.sellerId)
+                .build();
+    }
 }

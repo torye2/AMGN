@@ -13,7 +13,9 @@ public class ListingAttr {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long attrId;
 
-    private Long listingId; // listings 테이블의 listing_id와 매핑
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", referencedColumnName = "listing_id", nullable = false)
+    private Listing listing; // listings 테이블의 listing_id와 매핑
     private String attrKey;
     private String attrValue;
 }

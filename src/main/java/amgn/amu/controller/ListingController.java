@@ -2,8 +2,10 @@ package amgn.amu.controller;
 
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
+import amgn.amu.dto.LoginUserDto;
 import amgn.amu.service.ListingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,48 @@ public class ListingController {
         this.objectMapper = objectMapper;
     }
 
+
+
+    @PostMapping("/write")
+    @Transactional(rollbackFor = Exception.class)
+    public ResponseEntity<Map<String, String>> writeProduct(
+            @RequestPart("listingData") String listingDataJson,
+            @RequestPart("attrs") String attrsJson,
+            @RequestParam("productPhotos") MultipartFile[] productPhotos,
+            HttpSession session) {
+
+        try {
+            LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+            if (loginUser == null) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "로그인이 필요합니다.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+            }
+
+            ListingDto listingDto = objectMapper.readValue(listingDataJson, ListingDto.class);
+
+            listingDto.setSellerId(loginUser.getUserId());
+
+            List<AttrDto> attrs = Arrays.asList(objectMapper.readValue(attrsJson, AttrDto[].class));
+
+            long listingId = listingService.saveListing(listingDto);
+
+            listingService.saveListingAttrs(listingId, attrs);
+
+            listingService.saveListingPhotos(listingId, productPhotos);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "상품이 성공적으로 등록되었습니다!");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("상품 등록 중 오류 발생", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "상품 등록 중 오류가 발생했습니다.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+/*
     @PostMapping("/write")
     @Transactional(rollbackFor = Exception.class) // 모든 예외에 대해 롤백하도록 수정
     public ResponseEntity<Map<String, String>> writeProduct(
@@ -63,6 +107,8 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+ */
 
 
     @GetMapping("/all")
