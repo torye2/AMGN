@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>주문 관리</title>
-
-
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/order/css/order.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
@@ -24,15 +25,27 @@
                 <h2>주문 등록</h2>
                 <form id="orderForm">
                     <input type="number" name="listingId" placeholder="상품 ID" required />
-                    <select name="method">
+                    
+                    <!-- 거래 방식 선택 -->
+                    <select name="method" id="methodSelect">
                         <option value="MEETUP">직거래</option>
                         <option value="DELIVERY">배송</option>
                     </select>
-                    <input type="text" name="recvName" placeholder="수령인 이름" />
-                    <input type="text" name="recvPhone" placeholder="수령인 전화" />
-                    <input type="text" name="recvAddr1" placeholder="직거래 장소" />
-                    <input type="text" name="recvAddr2" placeholder="택배 주소" />
-                    <input type="text" name="recvZip" placeholder="우편번호" />
+                    
+                    <input type="text" name="recvName" placeholder="수령인 이름" required />
+                    <input type="text" name="recvPhone" placeholder="수령인 전화" required />
+                    
+                    <!-- 직거래 입력 -->
+                    <div id="meetupFields">
+                        <input type="text" name="recvAddr1" placeholder="희망 직거래 장소" />
+                    </div>
+
+                    <!-- 배송 입력 -->
+                    <div id="deliveryFields" style="display:none;">
+                        <input type="text" name="recvAddr2" placeholder="택배 주소" />
+                        <input type="text" name="recvZip" placeholder="우편번호" />
+                    </div>
+
                     <button type="submit">주문 등록</button>
                 </form>
             </section>
@@ -59,13 +72,93 @@
 
         </div>
     </div>
-
-    <footer id="footer">
-        <div class="container">footer</div>
-    </footer>
 </div>
 
-<!-- JS 분리 -->
+<!-- JS -->
+<script src="/js/header.js"></script>
 <script src="/order/js/order.js"></script>
+
+<script>
+const methodSelect = document.getElementById("methodSelect");
+const meetupFields = document.getElementById("meetupFields");
+const deliveryFields = document.getElementById("deliveryFields");
+
+methodSelect.addEventListener("change", () => {
+    if (methodSelect.value === "MEETUP") {
+        meetupFields.style.display = "block";
+        deliveryFields.style.display = "none";
+    } else if (methodSelect.value === "DELIVERY") {
+        meetupFields.style.display = "none";
+        deliveryFields.style.display = "block";
+    }
+});
+
+// 주문 폼 제출
+const orderForm = document.getElementById("orderForm");
+orderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(orderForm);
+    const userId = 1; // 테스트용, 실제 로그인 사용자 ID로 교체
+    const data = {
+        listingId: Number(formData.get("listingId")),
+        method: formData.get("method"),
+        recvName: formData.get("recvName"),
+        recvPhone: formData.get("recvPhone"),
+        recvAddr1: formData.get("recvAddr1") || null,
+        recvAddr2: formData.get("recvAddr2") || null,
+        recvZip: formData.get("recvZip") || null
+    };
+
+    try {
+        const res = await fetch(`/orders?userId=${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        alert("주문이 등록되었습니다. 주문 ID: " + result.id);
+        orderForm.reset();
+        meetupFields.style.display = "block";
+        deliveryFields.style.display = "none";
+        loadOrders(); // 주문 목록 새로고침
+    } catch (err) {
+        console.error(err);
+        alert("주문 등록 중 오류가 발생했습니다.");
+    }
+});
+
+// 주문 목록 로드 함수
+async function loadOrders() {
+    const userId = 1; // 테스트용
+    const res = await fetch(`/orders?userId=${userId}`);
+    const orders = await res.json();
+    const tbody = document.querySelector("#ordersTable tbody");
+    tbody.innerHTML = "";
+    orders.forEach(order => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${order.id}</td>
+            <td>${order.listingId}</td>
+            <td>${order.method}</td>
+            <td>${order.status}</td>
+            <td>${order.finalPrice}</td>
+            <td>
+                ${order.status === "CREATED" ? `<button onclick="payOrder(${order.id})">결제</button>` : ""}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function payOrder(orderId) {
+    const userId = 1; // 테스트용
+    await fetch(`/orders/${orderId}/pay?userId=${userId}`, { method: "POST", body: JSON.stringify({}) });
+    loadOrders();
+}
+
+// 초기 로드
+loadOrders();
+</script>
 </body>
 </html>

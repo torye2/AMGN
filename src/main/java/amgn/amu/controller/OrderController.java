@@ -2,14 +2,10 @@ package amgn.amu.controller;
 
 import java.util.List;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.OrderCreateRequest;
 import amgn.amu.dto.OrderDto;
 import amgn.amu.dto.PaymentRequest;
@@ -22,56 +18,81 @@ import jakarta.validation.Valid;
 public class OrderController {
 
     private final OrderService orderService;
-    
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 
+    // 주문 생성
     @PostMapping
-    public OrderDto create(@RequestParam Long userId, @Valid @RequestBody OrderCreateRequest req) {
-    	System.out.println("요청 데이터: " + req);
+    public OrderDto create(@RequestParam(name="userId") Long userId,
+                           @Valid @RequestBody OrderCreateRequest req) {
         return orderService.create(userId, req);
     }
-    
-    @GetMapping
-    public List<OrderDto> myOrders(@RequestParam Long userId) {
-        return orderService.myOrders(userId);
-    }
 
+    // 주문 결제
     @PostMapping("/{id}/pay")
-    public OrderDto pay(@RequestParam Long userId, @PathVariable Long id, @RequestBody PaymentRequest req) {
-        return orderService.pay(userId, id, req);
+    public OrderDto pay(@RequestParam(name="userId") Long userId,
+                        @PathVariable(name="id") Long orderId,
+                        @RequestBody PaymentRequest req) {
+        return orderService.pay(userId, orderId, req);
     }
 
-    @PostMapping("/{id}/confirm-delivery")
-    public OrderDto delivered(@RequestParam Long userId, @PathVariable Long id) {
-        return orderService.confirmDelivered(userId, id);
-    }
-
-    @PostMapping("/{id}/complete")
-    public OrderDto complete(@RequestParam Long userId, @PathVariable Long id) {
-        return orderService.complete(userId, id);
-    }
-
+    // 직거래 확인
     @PostMapping("/{id}/confirm-meetup")
-    public OrderDto confirmMeetup(@RequestParam Long userId, @PathVariable Long id) {
-        return orderService.confirmMeetup(userId, id);
+    public OrderDto confirmMeetup(@RequestParam(name="userId") Long userId,
+                                  @PathVariable(name="id") Long orderId) {
+        return orderService.confirmMeetup(userId, orderId);
     }
 
-    @PostMapping("/{id}/cancel")
-    public OrderDto cancel(@RequestParam Long userId, @PathVariable Long id) {
-        return orderService.cancel(userId, id);
-    }
-
-    @PostMapping("/{id}/dispute")
-    public OrderDto dispute(@RequestParam Long userId, @PathVariable Long id, @RequestParam String reason) {
-        return orderService.dispute(userId, id, reason);
-    }
-
+    // 배송 입력
     @PostMapping("/{id}/tracking")
-    public String inputTracking(@RequestParam Long userId, @PathVariable Long id, @Valid @RequestBody TrackingInputRequest req) {
-        return orderService.inputTracking(userId, id, req).toString();
+    public String inputTracking(@RequestParam(name="userId") Long userId,
+                                @PathVariable(name="id") Long orderId,
+                                @Valid @RequestBody TrackingInputRequest req) {
+        return orderService.inputTracking(userId, orderId, req).toString();
     }
 
+    // 배송 완료 확인
+    @PostMapping("/{id}/confirm-delivery")
+    public OrderDto delivered(@RequestParam(name="userId") Long userId,
+                              @PathVariable(name="id") Long orderId) {
+        return orderService.confirmDelivered(userId, orderId);
+    }
+
+    // 주문 완료
+    @PostMapping("/{id}/complete")
+    public OrderDto complete(@RequestParam(name="userId") Long userId,
+                             @PathVariable(name="id") Long orderId) {
+        return orderService.complete(userId, orderId);
+    }
+
+    // 주문 취소
+    @PostMapping("/{id}/cancel")
+    public OrderDto cancel(@RequestParam(name="userId") Long userId,
+                           @PathVariable(name="id") Long orderId) {
+        return orderService.cancel(userId, orderId);
+    }
+
+    // 분쟁
+    @PostMapping("/{id}/dispute")
+    public OrderDto dispute(@RequestParam(name="userId") Long userId,
+                            @PathVariable(name="id") Long orderId,
+                            @RequestParam(name="reason") String reason) {
+        return orderService.dispute(userId, orderId, reason);
+    }
+
+    // 내 주문 조회
+    @GetMapping
+    public ResponseEntity<List<OrderDto>> getOrders(@RequestParam(name="userId") Long userId) {
+        List<OrderDto> orders = orderService.myOrders(userId);
+        return ResponseEntity.ok(orders);
+    }
+
+    // 특정 상품 조회
+    @GetMapping("/listing/{listingId}")
+    public ResponseEntity<ListingDto> getListing(@PathVariable(name="listingId") Long listingId) {
+        ListingDto listing = orderService.getListingInfo(listingId);
+        return ResponseEntity.ok(listing);
+    }
 }

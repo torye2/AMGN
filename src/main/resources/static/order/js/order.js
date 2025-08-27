@@ -1,4 +1,5 @@
-const userId = 123; // 임시: 로그인 사용자 ID
+const userId = 1; // 임시: 로그인 사용자 ID
+
 
 // 주문 등록
 document.getElementById('orderForm').addEventListener('submit', function(e) {

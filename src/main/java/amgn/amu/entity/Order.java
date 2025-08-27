@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.dto.OrderDto.TradeMethod;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,7 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,11 +24,19 @@ import lombok.NoArgsConstructor;
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
     private Long id;
 
+    @Column(name = "listing_id")
     private Long listingId;
+
+    @Column(name = "buyer_id")
     private Long buyerId;
+
+    @Column(name = "seller_id")
     private Long sellerId;
+
+    @Column(name = "final_price")
     private Long finalPrice;
 
     @Enumerated(EnumType.STRING)
@@ -37,10 +45,9 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Version
-    private Long version; // 낙관적 락 적용
 }
-
