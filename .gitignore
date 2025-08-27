@@ -39,3 +39,5 @@ out/
 *.db
 *.mv.db
 *.h2.db
+
+src/main/resources/application.properties

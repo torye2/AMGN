@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.OrderCreateRequest;
 import amgn.amu.dto.OrderDto;
+import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.dto.PaymentRequest;
 import amgn.amu.dto.TrackingInputRequest;
 import amgn.amu.entity.Listing;
@@ -25,7 +26,13 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
-
+    
+    @Override
+    public boolean isListingInTransaction(Long listingId) {
+        // CREATED 또는 IN_TRANSIT 상태인 주문이 있으면 true
+        return orderRepository.existsByListingIdAndStatusIn(listingId, List.of(OrderStatus.CREATED, OrderStatus.IN_TRANSIT));
+    }
+    
     @Override
     public OrderDto create(Long actorUserId, OrderCreateRequest req) {
         // 1. listing 존재 여부 확인 및 가격 가져오기
@@ -36,13 +43,26 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setBuyerId(actorUserId);
         order.setListingId(req.listingId());
-        order.setSellerId(listing.getSellerId());   // sellerId도 세팅
-        order.setFinalPrice(listing.getPrice().longValue());    // finalPrice를 listing 가격으로 세팅
+        order.setSellerId(listing.getSellerId());
+        order.setFinalPrice(listing.getPrice().longValue());
         order.setMethod(req.method());
-        order.setStatus(OrderDto.OrderStatus.CREATED);
+        order.setStatus(OrderStatus.CREATED);
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
 
+        // 🚚 배송 관련 정보 매핑
+        order.setReceiverName(req.recvName());
+        order.setReceiverPhone(req.recvPhone());
+        order.setReceiverAddress1(req.recvAddr1());
+        order.setReceiverAddress2(req.recvAddr2());
+        order.setReceiverZip(req.recvZip());
+
+        // 🤝 직거래 관련 정보 매핑
+       // order.setMeetupTime(req.meetupTime());
+ //       order.setMeetupPlace(req.meetupPlace());
+
+        
+        
         // 3. 저장
         orderRepository.save(order);
 
@@ -54,8 +74,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDto pay(Long buyerId, Long orderId, PaymentRequest req) {
         Order order = findOrderByIdAndCheckBuyer(orderId, buyerId);
-        order.setStatus(OrderDto.OrderStatus.PAID);
+
+        // 결제 가능한 상태인지 확인
+        if (order.getStatus() != OrderStatus.CREATED) {
+            throw new RuntimeException("결제할 수 없는 상태입니다.");
+        }
+
+        order.setStatus(OrderStatus.PAID); // 판매 완료
+        order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+
         return toDto(order);
     }
 
@@ -94,7 +122,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDto cancel(Long actorUserId, Long orderId) {
         Order order = findOrderById(orderId);
-        order.setStatus(OrderDto.OrderStatus.CANCELLED);
+
+        // 결제 완료 상태(COMPLETED)는 취소 불가
+        if(order.getStatus() == OrderStatus.COMPLETED) {
+            throw new RuntimeException("이미 판매 완료된 주문은 취소할 수 없습니다.");
+        }
+
+        // 상태를 CREATED로 되돌림
+        order.setStatus(OrderStatus.CREATED);
         orderRepository.save(order);
         return toDto(order);
     }
@@ -111,6 +146,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderDto> myOrders(Long userId) {
         List<Order> orders = orderRepository.findByBuyerIdOrSellerIdOrderByCreatedAtDesc(userId, userId);
         return orders.stream()
+        		.filter(o -> o.getStatus() != OrderStatus.CANCELLED) // 취소 주문 제외
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -147,6 +183,21 @@ public class OrderServiceImpl implements OrderService {
                 order.getStatus(),
                 order.getCreatedAt()
         );
+    }
+    
+    @Override
+    @Transactional
+    public void deleteOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("주문이 존재하지 않습니다: " + orderId));
+
+        // 권한 체크 (구매자만 삭제 가능)
+        if (!order.getBuyerId().equals(userId)) {
+            throw new RuntimeException("권한이 없습니다.");
+        }
+
+        // 실제 삭제
+        orderRepository.delete(order);
     }
 
     private ListingDto toListingDto(Listing listing) {

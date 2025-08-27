@@ -1,6 +1,7 @@
 package amgn.amu.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +38,6 @@ public class OrderController {
                         @RequestBody PaymentRequest req) {
         return orderService.pay(userId, orderId, req);
     }
-
     // 직거래 확인
     @PostMapping("/{id}/confirm-meetup")
     public OrderDto confirmMeetup(@RequestParam(name="userId") Long userId,
@@ -68,10 +68,11 @@ public class OrderController {
     }
 
     // 주문 취소
-    @PostMapping("/{id}/cancel")
-    public OrderDto cancel(@RequestParam(name="userId") Long userId,
-                           @PathVariable(name="id") Long orderId) {
-        return orderService.cancel(userId, orderId);
+    @DeleteMapping("/{orderId}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable("orderId") Long orderId,
+                                       @RequestParam("userId") Long userId) {
+        orderService.deleteOrder(userId, orderId); // cancel -> deleteOrder
+        return ResponseEntity.ok().build();
     }
 
     // 분쟁
@@ -95,4 +96,12 @@ public class OrderController {
         ListingDto listing = orderService.getListingInfo(listingId);
         return ResponseEntity.ok(listing);
     }
+    
+    // 특정 listing 거래중인지 체크
+    @GetMapping("/check")
+    public Map<String, Boolean> checkOrder(@RequestParam Long listingId) {
+        boolean exists = orderService.isListingInTransaction(listingId);
+        return Map.of("exists", exists);
+    }
+
 }
