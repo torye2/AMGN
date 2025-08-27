@@ -2,6 +2,7 @@ package amgn.amu.service;
 
 import java.util.List;
 
+import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.OrderCreateRequest;
 import amgn.amu.dto.OrderDto;
 import amgn.amu.dto.PaymentRequest;
@@ -17,4 +18,5 @@ public interface OrderService {
 	  OrderDto cancel(Long actorUserId, Long orderId);                             // 규칙에 따라 CANCELLED
 	  OrderDto dispute(Long actorUserId, Long orderId, String reason);             // -> DISPUTED
 	  List<OrderDto> myOrders(Long userId);
+	  ListingDto getListingInfo(Long listingId);
 	}

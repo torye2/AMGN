@@ -1,0 +1,243 @@
+#header {
+    width: 100%;
+    height: 120px;
+}
+/*컨테이너*/
+.container {
+  width: 990px;
+  height: inherit;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.3);
+}
+.header .header-menu {
+    text-align: right;
+}
+
+.header .header-menu a {
+  padding: 10px;
+  display: inline-block;
+}
+
+.header .header-menu a:hover {
+  color: #666;
+}
+
+.header .header-tit {
+  text-align: left;
+}
+
+.header .header-tit h1 {
+  background-color: #fff;
+  font-size: 28px;
+  padding: 10px;
+  display: inline-block;
+  margin: 10px;
+  position: relative;
+  top: -40px; /* 위로 30px 이동 */
+}
+
+.search-section {
+    text-align: center;
+    padding: 50px 20px 30px;
+}
+
+.location-button {
+	background-color: #222;
+	color: white;
+	padding: 10px 20px;
+	border-radius: 25px;
+	font-weight: bold;
+	font-size: 16px;
+	display : inline-block;
+	margin-right: 10px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+
+.search-section h1 {
+    font-size: 30px;
+    margin-bottom: 20px;
+}
+
+.search-container {
+	display : flex;
+	justify-content: center;
+	align-items: center;
+	gap : 10px;
+	margin-bottom: 10px;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ccc;
+    border-radius: 30px;
+    overflow: hidden;
+    width: 600px;
+    background-color: white;
+}
+
+.search-box select {
+    border : none;
+    padding: 10px 16px;
+    height: 44px;
+    border-right: 1px solid #ccc;
+    outline: none;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 10px;
+    border : none;
+    outline: none;
+}
+
+
+.search-box button {
+    padding: 0 20px;
+    height: 44px;
+    background-color: black;
+    color: white;
+    border: none;
+    font-size: 14px;
+    border-radius: 0 30px 30px 0;
+    cursor: pointer;
+}
+
+
+.search-box select:nth-last-child(2){
+    width: 120px;
+    height: 50px;
+}
+
+.keywords {
+    margin-top: 4px;
+    font-size: 17px;
+    color: #7c7979;
+    text-align: center;
+}
+
+.keywords span a{
+    margin: 0 5px;
+    color: #7c7979;
+    text-decoration: none;
+}
+
+.categories {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 40px auto 20px;
+}
+
+#category {
+    background-color: #9c9595fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    width: 120px;
+    height: 50px;
+    font-size: 20px;
+    font-weight:600;
+    text-align: center;
+    color: #fcfcfc;
+    margin: 0;
+}
+
+.locations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.location-row,
+.location-row-2 {
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+	margin-bottom: 10px
+}
+
+.location {
+	display: inline-block;
+    border : 1px solid #222;
+    padding : 8px 15px;
+    margin : 5px;
+    border-radius : 20px;
+    cursor : pointer;
+    text-align : center;
+    font-size: 14px;
+    color: #161616;
+}
+
+.location:hover {
+	background-color: #f0f0f0;
+}
+
+
+
+
+
+
+
+/*여백 초기화*/
+body,
+div,
+ul,
+li,
+dl,
+dt,
+ol,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+input,
+fieldset,
+legend,
+p,
+select,
+table,
+th,
+td,
+tr,
+textarea,
+button,
+form {
+  margin: 0;
+  padding: 0;
+}
+
+/*a링크 초기화*/
+a {
+  color: #222;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #390;
+}
+
+/*폰트 초기화*/
+body,
+input,
+textarea,
+select,
+button,
+table {
+  font-family: "Nanum Gothic", AppleSDGothicVeo-Regular, "Malgun gothic",
+    "맑은 고딕", dotum, "돋움", sans-serif;
+  color: #222;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
