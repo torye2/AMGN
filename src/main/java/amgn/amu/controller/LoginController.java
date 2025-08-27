@@ -6,12 +6,18 @@ import amgn.amu.service.LoginService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Collections;
+import java.util.Map;
+
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class LoginController {
@@ -32,6 +38,7 @@ public class LoginController {
         if (br.hasErrors()) {
             return "redirect:/login.html";
         }
+
         try {
             LoginUserDto loginUser = loginService.login(req);
             session.setAttribute("loginUser", loginUser);
@@ -42,9 +49,24 @@ public class LoginController {
         }
     }
 
+    @GetMapping("/logout")
+    public String logoutGet(HttpSession session) {
+        session.invalidate();
+        return "redirect:/login.html?logout";
+    }
+
     @PostMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();
-        return "redirect:/login?logout";
+        return "redirect:/login.html?logout";
     }
+
+    @GetMapping("/debug/session") @ResponseBody
+    public Map<String,Object> session(HttpSession s) {
+        return Map.of(
+                "id", s.getId(),
+                "attrs", Collections.list(s.getAttributeNames()),
+                "loginUser", s.getAttribute("loginUser"));
+    }
+
 }

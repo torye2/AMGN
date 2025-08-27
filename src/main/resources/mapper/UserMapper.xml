@@ -19,7 +19,7 @@
         <result property="city" column="CITY"/>
         <result property="detailAddress" column="DETAIL_ADDRESS"/>
         <result property="status" column="STATUS"/>
-        <result property="createdAt" column="CREATED_AT"/>
+        <result property="createdAt" column="CREATED_AT" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
         <result property="updatedAt" column="UPDATED_AT"/>
     </resultMap>
 
