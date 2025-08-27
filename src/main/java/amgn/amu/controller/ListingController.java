@@ -98,4 +98,23 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 Internal Server Error
         }
     }
+
+
+    @GetMapping("/my-products")
+    public ResponseEntity<List<ListingDto>> getMyProducts(HttpSession session) {
+        try {
+            LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+            if (loginUser == null) {
+                // 로그인 정보가 없으면 401 Unauthorized 상태 반환
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            // 로그인된 사용자의 ID를 이용해 상품 목록 조회
+            List<ListingDto> myProducts = listingService.getListingsBySellerId(loginUser.getUserId());
+            return ResponseEntity.ok(myProducts);
+        } catch (Exception e) {
+            log.error("내 상품 목록을 불러오는 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

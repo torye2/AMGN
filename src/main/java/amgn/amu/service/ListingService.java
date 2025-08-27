@@ -47,14 +47,14 @@ public class ListingService {
             return;
         }
 
-        // ✅ listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
+        // listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid listingId: " + listingId));
 
         List<ListingAttr> listingAttrs = attrs.stream()
                 .map(dto -> {
                     ListingAttr attr = new ListingAttr();
-                    // ✅ setListingId 대신 setListing()을 호출합니다.
+                    // setListingId 대신 setListing()을 호출합니다.
                     attr.setListing(listing);
                     attr.setAttrKey(dto.getAttrKey());
                     attr.setAttrValue(dto.getAttrValue());
@@ -67,7 +67,7 @@ public class ListingService {
 
     @Transactional
     public void saveListingPhotos(Long listingId, MultipartFile[] files) {
-        // ✅ listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
+        // listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid listingId: " + listingId));
 
@@ -75,7 +75,7 @@ public class ListingService {
         // 여기서는 예시로 더미 URL을 사용합니다.
         for (MultipartFile file : files) {
             ListingPhoto photo = new ListingPhoto();
-            // ✅ setListingId 대신 setListing()을 호출합니다.
+            // setListingId 대신 setListing()을 호출합니다.
             photo.setListing(listing);
             photo.setUrl("https://your-s3-bucket/path/to/uploaded/file.jpg");
             listingPhotosRepository.save(photo);
@@ -85,6 +85,13 @@ public class ListingService {
     // 모든 상품 목록을 조회하는 메서드
     public List<ListingDto> getAllListings() {
         List<Listing> listings = listingRepository.findAll();
+        return listings.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ListingDto> getListingsBySellerId(Long sellerId) {
+        List<Listing> listings = listingRepository.findBySellerId(sellerId);
         return listings.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
