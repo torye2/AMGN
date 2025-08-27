@@ -11,4 +11,5 @@ public class BlockDto {
 	private Long blocker_id ;
 	private Long blocked_id ;
 	private int created_at ;
+	
 }

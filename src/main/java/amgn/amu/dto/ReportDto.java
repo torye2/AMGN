@@ -16,4 +16,6 @@ public class ReportDto {
 	private String reason       ;
 	private String status       ;
 	private int created_at   ;
+	
+	
 }

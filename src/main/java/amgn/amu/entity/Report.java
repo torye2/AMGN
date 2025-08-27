@@ -1,5 +1,7 @@
 package amgn.amu.entity;
 
+import java.time.Instant;
+
 import jakarta.persistence.*;
 import lombok.*;
 

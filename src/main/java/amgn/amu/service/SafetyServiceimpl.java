@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class SafetyServicelmpl implements SafetyService {
+public class SafetyServiceimpl implements SafetyService {
 
 	private final BlockRepository blockRepository;
 	private final ReportRepository reportRepository;
