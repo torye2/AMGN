@@ -22,10 +22,10 @@
 	</div>
 
 	<section class="search-section">
-    <h1><strong>📍<span id="location-name">고덕동</span>에서 중고 거래를 원하시나요?</strong></h1>
+    <h1><strong>📍<span id="location-name">고덕동</span>에서 거래를 원하시나요?</strong></h1>
     
     <div class="search-container">
-      	<div id="current-location" class="location-button">위례동</div>
+      	<div class="search-container-button">고덕동</div>
         
         <div class="search-box">
            	<select>
@@ -38,64 +38,14 @@
       
       <div class="keywords">
       	인기 검색어 : 
-        <span><a href="/productDetail.html">휴대폰</a></span>
-        <span><a href="/productDetail.html">컴퓨터</a></span>
-        <span><a href="/productDetail.html">테블릿</a></span>
-        <span><a href="/productDetail.html">뷰티</a></span>
-        <span><a href="/productDetail.html">게임기</a></span>
-        <span><a href="/productDetail.html">카메라</a></span>
+        <span><a href="/main.html">휴대폰</a></span>
+        <span><a href="/main.html">컴퓨터</a></span>
+        <span><a href="/main.html">테블릿</a></span>
+        <span><a href="/main.html">뷰티</a></span>
+        <span><a href="/main.html">게임기</a></span>
+        <span><a href="/main.html">카메라</a></span>
 	   </div>
 	</section>
-
-	<section class="categories">
-	  <div id="category">카테고리</div>
-	  <div id="category">판매하기</div>
-	  <div id="category">1대1채팅</div>
-	  <div id="category">신고/문의</div>
-	</section>
-
-  	<section class="locations">
-  	  <div class="location-row">
-	    <div class="location">고덕동</div>
-	    <div class="location">다사읍</div>
-	    <div class="location">다산동</div>
-	    <div class="location">마곡동</div>
-	    <div class="location">명일동</div>
-	    <div class="location">물금동</div>
-	    <div class="location">배곧동</div>
-	    <div class="location">배방읍</div>
-	    <div class="location">별내동</div>
-	    <div class="location">봉담읍</div>
-	    <div class="location">불당동</div>
-    </div>
-    <div class="location-row-2">
-	    <div class="location">서초동</div>
-	    <div class="location">송도동</div>
-	    <div class="location">신림동</div>
-	    <div class="location">암사동</div>
-	    <div class="location">압구정동</div>
-	    <div class="location">역삼동</div>
-	    <div class="location">옥정동</div>
-	    <div class="location">오창읍</div>
-	    <div class="location">천호동</div>
-	    <div class="location">청담동</div>
-    </div>
-  </section>
-  
-  <script>
-    const locationBtns = document.querySelectorAll('.loaction');
-    
-    const locationTitle = document.getElementById('location-name');
-    const currentLocation = document.getElementById('current-location');
-    
-    loactionBtns.forEach(button => {
-    	button.addEventListener('click', () => {
-    		const selectedLocation = button.innerText;
-    		locationTitle.innerText = selectedLocation;
-    		currentLocation.innerText = selectedLocation;
-    	});
-    });
-  </script>
 
 </body>
 </html>
