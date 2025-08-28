@@ -2,19 +2,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const showProductsLink = document.getElementById('show-products');
     const productListContainer = document.getElementById('product-list-container');
 
+        // 기존의 '등록한 상품' 클릭 이벤트 리스너
     showProductsLink.addEventListener('click', function(event) {
         event.preventDefault();
 
-        // 로그인한 사용자의 상품만 가져오는 API 호출
         fetch('/product/my-products')
             .then(response => {
                 if (!response.ok) {
-                    // 로그인하지 않은 경우 401 Unauthorized 에러 처리
                     if (response.status === 401) {
                         alert("로그인이 필요합니다.");
-                        window.location.href = '/login'; // 로그인 페이지로 리다이렉트
+                        window.location.href = '/login';
                     }
-                    throw new Error('상품 정보를 불러오는데 실패했습니다.');
+                    throw new Error('상품 정보를 불러오는 데 실패했습니다.');
                 }
                 return response.json();
             })
@@ -29,12 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 data.forEach(product => {
                     const productItem = document.createElement('div');
-                    productItem.className = 'product-item';
+                    productItem.classList.add('product-item');
                     productItem.innerHTML = `
-                        <h3>${product.title}</h3>
-                        <p>가격: ${product.price} 원</p>
-                        <p>${product.description}</p>
-                        <a href="/product/${product.listingId}">상세 보기</a>
+                        <a href="/productDetail.html?id=${product.listingId}">
+                            <img src="${product.photoUrl || 'https://placehold.co/300x200?text=No+Image'}" alt="${product.title}" />
+                            <h4 class="product-title">${product.title}</h4>
+                            <p class="product-price">${product.price.toLocaleString()} 원</p>
+                        </a>
                     `;
                     productListContainer.appendChild(productItem);
                 });

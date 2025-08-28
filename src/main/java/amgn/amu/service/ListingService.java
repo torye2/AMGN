@@ -117,6 +117,9 @@ public class ListingService {
         dto.setRegionId(listing.getRegionId());
         dto.setSafePayYn(listing.getSafePayYn());
         dto.setSellerId(listing.getSellerId());
+        if (listing.getPhotos() != null && !listing.getPhotos().isEmpty()) {
+            dto.setPhotoUrl(listing.getPhotos().get(0).getUrl());
+        }
         // 추가 필드 (예: photoUrl, sellerNickname)도 포함시켜야함
         // 예시: dto.setPhotoUrl(listing.getPhotos().get(0).getUrl());
         // 예시: dto.setSellerNickname(listing.getSeller().getNickname());
