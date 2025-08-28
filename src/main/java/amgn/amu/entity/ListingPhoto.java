@@ -14,16 +14,11 @@ public class ListingPhoto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long photoId;
 
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_id", referencedColumnName = "listingId")
+     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", referencedColumnName = "listing_id", nullable = false)
     private Listing listing;
 
     private String url;
     private Integer sortOrder;
     private Timestamp createdAt;
-    
-    public Long getListingId() {
-        return listing != null ? listing.getListingId() : null;
-    }
 }

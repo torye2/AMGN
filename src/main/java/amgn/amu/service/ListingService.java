@@ -1,12 +1,11 @@
 package amgn.amu.service;
 
-import amgn.amu.entity.Listing;
-import amgn.amu.domain.User;
+import amgn.amu.entity.Listing; // domain 패키지 import
+import amgn.amu.entity.ListingAttr; // domain 패키지 import
+import amgn.amu.entity.ListingPhoto; // domain 패키지 import
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.entity.Listing;
-import amgn.amu.entity.ListingAttr;
-import amgn.amu.entity.ListingPhoto;
 import amgn.amu.repository.ListingAttrsRepository;
 import amgn.amu.repository.ListingPhotosRepository;
 import amgn.amu.repository.ListingRepository;
@@ -37,18 +36,7 @@ public class ListingService {
 
     @Transactional
     public Long saveListing(ListingDto dto) {
-        Listing listing = new Listing();
-        listing.setTitle(dto.getTitle());
-        listing.setPrice(dto.getPrice());
-        listing.setNegotiable(dto.getNegotiable());
-        listing.setCategoryId(dto.getCategoryId());
-        listing.setItemCondition(dto.getItemCondition());
-        listing.setDescription(dto.getDescription());
-        listing.setTradeType(dto.getTradeType());
-        listing.setRegionId(dto.getRegionId());
-        listing.setSafePayYn(dto.getSafePayYn());
-        listing.setSellerId(dto.getSellerId());
-
+        Listing listing = dto.toEntity(); // DTO to Entity 변환
         Listing savedListing = listingRepository.save(listing);
         return savedListing.getListingId();
     }
@@ -58,10 +46,16 @@ public class ListingService {
         if (attrs == null || attrs.isEmpty()) {
             return;
         }
+
+        // listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid listingId: " + listingId));
+
         List<ListingAttr> listingAttrs = attrs.stream()
                 .map(dto -> {
                     ListingAttr attr = new ListingAttr();
-                    attr.setListingId(listingId);
+                    // setListingId 대신 setListing()을 호출합니다.
+                    attr.setListing(listing);
                     attr.setAttrKey(dto.getAttrKey());
                     attr.setAttrValue(dto.getAttrValue());
                     return attr;
@@ -73,28 +67,17 @@ public class ListingService {
 
     @Transactional
     public void saveListingPhotos(Long listingId, MultipartFile[] files) {
-        // 1. listing 객체 조회
+        // listingId를 사용하여 Listing 엔티티 객체를 가져옵니다.
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Listing not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid listingId: " + listingId));
 
-        // 2. 파일이 없으면 종료
-        if (files == null || files.length == 0) {
-            return;
-        }
-
-        // 3. 각 파일 처리
-        for (int i = 0; i < files.length; i++) {
-            MultipartFile file = files[i];
-
-            // 실제 S3 업로드 로직이 있으면 여기서 업로드 후 URL 가져오기
-            String uploadedUrl = "https://your-s3-bucket/path/to/file_" + i + ".jpg";
-
+        // 실제로는 파일을 S3에 업로드하고 URL을 받아와야 합니다.
+        // 여기서는 예시로 더미 URL을 사용합니다.
+        for (MultipartFile file : files) {
             ListingPhoto photo = new ListingPhoto();
-            photo.setListing(listing);  // Listing 객체 설정
-            photo.setUrl(uploadedUrl);
-            photo.setSortOrder(i);      // 순서 지정
-            photo.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-
+            // setListingId 대신 setListing()을 호출합니다.
+            photo.setListing(listing);
+            photo.setUrl("https://your-s3-bucket/path/to/uploaded/file.jpg");
             listingPhotosRepository.save(photo);
         }
     }
@@ -102,6 +85,13 @@ public class ListingService {
     // 모든 상품 목록을 조회하는 메서드
     public List<ListingDto> getAllListings() {
         List<Listing> listings = listingRepository.findAll();
+        return listings.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ListingDto> getListingsBySellerId(Long sellerId) {
+        List<Listing> listings = listingRepository.findBySellerId(sellerId);
         return listings.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -127,26 +117,9 @@ public class ListingService {
         dto.setRegionId(listing.getRegionId());
         dto.setSafePayYn(listing.getSafePayYn());
         dto.setSellerId(listing.getSellerId());
-
         // 추가 필드 (예: photoUrl, sellerNickname)도 포함시켜야함
         // 예시: dto.setPhotoUrl(listing.getPhotos().get(0).getUrl());
         // 예시: dto.setSellerNickname(listing.getSeller().getNickname());
-        return dto;
-    }
-    
-    public static ListingDto toDto(Listing listing) {
-        ListingDto dto = new ListingDto();
-        dto.setListingId(listing.getListingId());
-        dto.setSellerId(listing.getSellerId());
-        dto.setTitle(listing.getTitle());
-        dto.setPrice(listing.getPrice());
-        dto.setNegotiable(listing.getNegotiable());
-        dto.setCategoryId(listing.getCategoryId());
-        dto.setItemCondition(listing.getItemCondition());
-        dto.setDescription(listing.getDescription());
-        dto.setTradeType(listing.getTradeType());
-        dto.setRegionId(listing.getRegionId());
-        dto.setSafePayYn(listing.getSafePayYn());
         return dto;
     }
 }

@@ -1,0 +1,81 @@
+body {
+    margin: 0;
+    padding: 0;/
+    display: grid;
+    place-items: center; /* 수직 및 수평 중앙 정렬 */
+    min-height: 100vh; /* 화면 전체 높이 사용 */
+}
+/* 컨테이너의 부모 요소 */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1500px;
+    padding: 20px;
+    gap: 20px; /* 컨테이너 간 간격 */
+}
+
+.container1, .container2 {
+    width: 60%;
+    padding: 20px;
+    border: 0.5px solid gray;
+    background-color: #fff;
+    /* 컨테이너를 부모 요소의 중앙에 정렬 */
+    align-self: center;
+}
+
+.container1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 50px;
+}
+
+.container1 p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.container1 button {
+    padding: 8px 16px;
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.container1 button:hover {
+    background-color: gray;
+}
+
+.container2 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    text-align: center;
+    padding: 3px 20px;
+}
+
+.container2 div {
+    flex-grow: 1;
+    padding: 10px;
+}
+
+.container2 a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: black;
+    font-size: 17px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.container2 a:hover {
+    color: gray;
+}

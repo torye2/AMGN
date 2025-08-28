@@ -19,4 +19,7 @@ public interface OrderService {
 	  OrderDto dispute(Long actorUserId, Long orderId, String reason);             // -> DISPUTED
 	  List<OrderDto> myOrders(Long userId);
 	  ListingDto getListingInfo(Long listingId);
+	  boolean isListingInTransaction(Long listingId);
+	  void deleteOrder(Long userId, Long orderId);
+	  
 	}

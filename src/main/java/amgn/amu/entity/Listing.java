@@ -1,18 +1,22 @@
 package amgn.amu.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 @Getter
 @Setter
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Table(name = "listings")
 public class Listing {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "listing_id")
     private Long listingId;
 
     private Long sellerId;
