@@ -26,7 +26,8 @@ public record OrderDto(
         CANCELLED,
         DISPUTED,
         REFUNDED,
-        COMPLETED
+        COMPLETED,
+        
     }
     
 	public enum TradeMethod {
