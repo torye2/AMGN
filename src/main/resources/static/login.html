@@ -9,12 +9,14 @@
     <link rel="stylesheet" href="css/login.css" />
 </head>
 <body>
+<script src="js/login.js"></script>
 <div id="wrap">
     <div>
         <header id="header">
         </header>
     </div>
     <form action="/loginAction" method="POST">
+        <div id="formError" class="form-alert" aria-live="polite"></div>
         <fieldset class="login-box">
             <h1>로그인</h1>
             <div>

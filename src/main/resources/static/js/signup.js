@@ -1,0 +1,208 @@
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('[SIGNUP] DOM ready');
+    document.addEventListener('click', (e) => {
+        console.log('[DEBUG] clicked target:', e.target);
+    });
+    const yearSel = document.getElementById('birthYear');
+    const monthSel = document.getElementById('birthMonth');
+    const daySel = document.getElementById('birthDay');
+    const btnFindAddr = document.getElementById('btnFindAddr');
+    const zipcode = document.getElementById('zipcode');
+    const addr1 = document.getElementById('addr1');
+    const addr2 = document.getElementById('addr2');
+    const pw = document.getElementById('id-password');
+    const pw2 = document.getElementById('id-password2');
+    const phone = document.getElementById('id-phone');
+    const idInput = document.getElementById('id-account');
+    const idCheckBtn = document.getElementById('idCheck');
+    const form = document.querySelector('form');
+    const province = document.getElementById('province');
+    const city = document.getElementById('city');
+    const detailAddress = document.getElementById('detailAddress');
+    const submitBtn = document.getElementById('submitBtn');
+    let idCheckPassed = false;
+    let lastCheckedId = '';
+    const params = new URLSearchParams(location.search);
+    const msg   = params.get('error');       // 에러 메시지
+
+    // 폼 상단 공통 에러 박스에 표시
+    if (msg) {
+        const formError = document.getElementById('formError');
+        if (formError) {
+            formError.textContent = decodeURIComponent(msg);
+            formError.style.display = 'block';
+        }
+    }
+
+    // URL 깨끗이 (뒤로가기 해도 메시지 안 남도록)
+    if (window.history && history.replaceState) {
+        const cleanUrl = location.pathname; // /signup.html
+        history.replaceState({}, document.title, cleanUrl);
+    }
+
+    // ===== 생년월일 드롭다운 초기화 =====
+    if (yearSel && monthSel && daySel) {
+        const thisYear = new Date().getFullYear();
+        const startYear = 1950;
+
+        // 연도
+        yearSel.innerHTML = '<option value="">년</option>';
+        for (let y = thisYear; y >= startYear; y--) {
+            yearSel.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+        }
+        // 월
+        monthSel.innerHTML = '<option value="">월</option>';
+        for (let m = 1; m <= 12; m++) {
+            monthSel.insertAdjacentHTML('beforeend', `<option value="${m}">${m}월</option>`);
+        }
+        // 일 (연/월 선택 시 동적 생성)
+        daySel.innerHTML = '<option value="">일</option>';
+
+        function daysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+        function renderDays() {
+            const yy = parseInt(yearSel.value, 10);
+            const mm = parseInt(monthSel.value, 10);
+            daySel.innerHTML = '<option value="">일</option>';
+            if (!yy || !mm) return;
+            const cnt = daysInMonth(yy, mm);
+            let html = '';
+            for (let d = 1; d <= cnt; d++) html += `<option value="${d}">${d}</option>`;
+            daySel.insertAdjacentHTML('beforeend', html);
+        }
+        yearSel.addEventListener('change', renderDays);
+        monthSel.addEventListener('change', renderDays);
+    }
+
+    // ===== 카카오 우편번호 검색 =====
+    if (btnFindAddr && zipcode && addr1 && typeof daum !== 'undefined' && daum.Postcode) {
+        btnFindAddr.addEventListener('click', function () {
+            new daum.Postcode({
+                oncomplete: function (data) {
+                    const zip = data.zonecode || '';
+                    const base = data.roadAddress || data.jibunAddress || '';
+                    const sido = expandSidoName(data.sido) || '';        // 시/도
+                    const sigungu = data.sigungu || '';  // 시/군/구
+                    zipcode.value = zip;
+                    addr1.value = base;
+                    addr2 && addr2.focus();
+                    province.value = sido;
+                    city.value = sigungu;
+                    let target = (sido + " " + sigungu).trim();
+                    let detail = base.startsWith(target) ? base.replace(target, "").trim() : base;
+                    detail += addr2.value ? " " + addr2.value : "";
+                    detailAddress.value = detail.trim();
+                }
+            }).open();
+        });
+    } else if (btnFindAddr) {
+        // daum 라이브러리를 못 찾은 경우(로드 순서/경로 문제)
+        btnFindAddr.addEventListener('click', function () {
+            alert('주소 검색 스크립트를 불러오지 못했습니다. 인터넷 연결 또는 스크립트 로드 순서를 확인해주세요.');
+        });
+    }
+
+    // ===== 비밀번호 일치 검증 =====
+    if (pw && pw2) {
+        function passwordsMatch() {
+            return pw.value && pw.value === pw2.value;
+        }
+        pw.addEventListener('input', function () {
+           const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`-]).{8,}$/;
+
+           if(!pattern.test(pw.value)) {
+               pw.setCustomValidity("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야합니다.");
+           } else {
+               pw.setCustomValidity("");
+           }
+        });
+        pw2.addEventListener('input', () => {
+            pw2.setCustomValidity(passwordsMatch() ? '' : '비밀번호가 일치하지 않습니다.');
+        });
+        form && form.addEventListener('submit', (e) => {
+            if (!passwordsMatch()) {
+                e.preventDefault();
+                pw2.reportValidity();
+            }
+        });
+    }
+
+    // ===== 전화번호 포맷 =====
+    if (phone) {
+        phone.addEventListener('blur', () => {
+            const cleaned = phone.value.replace(/[^0-9]/g, '');
+            if (cleaned.length === 10) {
+                phone.value = cleaned.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+            } else if (cleaned.length === 11) {
+                phone.value = cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+            }
+        });
+    }
+
+    // ===== 아이디 중복 확인 =====
+    if (idCheckBtn && idInput) {
+        idCheckBtn.addEventListener('click', async () => {
+            console.log('[SIGNUP] idCheck clicked');
+            const id = idInput.value.trim();
+            if (!id) { alert('아이디를 입력해주세요.'); return; }
+            try {
+                // 필요 시 백엔드 엔드포인트/응답 포맷을 맞춰주세요.
+                const res = await fetch(`/api/users/exist?id=${encodeURIComponent(id)}`);
+                if (!res.ok) throw new Error('중복 확인 API 호출에 실패했습니다.');
+                const data = await res.json();
+                if (data.exist) {
+                    idCheckPassed = false;
+                    lastCheckedId = '';
+                    alert('이미 사용 중인 아이디입니다.');
+                } else {
+                    idCheckPassed = true;
+                    lastCheckedId = id;
+                    alert('사용 가능한 아이디입니다.');
+                }
+            } catch (e) {
+                alert('중복 확인 중 오류가 발생했습니다.');
+            }
+        });
+    }
+
+    idInput.addEventListener('input', () => {
+        idCheckPassed = false;
+        lastCheckedId = '';
+    });
+
+    form.addEventListener('submit', (e) => {
+        const currentId = idInput.value.trim();
+        console.log('[DEBUG] idCheckPassed: ' + idCheckPassed);
+        console.log('[DEBUG] lastCheckedId: ' + lastCheckedId);
+        console.log('[DEBUG] currentId: ' + currentId);
+        if (!idCheckPassed || currentId !== lastCheckedId) {
+            e.preventDefault();
+            alert('아이디 중복 확인을 완료해주세요.');
+            return;
+        }
+    });
+});
+
+function expandSidoName(sido) {
+    const map = {
+        '서울': '서울특별시',
+        '부산': '부산광역시',
+        '대구': '대구광역시',
+        '인천': '인천광역시',
+        '광주': '광주광역시',
+        '대전': '대전광역시',
+        '울산': '울산광역시',
+        '세종': '세종특별자치시',
+        '경기': '경기도',
+        '강원': '강원특별자치도',   // 2023 변경
+        '충북': '충청북도',
+        '충남': '충청남도',
+        '전북': '전북특별자치도',   // 2023 변경
+        '전남': '전라남도',
+        '경북': '경상북도',
+        '경남': '경상남도',
+        '제주': '제주특별자치도'
+    };
+    return map[sido] || sido;
+}

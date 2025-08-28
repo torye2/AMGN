@@ -1,0 +1,16 @@
+package amgn.amu.service;
+
+import amgn.amu.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class CheckService {
+
+    private final UserMapper userMapper;
+
+    public boolean extistById(String id) {
+        return userMapper.existsById(id);
+    }
+}

@@ -43,14 +43,11 @@
     </select>
 
     <insert id="insert" parameterType="amgn.amu.domain.User">
-        <selectKey keyProperty="userId" resultType="long" order="BEFORE">
-            SELECT USERS_SEQ.NEXTVAL FROM dual
-        </selectKey>
         INSERT INTO USERS (
-        USER_ID, ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
+        ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
         BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, PROVINCE, CITY, DETAIL_ADDRESS, STATUS, CREATED_AT, UPDATED_AT
         ) VALUES (
-        #{userId}, #{id}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
+        #{id}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
         #{birthYear}, #{birthMonth}, #{birthDay}, #{province}, #{city}, #{detailAddress},
         'ACTIVE', SYSTIMESTAMP, SYSTIMESTAMP
         )

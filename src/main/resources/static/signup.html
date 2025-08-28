@@ -5,117 +5,137 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>회원가입</title>
     <meta name="keyword" content="회원가입, html" />
-
     <link rel="stylesheet" href="css/reset.css" />
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/signup.css" />
 </head>
 <body>
+<script defer src="js/signup.js"></script>
 <div id="wrap">
     <div>
         <header id="header"></header>
     </div>
-    <form action="/signupProc" method="POST">
-        <fieldset class="signup-box">
+    <section class="signup-section">
+        <form action="/signup" method="POST" class="signup-box" autocomplete="on">
             <h1>회원가입</h1>
+            <!-- 폼 상단 공통 에러 -->
+            <div id="formError" class="form-alert" aria-live="polite"></div>
             <fieldset>
                 <legend>계정 정보</legend>
-                <div>
+
+                <div class="form-row">
                     <label for="id-account">아이디</label>
                     <input
                             type="text"
-                            name="account"
+                            name="id"
                             id="id-account"
+                            inputmode="latin"
+                            minlength="4"
+                            maxlength="20"
                             required="required"
+                            autocomplete="username"
                     />
+                    <button type="button" id="idCheck" aria-label="아이디 중복 확인">중복확인</button>
                 </div>
-                <div>
+
+                <div class="form-row">
                     <label for="id-password">비밀번호</label>
                     <input
                             type="password"
-                            name="password"
+                            name="passwordHash"
                             id="id-password"
+                            minlength="8"
                             required="required"
+                            autocomplete="new-password"
+                            placeholder="영문/숫자/특수문자 조합 8자 이상"
                     />
                 </div>
-                <div>
+
+                <div class="form-row">
                     <label for="id-password2">비밀번호 확인</label>
                     <input
                             type="password"
-                            name="password2"
+                            name="passwordCheck"
                             id="id-password2"
                             required="required"
+                            autocomplete="new-password"
                     />
                 </div>
-                <div>
-                    <label for="id-phone">핸드폰</label>
+
+                <div class="form-row">
+                    <label for="email">이메일</label>
+                    <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            required="required"
+                            autocomplete="email"
+                            placeholder="example@email.com"
+                    />
+                </div>
+
+                <div class="form-row">
+                    <label for="id-phone">휴대전화 번호</label>
                     <input
                             type="tel"
-                            name="phone"
+                            name="phoneNumber"
                             id="id-phone"
                             required="required"
+                            autocomplete="tel"
+                            placeholder="010-1234-5678"
                     />
                 </div>
-                <div>
+
+                <div class="form-row">
                     <label for="id-nickname">닉네임</label>
                     <input
                             type="text"
-                            name="nickname"
+                            name="nickName"
                             id="id-nickname"
                             required="required"
+                            maxlength="40"
                     />
                 </div>
-            </fieldset>
 
-            <fieldset>
-                <legend>프로필</legend>
-                <div>
+                <div class="form-row">
                     <label for="id-name">이름</label>
-                    <input type="text" name="name" id="id-name" required="required" />
-                </div>
-                <div>
-                    <label>생년월일</label>
-                    <input
-                            type="number"
-                            name="birth-year"
-                            placeholder="년"
-                            min="1900"
-                            max="2025"
-                            required="required"
-                    />
-                    <select name="birth-month" required="required">
-                        <option>월</option>
-                        <option value="1">1월</option>
-                        <option value="2">2월</option>
-                        <option value="3">3월</option>
-                        <option value="4">4월</option>
-                        <option value="5">5월</option>
-                        <option value="6">6월</option>
-                        <option value="7">7월</option>
-                        <option value="8">8월</option>
-                        <option value="9">9월</option>
-                        <option value="10">10월</option>
-                        <option value="11">11월</option>
-                        <option value="12">12월</option>
-                    </select>
-                    <input
-                            type="number"
-                            name="birth-day"
-                            placeholder="일"
-                            min="1"
-                            max="31"
-                            required="required"
-                    />
+                    <input type="text" name="userName" id="id-name" required />
                 </div>
 
-                <div>
+                <div class="form-row">
+                    <label>생년월일</label>
+                    <select name="birthYear" id="birthYear" required>
+                        <option value="">년</option>
+                    </select>
+                    <select name="birthMonth" id="birthMonth" required>
+                        <option value="">월</option>
+                    </select>
+                    <select name="birthDay" id="birthDay" required>
+                        <option value="">일</option>
+                    </select>
+                </div>
+
+                <div class="form-row address">
+                    <label>주소</label>
+                    <div class="addr-controls">
+                        <input type="text" id="zipcode" name="zipcode" placeholder="우편번호" required readonly />
+                        <button type="button" id="btnFindAddr" aria-label="우편번호 및 주소 검색">주소 검색</button>
+                    </div>
+                    <input type="text" id="addr1" name="addr1" placeholder="기본주소(도로명/지번)" required readonly />
+                    <input type="text" id="addr2" name="addr2" placeholder="상세주소(동/호 등)" required />
+                    <input type="hidden" name="province" id="province">
+                    <input type="hidden" name="city" id="city">
+                    <input type="hidden" name="detailAddress" id="detailAddress">
+                </div>
+
+                <div class="form-row">
                     <label>성별</label>
                     <label for="id-gender-male">남</label>
                     <input
                             type="radio"
                             name="gender"
                             id="id-gender-male"
-                            value="male"
+                            value="M"
                             required="required"
                     />
                     <label for="id-gender-female">여</label>
@@ -123,28 +143,29 @@
                             type="radio"
                             name="gender"
                             id="id-gender-female"
-                            value="female"
+                            value="F"
                             required="required"
                     />
                 </div>
+
+                <div class="form-row">
+                    <input
+                            type="checkbox"
+                            name="agree"
+                            id="id-agree"
+                            required="required"
+                    />
+                    <label for="id-agree">사이트 이용약관과 개인정보 수집 방침에 동의합니다.</label>
+                </div>
+
+                <button type="submit" id="submitBtn">가입하기</button>
             </fieldset>
-
-            <div>
-                <input
-                        type="checkbox"
-                        name="agree"
-                        id="id-agree"
-                        required="required"
-                />
-                <label for="id-agree"
-                >사이트 이용약관과 개인정보 수집 방침에 동의합니다.</label
-                >
-            </div>
-
-            <button type="submit">가입하기</button>
-        </fieldset>
-    </form>
+        </form>
+    </section>
 </div>
-<script src="js/header.js"></script>
+
+<!-- 카카오 우편번호 서비스 -->
+<script defer src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script defer src="js/header.js"></script>
 </body>
 </html>
