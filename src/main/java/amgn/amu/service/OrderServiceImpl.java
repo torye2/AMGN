@@ -35,11 +35,24 @@ public class OrderServiceImpl implements OrderService {
     
     @Override
     public OrderDto create(Long actorUserId, OrderCreateRequest req) {
-        // 1. listing 존재 여부 확인 및 가격 가져오기
+        // 1. listing 존재 여부 확인
         Listing listing = listingRepository.findById(req.listingId())
                 .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다: " + req.listingId()));
 
-        // 2. Order 엔티티 생성
+        // 2. 본인 상품 주문 차단
+        if (listing.getSellerId().equals(actorUserId)) {
+            throw new RuntimeException("본인 상품은 주문할 수 없습니다.");
+        }
+
+        // 3. 이미 거래 중인 주문 있는지 확인
+        if (orderRepository.existsByListingIdAndStatusIn(
+                req.listingId(),
+                List.of(OrderStatus.CREATED, OrderStatus.PAID, OrderStatus.IN_TRANSIT, OrderStatus.MEETUP_CONFIRMED)
+        )) {
+            throw new RuntimeException("이미 거래 중인 상품입니다.");
+        }
+
+        // 4. Order 엔티티 생성
         Order order = new Order();
         order.setBuyerId(actorUserId);
         order.setListingId(req.listingId());
@@ -57,18 +70,17 @@ public class OrderServiceImpl implements OrderService {
         order.setReceiverAddress2(req.recvAddr2());
         order.setReceiverZip(req.recvZip());
 
-        // 🤝 직거래 관련 정보 매핑
-       // order.setMeetupTime(req.meetupTime());
- //       order.setMeetupPlace(req.meetupPlace());
+        // 🤝 직거래 관련 정보 매핑 (추후 필요시 주석 해제)
+        // order.setMeetupTime(req.meetupTime());
+        // order.setMeetupPlace(req.meetupPlace());
 
-        
-        
-        // 3. 저장
+        // 5. 저장
         orderRepository.save(order);
 
-        // 4. DTO 변환 후 반환
+        // 6. DTO 변환 후 반환
         return toDto(order);
     }
+
 
 
     @Override
