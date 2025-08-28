@@ -96,7 +96,7 @@ function createButton(text, onClick) {
     return btn;
 }
 
-// 결제 처리 (하드코딩 제거)
+// 결제 처리
 function payOrder(order) {
     const idempotencyKey = `order_${order.id}_${Date.now()}`;
     const expiryDate = new Date(Date.now() + 3600 * 1000).toISOString();

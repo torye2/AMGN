@@ -1,10 +1,7 @@
 package amgn.amu.dto;
 
 import java.time.LocalDateTime;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
+import java.util.List;
 
 public record OrderDto(
         Long id,
@@ -15,6 +12,9 @@ public record OrderDto(
         TradeMethod method,
         OrderStatus status,
         LocalDateTime createdAt
+//        , String itemTitle,            // Listing 제목
+//        boolean reviewed,            // 리뷰 여부
+//        List<ReviewDto> reviews      // 리뷰 목록
 ) {
 
     public enum OrderStatus {
@@ -26,13 +26,20 @@ public record OrderDto(
         CANCELLED,
         DISPUTED,
         REFUNDED,
-        COMPLETED,
-        
+        COMPLETED
     }
-    
-	public enum TradeMethod {
-		MEETUP, // 직거래
-		DELIVERY, // 택배 배송
-		// ESCROW_DELIVERY 안전거래 + 배송 추후에 확장하면 넣을 기능(비대면 안전 거래. 돈을 제 3의 회사에서 가지고 있다가 택배 확인 후 송금이 완료되는 기능)
-	}
+
+    public enum TradeMethod {
+        MEETUP,
+        DELIVERY
+    }
+
+    public record ReviewDto(
+            Long reviewId,
+            Long raterId,
+            String raterNickName,
+            String rvComment,
+            int score,
+            LocalDateTime createdAt
+    ) {}
 }

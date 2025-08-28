@@ -1,43 +1,48 @@
 package amgn.amu.controller;
 
 import java.util.List;
+import java.util.Map;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import amgn.amu.dto.ReviewCreateRequest;
 import amgn.amu.dto.ReviewDto;
+import amgn.amu.dto.ReviewOrderDto;
+import amgn.amu.dto.LoginUserDto;
 import amgn.amu.service.ReviewService;
-import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/reviews")
+@RequiredArgsConstructor
 public class ReviewController {
 
     private final ReviewService reviewService;
 
-    public ReviewController(ReviewService reviewService) {
-        this.reviewService = reviewService;
+    private Long getUserId(HttpSession session) {
+        LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+        if (loginUser == null) throw new RuntimeException("로그인이 필요합니다.");
+        return loginUser.getUserId();
     }
 
-    // POST /api/reviews?uid=123
+    // 내 리뷰 작성 가능한 주문
+    @GetMapping("/mine")
+    public ResponseEntity<List<ReviewOrderDto>> myOrders(HttpSession session) {
+        Long userId = getUserId(session);
+        return ResponseEntity.ok(reviewService.getReviewableOrders(userId));
+    }
+
+    // 특정 주문 리뷰 리스트
+    @GetMapping("/orders/{orderId}")
+    public ResponseEntity<List<ReviewDto>> getReviews(@PathVariable Long orderId) {
+        return ResponseEntity.ok(reviewService.getReviewsByOrder(orderId));
+    }
+
+    // 리뷰 작성
     @PostMapping
-    public ReviewDto create(
-            @RequestParam(name = "uid") Long uid,
-            @Valid @RequestBody ReviewCreateRequest req) {
-        return reviewService.create(uid, req);
-    }
-
-    // GET /api/reviews/users/{userId}?limit=20
-    @GetMapping("/users/{userId}")
-    public List<ReviewDto> userReviews(
-            @PathVariable(name = "userId") Long userId,
-            @RequestParam(name = "limit", defaultValue = "20") int limit) {
-        return reviewService.listForUser(userId, limit);
+    public ResponseEntity<Void> createReview(@RequestBody Map<String, Object> payload, HttpSession session) {
+        Long userId = getUserId(session);
+        reviewService.createReview(userId, payload);
+        return ResponseEntity.ok().build();
     }
 }

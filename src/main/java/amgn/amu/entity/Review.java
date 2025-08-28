@@ -3,39 +3,36 @@ package amgn.amu.entity;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@Table(
-    name = "reviews",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "rater_id"})
-)
+@Table(name = "reviews")
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long reviewId;
+    @Column(name = "review_id")
+    private Long id;
 
-    @Column(nullable = false)
-    private Long orderId;
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
 
-    @Column(nullable = false)
+    @Column(name = "rater_id")
     private Long raterId;
 
-    @Column(nullable = false)
+    @Column(name = "ratee_id")
     private Long rateeId;
 
-    @Column(nullable = false)
-    private int score;
+    @Column(name = "score")
+    private Integer score;
 
-    @Column(length = 500)
+    @Column(name = "rv_comment")
     private String rvComment;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }
