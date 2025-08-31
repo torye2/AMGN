@@ -1,9 +1,5 @@
-#header {
-    width: 100%;
-    height: 120px;
-}
 /*컨테이너*/
-.container {
+.header {
   width: 990px;
   height: inherit;
   margin: 0 auto;
@@ -24,6 +20,10 @@
 
 .header .header-tit {
   text-align: left;
+}
+
+.header-tit[alt="main logo"] {
+	height : 40px;
 }
 
 .header .header-tit h1 {
@@ -47,6 +47,15 @@
     margin-bottom: 40px;
 }
 
+
+.search-container {
+	display : flex;
+	justify-content: center;
+	align-items: center;
+	gap : 10px;
+	margin-bottom: 10px;
+}
+
 .search-container-button {
 	background-color: #222;
 	color: white;
@@ -59,15 +68,6 @@
 	cursor: pointer;
 	white-space: nowrap;
 }
-
-.search-container {
-	display : flex;
-	justify-content: center;
-	align-items: center;
-	gap : 10px;
-	margin-bottom: 10px;
-}
-
 .search-box {
     display: flex;
     align-items: center;

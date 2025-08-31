@@ -1,51 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>아무거나 - 중고 거래 사이트</title>
-    <link rel="stylesheet" href="/css/index.css">
+
+    <!-- 스타일시트 -->
+    <link rel="stylesheet" href="/css/index.css" />
 </head>
 <body>
-  <div id="header">
-   	<div class="container">
-	  <div class="header">
-   		<div class="header-menu">
-   		  <a href="/login.html">로그인</a>
-   		  <a href="/signup.html">회원가입</a>
-   		</div>
-   		<div class="header-tit">
-		  <h1><a href="/main.html">중고거래사이트</a></h1>
-   		</div>
-	   </div>
-   	  </div>
-	</div>
 
-	<section class="search-section">
-    <h1><strong>📍<span id="location-name">고덕동</span>에서 거래를 원하시나요?</strong></h1>
-    
-    <div class="search-container">
-      	<div class="search-container-button">고덕동</div>
-        
-        <div class="search-box">
-           	<select>
-               	<option>중고거래</option>
-           	</select>
-            <input type="text" class="gap" placeholder="검색어를 입력해주세요">
-            <button>검색</button>
+    <!-- 헤더 영역 -->
+    <script src="js/header.js"></script>
+
+    <header class="header">
+        <!-- 로그인/회원가입 -->
+        <div id="auth-links" class="header-menu">
+            <a href="/login.html">로그인</a>
+            <a href="/signup.html">회원가입</a>
         </div>
-      </div>
-      
-      <div class="keywords">
-      	인기 검색어 : 
-        <span><a href="/main.html">휴대폰</a></span>
-        <span><a href="/main.html">컴퓨터</a></span>
-        <span><a href="/main.html">테블릿</a></span>
-        <span><a href="/main.html">뷰티</a></span>
-        <span><a href="/main.html">게임기</a></span>
-        <span><a href="/main.html">카메라</a></span>
-	   </div>
-	</section>
+
+        <!-- 로고 -->
+        <div class="header-tit">
+            <h1>
+                <a href="/main.html">
+                    <img src="/img/1.jpg" alt="main logo" />
+                </a>
+            </h1>
+        </div>
+    </header>
+
+    <!-- 검색 섹션 -->
+    <section class="search-section">
+        <h1>
+            <strong>📍<span id="location-name">고덕동</span>에서 거래를 원하시나요?</strong>
+        </h1>
+
+        <!-- 검색창 -->
+        <div class="search-container">
+            <div class="search-container-button">고덕동</div>
+
+            <div class="search-box">
+                <select>
+                    <option>중고거래</option>
+                </select>
+                <input type="text" class="gap" placeholder="검색어를 입력해주세요" />
+                <button>검색</button>
+            </div>
+        </div>
+
+        <!-- 인기 검색어 -->
+        <div class="keywords">
+            인기 검색어:
+            <span><a href="/main.html">휴대폰</a></span>
+            <span><a href="/main.html">컴퓨터</a></span>
+            <span><a href="/main.html">테블릿</a></span>
+            <span><a href="/main.html">뷰티</a></span>
+            <span><a href="/main.html">게임기</a></span>
+            <span><a href="/main.html">카메라</a></span>
+        </div>
+    </section>
 
 </body>
 </html>
