@@ -1,32 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko" xmlns="http://www.w3.org/1999/html">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>마이페이지</title>
+    <!-- 기존 리소스와 호환 -->
     <link rel="stylesheet" href="../css/reset.css" />
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/mypage.css" />
 </head>
 <body>
-<div>
-    <header id="header"></header>
-</div>
-<div class="main-content">
-<div class="container1">
-    <p>상점명: OO</p>
-    <button type="submit">상점 수정</button>
-</div>
-<div class="container2">
-    <div><a href="#" id="show-products">등록한 상품</a></div>
-    <div><a href="">상점 후기</a></div>
-    <div><a href="">판매 내역</a></div>
-    <div><a href="">구매 내역</a></div>
-</div>
-<div id="product-list-container">
-    <!-- 상품 목록 표시 -->
-</div>
-</div>
+<header id="header"></header>
+<div class="header-spacer" aria-hidden="true"></div>
+
+<main class="mypage-wrap" aria-label="마이페이지">
+    <!-- ========== Sidebar ========== -->
+    <aside class="mp-side" aria-label="마이페이지 메뉴">
+        <div class="shop-box">
+            <div class="shop-name" id="shopName">상점명: OO</div>
+            <div class="shop-meta" id="shopMeta">팔로워 0 · 찜 0 · 가입일 -</div>
+            <div class="shop-edit"><button id="btnShopEdit" type="button">상점 정보 수정</button></div>
+        </div>
+
+        <nav class="mp-nav" role="tablist" aria-label="메뉴">
+            <h4>대시보드</h4>
+            <div class="mp-link active" role="tab" data-tab="dashboard">요약</div>
+
+            <h4>상품</h4>
+            <div class="mp-link" role="tab" data-tab="products">등록한 상품</div>
+            <div class="mp-link" role="tab" data-tab="favorites">찜한 상품</div>
+
+            <h4>거래</h4>
+            <div class="mp-link" role="tab" data-tab="sales">판매 내역</div>
+            <div class="mp-link" role="tab" data-tab="purchases">구매 내역</div>
+
+            <h4>후기</h4>
+            <div class="mp-link" role="tab" data-tab="reviews">받은 후기</div>
+
+            <h4>메시지·알림</h4>
+            <div class="mp-link" role="tab" data-tab="messages">채팅</div>
+            <div class="mp-link" role="tab" data-tab="alerts">알림</div>
+
+            <h4>설정</h4>
+            <div class="mp-link" role="tab" data-tab="shop">상점 관리</div>
+            <div class="mp-link" role="tab" data-tab="account">계정 관리</div>
+            <div class="mp-link" role="tab" data-tab="support">신고/문의</div>
+        </nav>
+    </aside>
+
+    <!-- ========== Content ========== -->
+    <section class="mp-content">
+        <!-- Dashboard -->
+        <div class="tab section" id="tab-dashboard" role="tabpanel">
+            <h2>요약</h2>
+            <div class="mp-cards" id="dashCards">
+                <div class="mp-card"><h3>판매중</h3><div class="big" id="statOnSale" aria-live="polite">0</div></div>
+                <div class="mp-card"><h3>거래 완료</h3><div class="big" id="statSold" aria-live="polite">0</div></div>
+                <div class="mp-card"><h3>받은 후기</h3><div class="big" id="statReviews" aria-live="polite">0</div></div>
+                <div class="mp-card"><h3>평점</h3><div class="big" id="statRating" aria-live="polite">-</div></div>
+            </div>
+        </div>
+
+        <!-- Products -->
+        <div class="tab section" id="tab-products" role="tabpanel" hidden>
+            <div class="flex-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <h2>등록한 상품</h2>
+                <div class="subtabs" role="tablist" aria-label="상품 상태">
+                    <button class="active" data-status="ON_SALE" type="button">판매중</button>
+                    <button data-status="RESERVED" type="button">예약중</button>
+                    <button data-status="SOLD" type="button">판매완료</button>
+                </div>
+            </div>
+            <div id="productsGrid" class="grid" aria-live="polite"></div>
+            <div id="productsEmpty" class="empty" hidden>등록된 상품이 없습니다.</div>
+        </div>
+
+        <!-- Favorites -->
+        <div class="tab section" id="tab-favorites" role="tabpanel" hidden>
+            <h2>찜한 상품</h2>
+            <div id="favGrid" class="grid" aria-live="polite"></div>
+            <div id="favEmpty" class="empty" hidden>찜한 상품이 없습니다.</div>
+        </div>
+
+        <!-- Sales -->
+        <div class="tab section" id="tab-sales" role="tabpanel" hidden>
+            <h2>판매 내역</h2>
+            <table aria-describedby="salesHelp"><thead><tr>
+                <th>주문번호</th><th>상품</th><th>구매자</th><th>가격</th><th>상태</th><th>일시</th>
+            </tr></thead><tbody id="salesBody"></tbody></table>
+            <p id="salesHelp" class="sr-only">판매 내역 목록</p>
+        </div>
+
+        <!-- Purchases -->
+        <div class="tab section" id="tab-purchases" role="tabpanel" hidden>
+            <h2>구매 내역</h2>
+            <table aria-describedby="purchasesHelp"><thead><tr>
+                <th>주문번호</th><th>상품</th><th>판매자</th><th>가격</th><th>상태</th><th>일시</th>
+            </tr></thead><tbody id="purchasesBody"></tbody></table>
+            <p id="purchasesHelp" class="sr-only">구매 내역 목록</p>
+        </div>
+
+        <!-- Reviews -->
+        <div class="tab section" id="tab-reviews" role="tabpanel" hidden>
+            <h2>받은 후기</h2>
+            <table><thead><tr><th>평점</th><th>코멘트</th><th>작성자</th><th>일시</th></tr></thead>
+                <tbody id="reviewsBody"></tbody></table>
+        </div>
+
+        <!-- Messages -->
+        <div class="tab section" id="tab-messages" role="tabpanel" hidden>
+            <h2>채팅</h2>
+            <div class="empty">채팅 목록은 별도 페이지에서 관리됩니다. <a href="/chat" style="text-decoration:underline;">채팅 열기</a></div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="tab section" id="tab-alerts" role="tabpanel" hidden>
+            <h2>알림</h2>
+            <div id="alertsList"></div>
+        </div>
+
+        <!-- Shop settings -->
+        <div class="tab section" id="tab-shop" role="tabpanel" hidden>
+            <h2>상점 관리</h2>
+            <form id="shopForm">
+                <label>상점명 <input type="text" name="shopName" required /></label>
+                <label>소개 <textarea name="intro" rows="4" placeholder="상점 소개를 작성해 주세요"></textarea></label>
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button type="submit">저장</button>
+                    <button type="button" id="btnPreviewShop">상점 보기</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 계정 관리 -->
+        <div class="tab section" id="tab-account" role="tabpanel" hidden>
+            <h2>계정 관리</h2>
+
+            <form id="accountForm" class="form-grid">
+                <label>이메일
+                    <input type="email" name="email" required disabled />
+                </label>
+                <label>연락처
+                    <input type="tel" name="phone" required disabled />
+                </label>
+                <label>비밀번호 변경
+                    <input type="password" name="newPassword" placeholder="새 비밀번호" disabled />
+                </label>
+                <label>비밀번호 확인
+                    <input type="password" name="newPassword2" placeholder="새 비밀번호 확인" disabled />
+                </label>
+
+                <fieldset class="fieldset" disabled>
+                    <legend>알림 설정</legend>
+                    <label><input type="checkbox" name="alarm_chat"/> 채팅 알림</label>
+                    <label><input type="checkbox" name="alarm_order"/> 거래/주문 알림</label>
+                    <label><input type="checkbox" name="alarm_marketing"/> 마케팅 알림</label>
+                </fieldset>
+
+                <!-- 보기 모드 버튼 -->
+                <div class="btn-row" id="accountViewBtns">
+                    <button type="button" id="btnStartEdit">수정하기</button>
+                </div>
+
+                <!-- 편집 모드 버튼 -->
+                <div class="btn-row" id="accountEditBtns" aria-hidden="true">
+                    <button type="submit">저장</button>
+                    <button type="button" id="btnCancelEdit">취소</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 비밀번호 재인증 모달 -->
+        <div id="reauthModal" class="mp-modal" aria-hidden="true">
+            <div class="mp-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="reauthTitle" aria-describedby="reauthDesc">
+                <h3 id="reauthTitle" class="mp-modal__title">비밀번호 확인</h3>
+                <p id="reauthDesc" class="mp-modal__desc">정보 수정을 위해 비밀번호를 다시 입력해 주세요.</p>
+                <form id="reauthForm" class="mp-modal__form">
+                    <input type="password" name="password" placeholder="현재 비밀번호" required />
+                    <div class="btn-row">
+                        <button type="submit">확인</button>
+                        <button type="button" id="btnReauthCancel" class="btn-secondary">취소</button>
+                    </div>
+                </form>
+                <div id="reauthError" class="mp-modal__error" aria-live="polite"></div>
+            </div>
+        </div>
+
+        <!-- Support -->
+        <div class="tab section" id="tab-support" role="tabpanel" hidden>
+            <h2>신고/문의</h2>
+            <div class="empty">신고/문의 내역은 <a href="/report/reportForm.html">여기</a>에서 접수할 수 있어요.</div>
+        </div>
+    </section>
+</main>
+
+<template id="tplProduct">
+    <div class="item">
+        <a>
+            <img alt="상품 이미지" />
+            <div class="pad">
+                <div class="title"></div>
+                <div class="price"></div>
+                <div class="meta"></div>
+            </div>
+        </a>
+    </div>
+</template>
 <script src="../js/header.js"></script>
 <script src="../js/myPage.js"></script>
 </body>

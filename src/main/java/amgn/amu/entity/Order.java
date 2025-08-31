@@ -1,17 +1,11 @@
 package amgn.amu.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.dto.OrderDto.TradeMethod;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class Order {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
@@ -50,7 +45,7 @@ public class Order {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @Column(name = "recv_name")
     private String receiverName;
 
@@ -59,17 +54,23 @@ public class Order {
 
     @Column(name = "recv_addr1")
     private String receiverAddress1;
-    
+
     @Column(name = "recv_addr2")
     private String receiverAddress2;
-    
+
     @Column(name = "recv_zip")
     private String receiverZip;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", insertable = false, updatable = false)
+    private Listing listing;
+
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<Review> reviews;
+
+    public boolean isReviewed() {
+        return reviews != null && !reviews.isEmpty();
+    }
     
-//    @Column(name = "meetup_time")
-//    private LocalDateTime meetupTime;
-
-//    @Column(name = "meetup_place")
-//    private String meetupPlace;
-
+    
 }

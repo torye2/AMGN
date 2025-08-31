@@ -3,118 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <title>리뷰 페이지</title>
-	<link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/reset.css">
     <link rel="stylesheet" href="/css/main.css">
-	
-
+    <link rel="stylesheet" href="/css/product.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/product.css">
 </head>
 <body>
-    <h1>리뷰 페이지</h1>
 
-    <!-- 리뷰 작성 폼 -->
-    <section>
-        <h2>리뷰 작성</h2>
-        <form id="review-form">
-            <input type="hidden" id="orderId" value="456"> <!-- 주문 ID 예시 -->
-            <label>
-                평점 (1~5):
-                <input type="number" id="score" min="1" max="5" required>
-            </label>
-            <br>
-            <label>
-                댓글:
-                <textarea id="rvComment" maxlength="500"></textarea>
-            </label>
-            <br>
-            <button type="submit">작성</button>
-        </form>
-    </section>
+<!-- 헤더 -->
+<div id="header"></div>
 
-    <hr>
+<h1>리뷰 페이지</h1>
 
-    <!-- 리뷰 리스트 -->
-    <section>
-        <h2>리뷰 목록</h2>
-        <div id="review-list">
-            <!-- 리뷰 항목이 여기 들어감 -->
-        </div>
-    </section>
+<!-- 리뷰 작성 폼 -->
+<section>
+    <h2>리뷰 작성</h2>
+    <form id="review-form">
+        <label>
+            주문 선택:
+            <select id="orderSelect" required>
+                <option value="">-- 주문 선택 --</option>
+            </select>
+        </label>
+        <br>
+        <label>
+            평점 (1~5):
+            <input type="number" id="score" min="1" max="5" required>
+        </label>
+        <br>
+        <label>
+            댓글:
+            <textarea id="rvComment" maxlength="500"></textarea>
+        </label>
+        <br>
+        <button type="submit">작성</button>
+    </form>
+</section>
 
-    <script>
-        // 로그인한 사용자 ID 예시 (raterId)
-        const raterId = 123; 
-        // 리뷰 조회할 사용자 ID (rateeId)
-        const userId = 123; 
-        const limit = 20;
+<hr>
 
-        // 리뷰 리스트 불러오기
-        async function loadReviews() {
-            try {
-                const res = await fetch(`/api/reviews/users/${userId}?limit=${limit}`);
-                if (!res.ok) return;
-                
-                const reviews = await res.json();
-                const listDiv = document.getElementById("review-list");
-                listDiv.innerHTML = "";
+<!-- 리뷰 리스트 + 평균 평점 -->
+<section>
+    <h2>리뷰 목록 (평균 평점: <span id="ratingAverage">-</span>)</h2>
+    <div id="review-list"></div>
+</section>
 
-                if (reviews.length === 0) {
-                    listDiv.innerHTML = "<p>리뷰가 없습니다.</p>";
-                    return;
-                }
+<script>
+// 페이지 로딩 시 초기화
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 헤더 로드
+    fetch('/review/header.html')
+        .then(res => res.text())
+        .then(html => document.getElementById('header').innerHTML = html)
+        .catch(err => console.error('헤더 불러오기 실패', err));
 
-                reviews.forEach(r => {
-                    const item = document.createElement("div");
-                    item.innerHTML = `
-                        <p><strong>작성자 ID:</strong> ${r.raterId}</p>
-                        <p><strong>평점:</strong> ${r.score}</p>
-                        <p><strong>댓글:</strong> ${r.rvComment || "-"}</p>
-                        <p><em>${new Date(r.createdAt).toLocaleString()}</em></p>
-                        <hr>
-                    `;
-                    listDiv.appendChild(item);
-                });
-            } catch (err) {
-                alert(err.message);
-            }
+    // 2. 주문 불러오기
+    await fetchOrders();
+});
+
+// 로그인한 사용자의 주문 가져오기
+async function fetchOrders() {
+    try {
+        const res = await fetch('/api/orders/mine'); 
+        if (!res.ok) return;
+        const orders = await res.json();
+        const select = document.getElementById('orderSelect');
+        orders.forEach(order => {
+            const option = document.createElement('option');
+            option.value = order.id; // OrderDto에서 id 필드
+            option.textContent = `주문 ${order.id} - ${order.itemTitle || '제목 없음'}`;
+            select.appendChild(option);
+        });
+    } catch(err) {
+        console.error('주문 불러오기 실패', err);
+    }
+}
+
+// 리뷰 리스트 + 평균 평점 갱신
+async function loadReviews(orderId) {
+    if (!orderId) return;
+
+    try {
+        const res = await fetch(`/api/reviews/orders/${orderId}`);
+        if (!res.ok) return;
+
+        const reviews = await res.json();
+        const listDiv = document.getElementById('review-list');
+        listDiv.innerHTML = "";
+
+        if (reviews.length === 0) {
+            listDiv.innerHTML = "<p>리뷰가 없습니다.</p>";
+            document.getElementById('ratingAverage').textContent = "-";
+            return;
         }
 
-        // 리뷰 작성
-        document.getElementById("review-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const payload = {
-                orderId: Number(document.getElementById("orderId").value),
-                score: Number(document.getElementById("score").value),
-                rvComment: document.getElementById("rvComment").value
-            };
-
-            try {
-                const res = await fetch(`/api/reviews?uid=${raterId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.message || "리뷰 작성 중 오류 발생");
-                }
-
-                alert("리뷰 작성 완료!");
-                document.getElementById("review-form").reset();
-                loadReviews(); // 작성 후 리스트 갱신
-            } catch (err) {
-                alert(err.message);
-            }
+        let sum = 0;
+        reviews.forEach(r => {
+            sum += r.score;
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <p><strong>작성자:</strong> ${r.raterNickName || r.raterId}</p>
+                <p><strong>평점:</strong> ${r.score}</p>
+                <p><strong>댓글:</strong> ${r.rvComment || "-"}</p>
+                <p><em>${new Date(r.createdAt).toLocaleString()}</em></p>
+                <hr>
+            `;
+            listDiv.appendChild(div);
         });
 
-        // 페이지 로딩 시 리뷰 불러오기
-        window.addEventListener("DOMContentLoaded", loadReviews);
-    </script>
-    <script src="/js/header.js"></script>
+        const avg = (sum / reviews.length).toFixed(1);
+        document.getElementById('ratingAverage').textContent = avg;
+    } catch(err) {
+        console.error('리뷰 불러오기 실패', err);
+    }
+}
+
+// 리뷰 작성
+async function fetchOrders() {
+    try {
+        const res = await fetch('/api/reviews/mine'); // review 전용
+        if (!res.ok) return;
+        const orders = await res.json();
+        const select = document.getElementById('orderSelect');
+        orders.forEach(order => {
+            const option = document.createElement('option');
+            option.value = order.orderId;
+            option.textContent = `주문 ${order.orderId} - ${order.itemTitle}`;
+            select.appendChild(option);
+        });
+    } catch(err) {
+        console.error('주문 불러오기 실패', err);
+    }
+}
+
+async function loadReviews(orderId) {
+    if (!orderId) return;
+    try {
+        const res = await fetch(`/api/reviews/orders/${orderId}`);
+        if (!res.ok) return;
+        const reviews = await res.json();
+        const listDiv = document.getElementById('review-list');
+        listDiv.innerHTML = "";
+        if (reviews.length === 0) {
+            listDiv.innerHTML = "<p>리뷰가 없습니다.</p>";
+            document.getElementById('ratingAverage').textContent = "-";
+            return;
+        }
+        let sum = 0;
+        reviews.forEach(r => {
+            sum += r.score;
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <p><strong>작성자:</strong> ${r.raterId}</p>
+                <p><strong>평점:</strong> ${r.score}</p>
+                <p><strong>댓글:</strong> ${r.rvComment || "-"}</p>
+                <p><em>${new Date(r.createdAt).toLocaleString()}</em></p>
+                <hr>
+            `;
+            listDiv.appendChild(div);
+        });
+        const avg = (sum / reviews.length).toFixed(1);
+        document.getElementById('ratingAverage').textContent = avg;
+    } catch(err) {
+        console.error('리뷰 불러오기 실패', err);
+    }
+}
+
+</script>
+
 </body>
 </html>

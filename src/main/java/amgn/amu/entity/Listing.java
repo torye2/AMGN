@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Getter
 @Setter
@@ -41,5 +42,7 @@ public class Listing {
     @Column(insertable = false, updatable = false)
     private Timestamp updatedAt;
 
-    // 관계 매핑 삭제 (이전에 있던 @ManyToOne과 @OneToMany를 제거)
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL)
+    private List<ListingPhoto> photos;
+
 }

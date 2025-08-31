@@ -1,12 +1,16 @@
 package amgn.amu.service;
 
 import java.util.List;
+import java.util.Map;
 
-import amgn.amu.dto.ReviewCreateRequest;
 import amgn.amu.dto.ReviewDto;
+import amgn.amu.dto.ReviewOrderDto;
 
 public interface ReviewService {
-	  ReviewDto create(Long raterId, ReviewCreateRequest req); // uq_review_once 보장
-	  List<ReviewDto> listForUser(Long rateeId, int limit);
-	  double ratingAverage(Long rateeId);
-	}
+
+    List<ReviewOrderDto> getReviewableOrders(Long userId);
+
+    List<ReviewDto> getReviewsByOrder(Long orderId);
+
+    void createReview(Long userId, Map<String, Object> payload);
+}
