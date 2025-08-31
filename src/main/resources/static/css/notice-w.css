@@ -1,0 +1,76 @@
+.notice-writebox {
+    padding: 0;
+}
+
+#box {
+    height: 20px;
+    width: 20px;
+}
+
+.notice-writebox h3 {
+    text-align: center;
+    font-size: 50px;
+    font-weight: bold;
+    border-top: 2px solid #ddd ;
+    padding : 50px 10px 0 10px;
+    margin: 20px 20px 0 20px;
+}
+
+.notice-form {
+    padding: 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+label[for="title"] {
+    margin-top: 20px;
+}
+
+.notice-form label {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.notice-form input,
+.notice-form textarea {
+    padding: 12px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.notice-form textarea {
+    resize: vertical;
+    height: 300px;
+}
+
+.btn-box {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.submit-btn,
+.back-btn {
+    width: 60px;
+    height: 40px;
+    background-color: #333;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 40px;
+    transition: background-color 0.2s;
+    text-decoration: none;
+}
+
+.submit-btn:hover,
+.back-btn:hover {
+    background-color: #7f8c8d;
+}
