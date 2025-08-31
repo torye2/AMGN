@@ -1,4 +1,4 @@
-fetch('header1.html')
+fetch('header.html')
     .then(response => response.text())
     .then(data => {
         document.getElementById('header-p').innerHTML = data;
