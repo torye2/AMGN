@@ -7,6 +7,7 @@
 
     <!-- 스타일시트 -->
     <link rel="stylesheet" href="/css/index.css" />
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
 <body>
 
@@ -33,17 +34,14 @@
     <!-- 검색 섹션 -->
     <section class="search-section">
         <h1>
-            <strong>📍<span id="location-name">고덕동</span>에서 거래를 원하시나요?</strong>
+        	<span id="location-name">📍주소를 선택해주세요</span>
         </h1>
 
         <!-- 검색창 -->
         <div class="search-container">
-            <div class="search-container-button">고덕동</div>
+            <div class="search-container-button" onclick="execDaumPostcode()">주소</div>
 
             <div class="search-box">
-                <select>
-                    <option>중고거래</option>
-                </select>
                 <input type="text" class="gap" placeholder="검색어를 입력해주세요" />
                 <button>검색</button>
             </div>
@@ -60,6 +58,6 @@
             <span><a href="/main.html">카메라</a></span>
         </div>
     </section>
-
+	<script src="js/index.js"></script>
 </body>
 </html>
