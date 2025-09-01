@@ -62,9 +62,9 @@
 	padding: 10px 20px;
 	border-radius: 25px;
 	font-weight: bold;
-	font-size: 16px;
+	font-size: 20px;
 	display : inline-block;
-	margin-right: 10px;
+	margin-left: 10px;
 	cursor: pointer;
 	white-space: nowrap;
 }
@@ -96,11 +96,13 @@
 
 .search-box button {
     padding: 0 20px;
+    width: 80px;
     height: 44px;
     background-color: black;
     color: white;
     border: none;
-    font-size: 14px;
+    font-size: 20px;
+    font-weight: bold;
     border-radius: 0 30px 30px 0;
     cursor: pointer;
 }
