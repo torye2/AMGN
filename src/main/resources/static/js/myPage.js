@@ -42,15 +42,15 @@ async function fetchMe(){
 // 주문에서 내 역할 추정(SELLER/BUYER/UNKNOWN)
 function inferRole(order, me){
     // 가능하면 숫자 PK로 비교하고, 없으면 닉네임으로 비교
-    if(order.sellerId != null && order.buyerId != null && me.userPk != null){
-        if(order.sellerId === me.userPk) return 'SELLER';
-        if(order.buyerId  === me.userPk) return 'BUYER';
+    if(order.sellerId != null && order.buyerId != null && me.userId != null){
+        if(order.sellerId === me.userId) return 'SELLER';
+        if(order.buyerId  === me.userId) return 'BUYER';
     }
-    if(order.sellerName && me.nickname){
-        if(order.sellerName === me.nickname) return 'SELLER';
+    if(order.sellerName && me.nickName){
+        if(order.sellerName === me.nickName) return 'SELLER';
     }
-    if(order.buyerName && me.nickname){
-        if(order.buyerName === me.nickname) return 'BUYER';
+    if(order.buyerName && me.nickName){
+        if(order.buyerName === me.nickName) return 'BUYER';
     }
     return 'UNKNOWN';
 }

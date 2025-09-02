@@ -1,5 +1,7 @@
 package amgn.amu.domain;
 
+import amgn.amu.entity.Listing;
+import amgn.amu.entity.Order;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "USERS")
@@ -62,4 +66,14 @@ public class User {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
+    private List<Listing> listings = new ArrayList<>();
+
+    @OneToMany(mappedBy = "buyer", fetch = FetchType.LAZY)
+    private List<Order> ordersAsBuyer = new ArrayList<>();
+
+    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
+    private List<Order> ordersAsSeller = new ArrayList<>();
+
 }
