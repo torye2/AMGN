@@ -4,29 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>상품 상세 보기</title>
+
+    <!-- CSS -->
     <link rel="stylesheet" href="css/reset.css" />
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/productDetail.css" />
+
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
 </head>
 <body>
 <div id="wrap">
-    <div>
-        <header id="header">
-        </header>
-    </div>
-    <div class="container">
-        <!-- 상품 정보가 동적으로 채워질 부분 -->
+    <header id="header"></header>
+
+    <main class="container">
+        <!-- 상품 상세 정보 -->
         <div id="product-details">
-            <p>상품 정보를 불러오는 중...</p>
+            <!-- 상품 이미지 슬라이드 -->
+            <div class="product-gallery swiper">
+                <div class="swiper-wrapper" id="productSlides">
+                    <div class="swiper-slide">상품 사진 불러오는 중...</div>
+                </div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+
+            <!-- 상품 정보 -->
+            <h1 class="product-name" id="productTitle">상품명</h1>
+            <p class="product-nickname" id="productSeller">판매자</p>
+            <p class="product-price" id="productPrice">가격</p>
+            <p class="product-introduct" id="productDesc">상품 설명</p>
         </div>
+
+        <!-- 채팅 버튼 -->
         <div class="chat-button-container">
             <button id="chat-button" class="chat-button">채팅하기</button>
         </div>
 
+        <!-- 관련 상품 -->
         <div class="productsall">
             <div class="related-products">
                 <h2>관련 상품</h2>
-                <!-- 관련 상품 목록은 필요에 따라 비동기 처리 가능 -->
                 <div class="product-item">
                     <img src="https://placehold.co/300x200/FF0000/FFFFFF?text=Related+Product+1" alt="관련 상품 1" />
                     <p>관련 상품 1</p>
@@ -39,8 +58,15 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
+
+<!-- JS -->
+<script src="js/header.js"></script>
+
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+
 <script src="js/productDetail.js"></script>
 <script src="js/header.js"></script>
 </body>
