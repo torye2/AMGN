@@ -12,8 +12,8 @@ public record OrderDto(
         TradeMethod method,
         OrderStatus status,
         LocalDateTime createdAt
-//        , String itemTitle,            // Listing 제목
-//        boolean reviewed,            // 리뷰 여부
+        , String listingTitle            // Listing 제목
+//      ,  boolean reviewed,            // 리뷰 여부
 //        List<ReviewDto> reviews      // 리뷰 목록
 ) {
 

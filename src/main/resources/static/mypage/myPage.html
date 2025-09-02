@@ -94,10 +94,29 @@
         <!-- Purchases -->
         <div class="tab section" id="tab-purchases" role="tabpanel" hidden>
             <h2>구매 내역</h2>
-            <table aria-describedby="purchasesHelp"><thead><tr>
-                <th>주문번호</th><th>상품</th><th>판매자</th><th>가격</th><th>상태</th><th>일시</th>
-            </tr></thead><tbody id="purchasesBody"></tbody></table>
-            <p id="purchasesHelp" class="sr-only">구매 내역 목록</p>
+
+            <!-- 주문 내역 테이블 -->
+            <section id="ordersSection">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>주문 번호</th>
+                            <th>상품 이름</th>
+                            <th>거래 방식</th>
+                            <th>상태</th>
+                            <th>가격</th>
+                            <th>거래 확인</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- JS에서 fetch로 주문 리스트 채움 -->
+                    </tbody>
+                </table>
+            </section>
+
+        </div>
+    </div>
+</div>
         </div>
 
         <!-- Reviews -->

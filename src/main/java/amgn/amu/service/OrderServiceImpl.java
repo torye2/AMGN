@@ -185,6 +185,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private OrderDto toDto(Order order) {
+        String title = listingRepository.findById(order.getListingId()) //
+                .map(Listing::getTitle) // 수정
+                .orElse("-");
         return new OrderDto(
                 order.getId(),
                 order.getListingId(),
@@ -193,7 +196,8 @@ public class OrderServiceImpl implements OrderService {
                 order.getFinalPrice(),
                 order.getMethod(),
                 order.getStatus(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                title // 수정
         );
     }
     
