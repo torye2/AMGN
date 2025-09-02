@@ -127,7 +127,7 @@ async function loadDashboard(){
 
         if (me?.nickname){
             $('#shopName').textContent = `상점명: ${me.nickname}`;
-            $('#shopMeta').textContent = `팔로워 0 · 찜 0 · 가입일 -`;
+            $('#shopMeta').textContent = `팔로워 0 · 찜 0 · 가입일 ${me.createdAt}`;
         }
     }catch(err){ console.warn(err); }
 }
@@ -251,12 +251,55 @@ async function loadShopSettings(){
 }
 
 async function loadAccount(){
-    // /api/user/status에는 email/phone 정보가 없으므로 일단 비워둠
-    try{
-        await fetchMe();
-        const f = $('#accountForm');
-        if(f){ f.email.value = ''; f.phone.value = ''; }
-    }catch(err){ console.warn('account load fail', err); }
+    const res = await fetch(ENDPOINTS.userProfile);
+    const { ok, data, message } = await res.json();
+    if(!ok) return alert(message || '프로필 조회 실패');
+}
+
+async function verifyPassword(){
+    const pw = document.getElementById('verifyPw').value;
+    const res = await fetch(ENDPOINTS.verifyPassword, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pw })
+    });
+    const j = await res.json();
+    if(j.ok){
+        // 읽기 전용 -> 수정 폼 전환
+        document.getElementById('profileRead').style.display='none';
+        document.getElementById('profileEdit').style.display='block';
+    }else{
+        alert(j.message || '비밀번호가 일치하지 않습니다.');
+    }
+}
+
+async function saveProfile(){
+    const payload = {
+        id: document.getElementById('id').value,
+        email: document.getElementById('email').value,
+        nickName: document.getElementById('nickName').value,
+        phoneNumber: document.getElementById('phoneNumber').value,
+        birthYear: +document.getElementById('birthYear').value,
+        birthMonth: +document.getElementById('birthMonth').value,
+        birthDay: +document.getElementById('birthDay').value,
+        province: document.getElementById('province').value,
+        city: document.getElementById('city').value,
+        detailAddress: document.getElementById('detailAddress').value
+    };
+    const res = await fetch(ENDPOINTS.userProfile, {
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if(j.ok){
+        alert('정보가 성공적으로 변경되었습니다.');
+        loadAccount();
+        document.getElementById('profileEdit').style.display='none';
+        document.getElementById('profileRead').style.display='block';
+    }else{
+        alert(j.message || '수정 실패');
+    }
 }
 
 // ----- Forms -----

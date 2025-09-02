@@ -2,6 +2,9 @@ package amgn.amu.domain;
 
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.Order;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -63,8 +66,10 @@ public class User {
     private String status = "ACTIVE";
 
     @Column(nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDateTime createdAt;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
@@ -75,5 +80,4 @@ public class User {
 
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
     private List<Order> ordersAsSeller = new ArrayList<>();
-
 }

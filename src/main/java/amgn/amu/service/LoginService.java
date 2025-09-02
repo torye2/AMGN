@@ -25,11 +25,12 @@ public class LoginService {
         }
 
         if(!user.getStatus().equals("ACTIVE")) {
-            throw new IllegalArgumentException("휴면 계정입니다.");
+            throw new IllegalArgumentException("정지된 계정입니다.");
         }
         return new LoginUserDto(user.getUserId(), user.getId(), user.getUserName()
                 , user.getEmail(), user.getNickName(), user.getPhoneNumber()
                 , user.getBirthYear(), user.getBirthMonth(), user.getBirthDay()
-                , user.getProvince(), user.getCity(), user.getDetailAddress());
+                , user.getProvince(), user.getCity(), user.getDetailAddress()
+                , user.getCreatedAt());
     }
 }
