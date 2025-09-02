@@ -1,0 +1,45 @@
+@charset "UTF-8";
+
+/*페이지*/
+/* 전체 페이징 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+/* 각 버튼 */
+.page-item {
+  display: inline-block;
+}
+
+/* 링크 스타일 */
+.page-link {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* hover */
+.page-link:hover {
+  background-color: #f0f0f0;
+  border-color: #bbb;
+  color: #000;
+}
+
+/* 현재 페이지 */
+.page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: #fff;
+  font-weight: bold;
+}

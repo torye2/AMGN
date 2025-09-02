@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+  <mapper namespace="amgn.amu.mapper.ListingsMapper">
+  
+  <select id="getLists" parameterType="amgn.amu.dto.SearchDto" resultType="amgn.amu.domain.Listing">
+  		select title, description, price, seller_id, category_id
+  		from listings
+  		<where>
+      <!-- 🔍 검색 조건 -->
+      <if test="searchField != null and searchField != '' and searchWord != null and searchWord != ''">
+        <foreach collection="searchField.split('/')" item="field" open="(" close=")" separator="OR">
+          ${field} LIKE '%' || #{searchWord} || '%'
+        </foreach>
+      </if>
+
+      <!-- 📌 카테고리 필터 -->
+      <if test="categoryIds != null and categoryIds.size() > 0">
+        AND category_id IN
+        <foreach collection="categoryIds" item="cid" open="(" separator="," close=")">
+          #{cid}
+        </foreach>
+      </if>
+    </where>
+    ORDER BY created_at DESC
+    OFFSET (#{pageNo} - 1) * #{amount} ROWS FETCH NEXT #{amount} ROWS ONLY
+  </select>
+  	<select id="getTotalCount" parameterType="amgn.amu.dto.SearchDto" resultType="int">
+	    SELECT COUNT(*)
+	    FROM listings
+	    <where>
+	      <if test="categoryIds != null and categoryIds.size() > 0">
+	        category_id IN
+	        <foreach collection="categoryIds" item="cid" open="(" separator="," close=")">
+	          #{cid}
+	        </foreach>
+	      </if>
+	    </where>
+	  </select>
+  </mapper>
