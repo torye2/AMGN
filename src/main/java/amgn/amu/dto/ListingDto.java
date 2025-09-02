@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 
 @Getter
@@ -21,7 +22,7 @@ public class ListingDto {
     private String safePayYn; // 'Y' 또는 'N'
     private Long listingId;
     private Long sellerId;
-    private String photoUrl;
+    private List<String> photoUrls;
     private String sellerNickname;
 
     public Listing toEntity() {

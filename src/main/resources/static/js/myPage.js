@@ -86,10 +86,14 @@ document.addEventListener('click', (e)=>{
 function renderProductCard(p){
     const t = document.getElementById('tplProduct').content.cloneNode(true);
     const a = t.querySelector('a');
-    a.href = `/productDetail.html?id=${p.listingId}`;
+    a.href = `/productDetail.html?id=${p.listingId}`; // 상세 페이지 이동
+
     const img = t.querySelector('img');
-    img.src = p.photoUrl || 'https://placehold.co/300x200?text=No+Image';
+    img.src = p.photoUrls && p.photoUrls.length > 0 
+        ? p.photoUrls[0] // 첫 번째 사진만 보여줌
+        : 'https://placehold.co/300x200?text=No+Image';
     img.alt = p.title || '상품';
+
     t.querySelector('.title').textContent = p.title || '-';
     t.querySelector('.price').textContent = toWon(p.price);
     t.querySelector('.meta').textContent = p.updatedAt || p.createdAt || '';
