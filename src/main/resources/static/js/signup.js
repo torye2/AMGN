@@ -147,7 +147,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = idInput.value.trim();
             if (!id) { alert('아이디를 입력해주세요.'); return; }
             try {
-                // 필요 시 백엔드 엔드포인트/응답 포맷을 맞춰주세요.
                 const res = await fetch(`/api/users/exist?id=${encodeURIComponent(id)}`);
                 if (!res.ok) throw new Error('중복 확인 API 호출에 실패했습니다.');
                 const data = await res.json();

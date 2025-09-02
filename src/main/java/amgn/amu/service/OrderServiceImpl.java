@@ -135,14 +135,27 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto cancel(Long actorUserId, Long orderId) {
         Order order = findOrderById(orderId);
 
-        // 결제 완료 상태(COMPLETED)는 취소 불가
-        if(order.getStatus() == OrderStatus.COMPLETED) {
-            throw new RuntimeException("이미 판매 완료된 주문은 취소할 수 없습니다.");
+        // 권한 체크 (구매자만 취소 가능)
+        if (!order.getBuyerId().equals(actorUserId)) {
+            throw new RuntimeException("권한이 없습니다.");
         }
 
-        // 상태를 CREATED로 되돌림
-        order.setStatus(OrderStatus.CREATED);
+        // 결제 완료(COMPLETED) 상태는 취소 불가
+        if (order.getStatus() == OrderStatus.COMPLETED) {
+            throw new RuntimeException("이미 완료된 주문은 취소할 수 없습니다.");
+        }
+
+        // 결제(PAID) 상태일 때는 환불 처리 필요 (여기서는 예시로 로그만)
+        if (order.getStatus() == OrderStatus.PAID) {
+            System.out.println("환불 처리 필요: orderId=" + orderId);
+            // TODO: 실제 환불 로직 연동
+        }
+
+        // 상태를 CANCELLED로 변경
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+
         return toDto(order);
     }
 
@@ -253,5 +266,31 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
+    
+    @Override
+    public OrderDto revertCancel(Long userId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("주문이 존재하지 않습니다: " + orderId));
 
+        // 권한 체크 (구매자만 취소 복원 가능)
+        if (!order.getBuyerId().equals(userId)) {
+            throw new RuntimeException("권한이 없습니다.");
+        }
+
+        // 현재 상태가 CANCELLED가 아니면 복원 불가
+        if (order.getStatus() != OrderStatus.PAID) {
+            throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
+        }
+
+        // 상태를 CREATED로 되돌림
+        order.setStatus(OrderStatus.CREATED);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        return toDto(order);
+    }
+
+
+
+    
 }
