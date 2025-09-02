@@ -336,17 +336,87 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // 주문 내역 불러오기
+function createButton(text, onClick) {
+    const btn = document.createElement('button');
+    btn.textContent = text;
+    btn.addEventListener('click', onClick);
+    return btn;
+}
+
+// 결제
+async function payOrder(order) {
+    try {
+        // 실제 결제 구현 없으므로 빈 객체 전송
+        const res = await fetch(`/orders/${order.id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+
+        // 결제 완료 후 버튼 업데이트
+        const tr = Array.from(document.querySelectorAll('#ordersTable tbody tr'))
+            .find(r => r.querySelector('td').textContent === String(order.id));
+        if (tr) {
+            const td = tr.querySelector('td:last-child');
+            td.innerHTML = '';
+            td.appendChild(createButton('주문 확정', () => completeOrder(order.id, td)));
+            td.appendChild(createButton('결제 취소', () => revertToCreated(order.id, td, order)));
+        }
+
+        alert('결제가 완료되었습니다.');
+    } catch (err) {
+        console.error(err);
+        alert('결제 처리 중 오류가 발생했습니다: ' + err.message);
+    }
+}
+
+// 주문 확정
+async function completeOrder(orderId, td) {
+    try {
+        const res = await fetch(`/orders/${orderId}/complete`, { method: 'POST' });
+        if (!res.ok) throw new Error('주문 확정 실패');
+        td.textContent = '주문 확정';
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+// 결제 취소 후 CREATED 상태로 복원
+function revertToCreated(orderId, td, order) {
+    fetch(`/orders/${orderId}/revert`, { method: 'POST' })
+        .then(res => {
+            if (!res.ok) throw new Error('취소 복원 실패');
+            td.innerHTML = '';
+            td.appendChild(createButton('결제', () => payOrder(order)));
+            td.appendChild(createButton('취소', () => cancelOrder(orderId, td, order)));
+        })
+        .catch(err => console.error(err));
+}
+
+// 주문 취소
+function cancelOrder(orderId, td, order) {
+    fetch(`/orders/${orderId}/cancel`, { method: 'DELETE' })
+        .then(res => {
+            if (!res.ok) throw new Error('취소 실패');
+            alert('주문이 취소되었습니다.');
+            td.innerHTML = '';
+            td.appendChild(createButton('결제', () => payOrder(order)));
+            td.appendChild(createButton('취소', () => cancelOrder(orderId, td, order)));
+        })
+        .catch(err => console.error(err));
+}
+
+// ----- 주문 내역 불러오기 -----
 async function loadOrders() {
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = '';
 
     try {
-        // 세션 기반 구매자 주문 내역 호출
-        const res = await fetch('/orders/buy'); // 백엔드 getBuyOrders() 호출
+        const res = await fetch('/orders/buy'); // 구매 내역 API 호출
         if (!res.ok) throw new Error('주문 내역 불러오기 실패');
 
         const orders = await res.json();
-
         if (!orders || orders.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8">주문 내역이 없습니다.</td></tr>`;
             return;
@@ -362,15 +432,17 @@ async function loadOrders() {
                 <td>${order.finalPrice ?? '-'}</td>
                 <td></td>
             `;
-
             const actionTd = tr.querySelector('td:last-child');
 
-            // 주문 상태별 버튼 처리
+            // 상태별 버튼/텍스트 처리
             if (order.status === 'CREATED') {
                 actionTd.appendChild(createButton('결제', () => payOrder(order)));
-                actionTd.appendChild(createButton('취소', () => cancelOrder(order.id)));
-            } else if (order.status === 'PAID' || order.status === 'COMPLETED') {
-                actionTd.textContent = '결제 완료';
+                actionTd.appendChild(createButton('취소', () => cancelOrder(order.id, actionTd, order)));
+            } else if (order.status === 'PAID') {
+                actionTd.appendChild(createButton('주문 확정', () => completeOrder(order.id, actionTd)));
+                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, order)));
+            } else if (order.status === 'COMPLETED') {
+                actionTd.textContent = '주문 확정';
             } else if (order.status === 'CANCELLED') {
                 actionTd.textContent = '취소됨';
             }
@@ -383,53 +455,5 @@ async function loadOrders() {
     }
 }
 
-
-// 버튼 생성 헬퍼
-function createButton(text, onClick) {
-    const btn = document.createElement('button');
-    btn.textContent = text;
-    btn.addEventListener('click', onClick);
-    return btn;
-}
-
-// 결제 처리
-function payOrder(order) {
-    const idempotencyKey = `order_${order.id}_${Date.now()}`;
-    const expiryDate = new Date(Date.now() + 3600 * 1000).toISOString();
-
-    const payload = {
-        method: order.method || "CARD",      // 주문 방식 동적 처리
-        amount: order.finalPrice,
-        response: "paid",
-        idempotencyKey,
-        expiryDate
-    };
-
-    fetch(`/orders/${order.id}/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('결제 실패');
-        return res.json();
-    })
-    .then(data => {
-        console.log('결제 완료:', data);
-        loadOrders();
-    })
-    .catch(err => console.error(err));
-}
-
-// 주문 취소
-function cancelOrder(orderId) {
-    fetch(`/orders/${orderId}/cancel`, { method: 'DELETE' })
-        .then(res => {
-            if (!res.ok) throw new Error('취소 실패');
-            loadOrders();
-            alert('주문이 취소되었습니다.');
-        })
-        .catch(err => console.error(err));
-}
 
 loadOrders();
