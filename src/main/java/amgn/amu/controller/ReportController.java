@@ -7,16 +7,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class ReportController {
     @GetMapping("/reportForm")
     public String showReportForm() {
-        return "redirect:/reportForm.html";
+        return "redirect:/report/reportForm.html";
     }
 
     @GetMapping("/reportList")
     public String showReportList() {
-        return "redirect:/reportList.html";
+        return "redirect:/report/reportList.html";
     }
 
     @GetMapping("/reportDetail")
     public String showReportDetail() {
-        return "redirect:/reportDetail.html";
+        return "redirect:/report/reportDetail.html";
     }
 }

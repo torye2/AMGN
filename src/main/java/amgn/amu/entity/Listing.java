@@ -1,5 +1,6 @@
 package amgn.amu.entity;
 
+import amgn.amu.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,7 @@ public class Listing {
     @Column(name = "listing_id")
     private Long listingId;
 
+    @Column(name = "seller_id")
     private Long sellerId;
     private Integer categoryId;
     private String title;
@@ -45,4 +47,7 @@ public class Listing {
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL)
     private List<ListingPhoto> photos;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id", referencedColumnName = "user_id", insertable = false, updatable = false)
+    private User seller;
 }

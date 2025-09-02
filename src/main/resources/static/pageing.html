@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<nav aria-label="Page navigation">
+    <ul id="pagination" class="pagination justify-content-center"></ul>	
+</nav>
+
+<script type="text/javascript">
+	const pageDto = {
+			pageNo: 1,
+			startNo: 1,
+			endNo: 5,
+			isPrev: false,
+			isNext: true
+	};
+	
+	function renderPagination(pageDto){
+		const pagination = document.getElementById("pagination");
+		pagination.innerHTML = "";
+		
+		// 이전버튼
+		if(pageDto.isPrev){
+			const isPrevLi = document.createElement("li");
+			isPrevLi.className = "page-item";
+			isPrevLi.innerHTML = `<a class="page-link" href="javascript:go(${pageDto.startNo - 1})">이전</a>`;
+			pagination.appendChild(isPrevLi);
+		}
+		//페이지 번호
+		for(let i = pageDto.startNo; i<= pageDto.endNo; i++){
+			const li =document.createElement("li");
+			li.className = "page-item" + (pageDto.pageNo ===i ? "active" : " ");
+			li.innerHTML = `<a class="page-link" href="javascript:go(${i})">${i}</a>`;
+			pagination.appendChild(li);
+		}
+		
+		// 다음 버튼
+		if(pageDto.isNext){
+			const isnextLi = document.createElement("li");
+			isNextLi.className = "page-item";
+			isNextLi.innerHTML = `<a class="page-link" href="javascript:go(${pageDto.endNo + 1})">Next</a>`;
+		}
+	}
+	
+	// 페이지 이동 함수
+	function go(pageNo){
+		console.log("페이지 이동:", pageNo);
+		// location.href = "/list?page=" + pageNo; // 실제 이동 예시
+	}
+	
+	// 실행
+	renderPagination(pageDto);
+</script>
+</body>
+</html>

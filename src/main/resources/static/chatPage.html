@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>채팅방</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        #chat { border:1px solid #ccc; height:300px; overflow-y:scroll; padding:5px; margin-bottom:10px; }
+        #messageForm { display:flex; }
+        #messageForm input { flex:1; padding:5px; }
+        #messageForm button { padding:5px; }
+    </style>
+</head>
+<body>
+<h1>채팅방</h1>
+<div id="chat"></div>
+
+<form id="messageForm">
+    <input type="text" id="msg" placeholder="메시지 입력..." autocomplete="off"/>
+    <button type="submit">보내기</button>
+</form>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = Number(urlParams.get('roomId'));
+    const listingId = Number(urlParams.get('listingId'));
+    const sellerId = Number(urlParams.get('sellerId'));
+
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function () {
+            console.log('WebSocket 연결됨');
+
+            stompClient.subscribe('/topic/messages', function (msg) {
+                const message = JSON.parse(msg.body);
+                if(message.roomId === roomId) showMessage(message);
+            });
+        });
+    }
+
+    function loadPreviousMessages() {
+        fetch(`/chat/messages?listingId=${listingId}&sellerId=${sellerId}`)
+            .then(res => res.json())
+            .then(messages => {
+                messages.forEach(msg => showMessage(msg));
+            })
+            .catch(err => console.error("이전 메시지 불러오기 실패:", err));
+    }
+
+    function sendMessage(event) {
+        event.preventDefault();
+        const content = document.getElementById('msg').value.trim();
+        if(!content || !stompClient) return;
+
+        const chatMessage = {
+            roomId: roomId,
+            listingId: listingId,
+            sellerId: sellerId,
+            msgType: "TEXT",
+            content: content
+        };
+
+        stompClient.send("/app/chat/send", {}, JSON.stringify(chatMessage));
+        document.getElementById('msg').value = "";
+    }
+
+    function showMessage(message) {
+        const chatDiv = document.getElementById('chat');
+        const p = document.createElement('p');
+        p.textContent = message.senderNickName + ": " + message.content;
+        chatDiv.appendChild(p);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    document.getElementById('messageForm').addEventListener('submit', sendMessage);
+    loadPreviousMessages();
+    connect();
+</script>
+</body>
+</html>

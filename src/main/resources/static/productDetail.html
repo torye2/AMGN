@@ -70,6 +70,14 @@
               <p class="introduct">상세정보</p>
               <hr />
             `;
+
+            const chatButton = document.getElementById('chat-button');
+            chatButton.addEventListener('click', () => {
+                const listingId = urlParams.get('id');
+                const roomId = 0;
+                const sellerId = product.sellerId;
+                window.location.href = `/chatPage.html?roomId=${listingId}&listingId=${listingId}&sellerId=${sellerId}`;
+            });
           })
           .catch(error => {
             const productDetailsDiv = document.getElementById('product-details');
