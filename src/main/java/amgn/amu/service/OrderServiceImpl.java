@@ -227,4 +227,8 @@ public class OrderServiceImpl implements OrderService {
         dto.setSafePayYn(listing.getSafePayYn());
         return dto;
     }
+    
+    
+    
+    
 }

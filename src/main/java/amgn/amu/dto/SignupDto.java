@@ -1,5 +1,6 @@
 package amgn.amu.dto;
 
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +12,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SignupDto {
     private String id;
-    private String password;
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+{}\\[\\]:;\"'<>,.?/~`-]).{8,}$")
+    private String passwordHash;
     private String userName;
     private String nickName;
     private String email;
