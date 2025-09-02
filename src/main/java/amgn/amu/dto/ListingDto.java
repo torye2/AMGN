@@ -22,7 +22,7 @@ public class ListingDto {
     private Long listingId;
     private Long sellerId;
     private String photoUrl;
-
+    private String sellerNickname;
 
     public Listing toEntity() {
         return Listing.builder()

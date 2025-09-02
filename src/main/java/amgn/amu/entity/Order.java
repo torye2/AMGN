@@ -3,6 +3,7 @@ package amgn.amu.entity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import amgn.amu.domain.User;
 import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.dto.OrderDto.TradeMethod;
 import jakarta.persistence.*;
@@ -72,5 +73,11 @@ public class Order {
         return reviews != null && !reviews.isEmpty();
     }
     
-    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id", referencedColumnName = "user_id", insertable = false, updatable = false)
+    private User seller;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "buyer_id", referencedColumnName = "user_id", insertable = false, updatable = false)
+    private User buyer;
 }

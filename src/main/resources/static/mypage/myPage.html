@@ -63,7 +63,7 @@
 
         <!-- Products -->
         <div class="tab section" id="tab-products" role="tabpanel" hidden>
-            <div class="flex-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div class="flex-head">
                 <h2>등록한 상품</h2>
                 <div class="subtabs" role="tablist" aria-label="상품 상태">
                     <button class="active" data-status="ON_SALE" type="button">판매중</button>
@@ -125,7 +125,7 @@
             <form id="shopForm">
                 <label>상점명 <input type="text" name="shopName" required /></label>
                 <label>소개 <textarea name="intro" rows="4" placeholder="상점 소개를 작성해 주세요"></textarea></label>
-                <div style="margin-top:10px; display:flex; gap:8px;">
+                <div class="btn-row">
                     <button type="submit">저장</button>
                     <button type="button" id="btnPreviewShop">상점 보기</button>
                 </div>
