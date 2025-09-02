@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record UpdateProfileRequest(
         String id,
+        String newPassword,
         String email,
         String nickName,
         String phoneNumber,

@@ -45,7 +45,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 if (request instanceof ServletServerHttpRequest servletRequest) {
                     HttpSession session = servletRequest.getServletRequest().getSession(false);
                     if (session != null) {
-                        attributes.put("loginUser", session.getAttribute("loginUser"));
+                        Object loginUser = session.getAttribute("loginUser");
+                        if(loginUser!=null){
+                            attributes.put("loginUser", loginUser);
+                        } else {
+                            attributes.remove("loginUser");
+                        }
                     }
                 }
                 return true;
