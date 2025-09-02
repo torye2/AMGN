@@ -40,4 +40,5 @@ public class ListingsController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 	}
+	
 }

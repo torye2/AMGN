@@ -8,14 +8,116 @@
     <link rel="stylesheet" href="../css/main.css" />
     <link rel="stylesheet" href="../css/category.css" />
     <link rel="stylesheet" href="../css/onlyCategory.css" />
+    <script type="text/javascript">
+   
+    	window.onload = function(){
+    		console.log('리스트 조회');
+    		loadProducts();
+    	}
+    		
+    	function loadProducts(pageNo = 1, amount = 10 ){
+    		const productListDiv = document.querySelector(".product-list");
+    		const paginationDiv = document.querySelector(".pagination");
+    		const productsTable = document.querySelector(".liststable");
+    		const targetCategoryIds = [178, 153, 180];
+    		const params = new URLSearchParams();
+    		params.append("pageNo", pageNo);
+    		params.append("amount", amount);
+    		targetCategoryIds.forEach(id => params.append("categoryIds", id));
+
+    		
+    		if(!paginationDiv){
+    			console.error("pagination 요소를 찾을 수 없습니다.");
+    			return;
+    		}
+    		console.log(pageNo, amount);
+    		fetch(`/product/list?${params.toString()}`)
+    		.then(response => {
+    		
+    			if(!response.ok){
+    				throw new Error('모든 상품을 불러오는 데 실패했습니다.');
+    			}
+    			return response.json();
+    		})
+    		.then(products => {
+    			console.log('products', products);
+    			productListDiv.innerHTML = "";
+				let list = products.list;	            
+    			// 리스트 초기화
+    			
+    			(products.list || []).forEach((product)=>{
+	    			let contents = `<a href="/category/digital/${product.listingId}">
+						                <div class="product-item">
+						                    <img src="/images/product1.jpg" alt="상품명 1" />
+						                    <div class="product-info">
+						                        <h3>${product.title}</h3>
+						                        <p>상품에 대한 간략한 설명입니다.</p>
+						                        <p>${product.price}원</p>
+						                        <p>판매자: ${product.sellerId}</p>
+						                        <p>카테고리 ID:${product.categoryId}</p>
+						                    </div>
+						                </div>
+						            </a>`;
+    				
+	    			productListDiv.innerHTML += contents;
+
+    			});
+    			const pageDto = products.pageDto || { isPrev:false, isNext:false, startNo:1, endNo:1, pageNo:1, totalPages:1 };
+	    			
+	    			console.log(pageDto);
+	    			
+	    			paginationDiv.innerHTML = "";
+	    			
+	    			let paginationHtml = `<ul class="pagination">`;
+		    			
+		    			if(pageDto.isPrev){
+		    				paginationHtmlL += ` 
+		    							<li class="page-item">
+											<a class="page-link" href="javascript:loadProducts(${pageDto.startNo - 1})"> 이전 </a>
+											</li>`;
+		    			}
+		    			if(pageDto.totalPages > 1){
+		    			for(let num = 1; num<= pageDto.endNo;num++){
+		    				console.log(num);
+		    				paginationHtml += `
+		    					<li class="page-item ${pageDto.pageNo === num ? "active" : ""}">
+		    						<a class="page-link" href="javascript:loadProducts(${num})">${num}</a>
+		   						</li>`;
+		    			
+		    			}
+		    			}else{
+		    				paginationDiv.innerHTML = "";
+		    			}
+		    			if(pageDto.isNext){
+		    				paginationHtml += `
+		    					<li class="page-item">
+		    						<a class="page-link" href="javascript:loadProducts(${pageDto.endNo + 1})">다음</a>
+		   						</li>`;
+		    			}
+		    		paginationHtml += `</ul>`;
+		    		
+		    		paginationDiv.innerHTML = paginationHtml;
+		    			
+		    		})
+    			.catch(error => {
+        			console.error('Error fetching products:', error);
+        			productListDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+        			
+        			    
+        		});
+    		
+    			}
+    		
+    	
+    </script>
 </head>
 <body>
 <div id="wrap">
-    <div>
-        <header>
+    
+        
             <header id="header"></header>
-        </header>
-    </div>
+        
+    
     <div class="product-menu">                   <a href="/category/furniture/living">거실가구</a>
 	                        <a href="/category/furniture/bedroom">침실가구</a>
 	                        <a href="/category/furniture/office">학생/서재/사무용가구</a>
@@ -24,29 +126,8 @@
     <div class="container">
         <h2>가구 상품 목록</h2>
         <div class="product-list">
-            <a href="/category/digital/1234">
-                <div class="product-item">
-                    <img src="/images/product1.jpg" alt="상품명 1" />
-                    <div class="product-info">
-                        <h3>상품명 1</h3>
-                        <p>상품에 대한 간략한 설명입니다.</p>
-                        <p>가격: 100,000 원</p>
-                        <p>판매자: 사용자 1</p>
-                    </div>
-                </div>
-            </a>
-            <a href="/category/digital/5678">
-                <div class="product-item">
-                    <img src="/images/product2.jpg" alt="상품명 2" />
-                    <div class="product-info">
-                        <h3>상품명 2</h3>
-                        <p>다른 상품에 대한 설명입니다.</p>
-                        <p>가격: 250,000 원</p>
-                        <p>판매자: 사용자 2</p>
-                    </div>
-                </div>
-            </a>
-        </div>
+            </div>
+            <ul class="pagination"></ul>
     </div>
 </div>
 <script src="../js/header.js"></script>

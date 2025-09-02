@@ -15,8 +15,8 @@ public class SearchDto {
 	private int amount = 10; // 페이지당 게시물 수
 	
 	// 검색에 필요한 정보
-	private String searchField ; // 검색필드
-	private String searchWord ; // 검색어
+	private String searchField ="" ; // 검색필드
+	private String searchWord =""; // 검색어
 	
 	private List<Integer> categoryIds;
 	public SearchDto(String pageNo, String amount) {
