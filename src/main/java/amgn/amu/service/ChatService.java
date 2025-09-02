@@ -1,16 +1,19 @@
 package amgn.amu.service;
 
+import amgn.amu.domain.User;
 import amgn.amu.dto.ChatMessageDto;
 import amgn.amu.dto.ChatRoomDto;
 import amgn.amu.entity.ChatMessage;
 import amgn.amu.entity.ChatRoom;
 import amgn.amu.repository.ChatMessageRepository;
 import amgn.amu.repository.ChatRoomRepository;
+import amgn.amu.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,13 +23,17 @@ public class ChatService {
 
     private final ChatMessageRepository messageRepository;
     private final ChatRoomRepository roomRepository;
+    private final UserRepository userRepository;
 
+    // -------------------------------
+    // 메시지 저장
+    // -------------------------------
     @Transactional
     public ChatMessageDto saveMessage(ChatMessageDto dto, Long listingId, Long buyerId, Long sellerId) {
-
+        // listingId + sellerId 기준으로 방 가져오기 (buyerId는 null일 수 있음)
         ChatRoom room = getOrCreateRoom(listingId, buyerId, sellerId);
+
         System.out.println("메시지 저장 roomId: " + room.getRoomId());
-        System.out.println(dto + "/" + listingId + "/" + buyerId + "/" + sellerId);
         ChatMessage message = ChatMessage.builder()
                 .room(room)
                 .senderId(buyerId)
@@ -37,63 +44,58 @@ public class ChatService {
 
         ChatMessage saved = messageRepository.save(message);
 
+        // DTO 업데이트
         dto.setRoomId(room.getRoomId());
         dto.setSenderId(buyerId);
         dto.setCreatedAt(saved.getCreatedAt());
 
+        // senderNickName 세팅
+        User user = userRepository.findById(buyerId).orElse(null);
+        dto.setSenderNickName(user != null ? user.getNickName() : "알수없음");
+
         return dto;
     }
 
-    /*
+    // -------------------------------
+    // 방 생성 또는 기존 방 가져오기
+    // -------------------------------
     @Transactional
     public ChatRoom getOrCreateRoom(Long listingId, Long buyerId, Long sellerId) {
-        //roomRepository.findByListingIdAndBuyerIdAndSellerId(listingId, buyerId, sellerId);
-        System.out.println("---------------------------------");
-        Optional<ChatRoom> optionalRoom = roomRepository.findByListingIdAndBuyerIdAndSellerId(listingId, buyerId, sellerId);
-        if(optionalRoom.isPresent()) {
-            System.out.println("채팅방: " + optionalRoom.get());
-            return optionalRoom.get();
-        } else {
-            System.out.println("채팅방 x");
-            ChatRoom room = ChatRoom.builder()
-                        .listingId(listingId)
-                        .buyerId(buyerId)
-                        .sellerId(sellerId)
-                        .status("OPEN")
-                        .createdAt(LocalDateTime.now())
-                        .build();
-                return roomRepository.save(room);
+        // listingId + sellerId 기준으로 기존 방 조회
+        List<ChatRoom> rooms = roomRepository.findByListingIdAndSellerId(listingId, sellerId);
+
+        if (!rooms.isEmpty()) {
+            ChatRoom existingRoom = rooms.get(0);
+
+            // buyerId가 비어있으면 업데이트
+            if (existingRoom.getBuyerId() == null && buyerId != null) {
+                existingRoom.setBuyerId(buyerId);
+                return roomRepository.save(existingRoom);
+            }
+
+            return existingRoom;
         }
+
+        // 새 방 생성
+        ChatRoom newRoom = ChatRoom.builder()
+                .listingId(listingId)
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .status("OPEN")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ChatRoom savedRoom = roomRepository.save(newRoom);
+        System.out.println("새 채팅방 생성됨: roomId=" + savedRoom.getRoomId());
+        return savedRoom;
     }
 
-     */
-    @Transactional
-    public ChatRoom getOrCreateRoom(Long listingId, Long buyerId, Long sellerId) {
-        Optional<ChatRoom> optionalRoom = roomRepository.findByListingIdAndBuyerIdAndSellerId(listingId, buyerId, sellerId);
-
-        if(optionalRoom.isPresent()) {
-            System.out.println("기존 채팅방 존재: " + optionalRoom.get().getRoomId());
-            return optionalRoom.get();
-        } else {
-            System.out.println("채팅방 없음: 새로 생성 중... listingId=" + listingId + ", buyerId=" + buyerId + ", sellerId=" + sellerId);
-            ChatRoom room = ChatRoom.builder()
-                    .listingId(listingId)
-                    .buyerId(buyerId)
-                    .sellerId(sellerId)
-                    .status("OPEN")
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            ChatRoom saved = roomRepository.save(room);
-            System.out.println("새 채팅방 생성됨: roomId=" + saved.getRoomId());
-            return saved;
-        }
-    }
-
-
-    // 메시지 받아오기
+    // -------------------------------
+    // roomId 기준 메시지 조회
+    // -------------------------------
     @Transactional(readOnly = true)
     public List<ChatMessageDto> getMessagesByRoomId(Long roomId) {
-        List<ChatMessageDto> messages = messageRepository.findAllByRoomRoomIdOrderByCreatedAtAsc(roomId).stream()
+        return messageRepository.findAllByRoomRoomIdOrderByCreatedAtAsc(roomId).stream()
                 .map(msg -> {
                     ChatMessageDto dto = new ChatMessageDto();
                     dto.setRoomId(msg.getRoom().getRoomId());
@@ -104,18 +106,20 @@ public class ChatService {
                     dto.setCreatedAt(msg.getCreatedAt());
                     dto.setMsgType(msg.getMsgType());
 
-                    System.out.println(dto);
+                    // senderId로 닉네임 세팅
+                    User user = userRepository.findById(msg.getSenderId()).orElse(null);
+                    dto.setSenderNickName(user != null ? user.getNickName() : "알수없음");
+
                     return dto;
                 }).toList();
-        System.out.println("총 메시지 개수: " + messages.size());
-        return messages;
     }
 
-    // 판매자 채팅 목록
+    // -------------------------------
+    // 판매자 채팅 목록 조회
+    // -------------------------------
     @Transactional(readOnly = true)
     public List<ChatRoomDto> getRoomsBySellerId(Long sellerId) {
-        return roomRepository.findAll().stream()
-                .filter(room -> room.getSellerId().equals(sellerId))
+        return roomRepository.findBySellerId(sellerId).stream()
                 .map(room -> {
                     ChatRoomDto dto = new ChatRoomDto();
                     dto.setRoomId(room.getRoomId());
@@ -128,14 +132,24 @@ public class ChatService {
                 }).toList();
     }
 
-
-
+    // -------------------------------
+    // 판매자 또는 구매자가 속한 방 모두 조회
+    // -------------------------------
     @Transactional(readOnly = true)
     public List<ChatRoom> getRoomsByUserId(Long userId) {
-        // 판매자 또는 구매자일 경우 모두 조회
-        return roomRepository.findByBuyerIdOrSellerId(userId, userId);
+        List<ChatRoom> sellerRooms = roomRepository.findBySellerId(userId);
+        List<ChatRoom> buyerRooms = roomRepository.findByBuyerId(userId);
+
+        List<ChatRoom> allRooms = new ArrayList<>();
+        allRooms.addAll(sellerRooms);
+        allRooms.addAll(buyerRooms);
+
+        return allRooms;
     }
 
+    // -------------------------------
+    // roomId 기준 방 조회
+    // -------------------------------
     @Transactional(readOnly = true)
     public ChatRoom getRoomById(Long roomId) {
         return roomRepository.findById(roomId).orElse(null);

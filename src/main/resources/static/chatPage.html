@@ -72,7 +72,7 @@
     function showMessage(message) {
         const chatDiv = document.getElementById('chat');
         const p = document.createElement('p');
-        p.textContent = (message.senderId === sellerId ? "상대방" : "나") + ": " + message.content;
+        p.textContent = message.senderNickName + ": " + message.content;
         chatDiv.appendChild(p);
         chatDiv.scrollTop = chatDiv.scrollHeight;
     }

@@ -227,8 +227,27 @@ public class OrderServiceImpl implements OrderService {
         dto.setSafePayYn(listing.getSafePayYn());
         return dto;
     }
-    
-    
-    
-    
+
+
+    // 판매 내역
+    @Override
+    public List<OrderDto> getSellOrders(Long sellerId) {
+        List<Order> orders = orderRepository.findBySellerIdOrderByCreatedAtDesc(sellerId);
+        return orders.stream()
+                .filter(o -> o.getStatus() != OrderDto.OrderStatus.CANCELLED)
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // 구매 내역
+    @Override
+    public List<OrderDto> getBuyOrders(Long buyerId) {
+        List<Order> orders = orderRepository.findByBuyerIdOrderByCreatedAtDesc(buyerId);
+        return orders.stream()
+                .filter(o -> o.getStatus() != OrderDto.OrderStatus.CANCELLED)
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+
 }

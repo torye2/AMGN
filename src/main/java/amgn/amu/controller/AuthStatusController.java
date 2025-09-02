@@ -20,8 +20,10 @@ public class AuthStatusController {
         LoginUserDto u = (LoginUserDto) session.getAttribute("loginUser");
         return Map.of(
                 "isLoggedIn", u != null,
+                "username", u != null ? u.getUserName() : null,
                 "nickname",   u != null ? u.getNickName() : null,
-                "userId",     u != null ? u.getId()      : null
+                "userId",     u != null ? u.getId()      : null,
+                "createdAt", u != null ? u.getCreatedAt().toLocalDate().toString() : null
         );
     }
 }

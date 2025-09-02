@@ -3,7 +3,10 @@ package amgn.amu.controller;
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.LoginUserDto;
+import amgn.amu.entity.Listing;
+import amgn.amu.entity.ListingPhoto;
 import amgn.amu.service.ListingService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -12,10 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Arrays;
+
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -30,54 +35,59 @@ public class ListingController {
         this.objectMapper = objectMapper;
     }
 
+    // ✅ 상품 등록 (파일 + JSON 데이터)
+        @PostMapping("/write")
+        @Transactional
+        public ResponseEntity<Map<String, Object>> writeListing(
+                @RequestParam("listingData") String listingDataJson,
+                @RequestParam(value = "attrs", required = false) String attrsJson,
+                @RequestParam("productPhotos") MultipartFile[] files,
+                HttpSession session
+        ) {
+            try {
+                // 로그인 확인
+                LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+                if (loginUser == null) {
+                    Map<String, Object> res = new HashMap<>();
+                    res.put("error", "로그인이 필요합니다.");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
+                }
 
+                // JSON → DTO
+                ListingDto listingDto = objectMapper.readValue(listingDataJson, ListingDto.class);
+                listingDto.setSellerId(loginUser.getUserId());
 
-    @PostMapping("/write")
-    @Transactional(rollbackFor = Exception.class)
-    public ResponseEntity<Map<String, Object>> writeProduct(
-            @RequestPart("listingData") String listingDataJson,
-            @RequestPart("attrs") String attrsJson,
-            @RequestParam("productPhotos") MultipartFile[] productPhotos,
-            HttpSession session) {
+                // 1️⃣ Listing 저장
+                Long listingId = listingService.saveListing(listingDto);
 
-        try {
-            LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
-            if (loginUser == null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "로그인이 필요합니다.");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+                // 2️⃣ 파일 저장
+                listingService.saveListingPhotos(listingId, files);
+
+                // 3️⃣ 속성(attrs) 저장
+                if (attrsJson != null && !attrsJson.isEmpty()) {
+                    List<AttrDto> attrs = objectMapper.readValue(attrsJson, new TypeReference<List<AttrDto>>() {});
+                    listingService.saveListingAttrs(listingId, attrs);
+                }
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "업로드 성공");
+                response.put("listingId", listingId);
+                return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                log.error("상품 등록 실패", e);
+                Map<String, Object> response = new HashMap<>();
+                response.put("error", "업로드 실패");
+                return ResponseEntity.status(500).body(response);
             }
-
-            ListingDto listingDto = objectMapper.readValue(listingDataJson, ListingDto.class);
-
-            listingDto.setSellerId(loginUser.getUserId());
-
-            List<AttrDto> attrs = Arrays.asList(objectMapper.readValue(attrsJson, AttrDto[].class));
-
-            long listingId = listingService.saveListing(listingDto);
-
-            listingService.saveListingAttrs(listingId, attrs);
-
-            listingService.saveListingPhotos(listingId, productPhotos);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "상품이 성공적으로 등록되었습니다!");
-            response.put("listingId", listingId);
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("상품 등록 중 오류 발생", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "상품 등록 중 오류가 발생했습니다.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        
     }
+
 
     @GetMapping("/all")
     public ResponseEntity<List<ListingDto>> getAllProducts() {
         try {
-            List<ListingDto> allListings = listingService.getAllListings();
-            return ResponseEntity.ok(allListings);
+            return ResponseEntity.ok(listingService.getAllListings());
         } catch (Exception e) {
             log.error("모든 상품을 불러오는 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -88,30 +98,21 @@ public class ListingController {
     public ResponseEntity<ListingDto> getProductDetail(@PathVariable("listingId") long listingId) {
         try {
             ListingDto listingDto = listingService.getListingById(listingId);
-            if (listingDto != null) {
-                return ResponseEntity.ok(listingDto);
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 Not Found
-            }
+            if (listingDto != null) return ResponseEntity.ok(listingDto);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             log.error("상품 정보를 불러오는 중 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 Internal Server Error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
 
     @GetMapping("/my-products")
     public ResponseEntity<List<ListingDto>> getMyProducts(HttpSession session) {
         try {
             LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
-            if (loginUser == null) {
-                // 로그인 정보가 없으면 401 Unauthorized 상태 반환
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
+            if (loginUser == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-            // 로그인된 사용자의 ID를 이용해 상품 목록 조회
-            List<ListingDto> myProducts = listingService.getListingsBySellerId(loginUser.getUserId());
-            return ResponseEntity.ok(myProducts);
+            return ResponseEntity.ok(listingService.getListingsBySellerId(loginUser.getUserId()));
         } catch (Exception e) {
             log.error("내 상품 목록을 불러오는 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
