@@ -64,3 +64,45 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('There has been a problem with your fetch operation:', error);
       });
 });
+
+async function buildCategoryMenu() {
+    const res = await fetch('/api/categories');
+    const categories = await res.json();
+
+    const categoryMap = {};
+    categories.forEach(cat => categoryMap[cat.categoryId] = {...cat, children: []});
+    const roots = [];
+
+    categories.forEach(cat => {
+        if (cat.parentId && categoryMap[cat.parentId]) {
+            categoryMap[cat.parentId].children.push(categoryMap[cat.categoryId]);
+        } else {
+            roots.push(categoryMap[cat.categoryId]);
+        }
+    });
+
+    const menuContainer = document.getElementById('category-menu');
+
+    function createMenuItem(cat) {
+        const itemDiv = document.createElement('div');
+        itemDiv.classList.add('submenu-item');
+
+        const link = document.createElement('a');
+        link.textContent = cat.name;
+        link.href = `/category/${encodeURIComponent(cat.name)}.html`;
+        itemDiv.appendChild(link);
+
+        if (cat.children.length > 0) {
+            const subDiv = document.createElement('div');
+            subDiv.classList.add('submenu');
+            cat.children.forEach(child => subDiv.appendChild(createMenuItem(child)));
+            itemDiv.appendChild(subDiv);
+        }
+
+        return itemDiv;
+    }
+
+    roots.forEach(root => menuContainer.appendChild(createMenuItem(root)));
+}
+
+document.addEventListener("DOMContentLoaded", buildCategoryMenu);
