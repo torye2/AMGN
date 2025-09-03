@@ -41,12 +41,11 @@ public class OrderController {
 
 	// 주문 결제
 	@PostMapping("/{orderId}/pay")
-	public OrderDto pay(@PathVariable("orderId") Long orderId, @Valid @RequestBody PaymentRequest req,
-			HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.pay(userId, orderId, req);
+	public OrderDto pay(@PathVariable("orderId") Long orderId, @RequestBody PaymentRequest req,
+	        HttpSession session) {
+	    Long userId = getUserIdFromSession(session);
+	    return orderService.pay(userId, orderId, req);
 	}
-
 	// 직거래 확인
 	@PostMapping("/{orderId}/confirm-meetup")
 	public OrderDto confirmMeetup(@PathVariable("orderId") Long orderId, HttpSession session) {
@@ -131,7 +130,13 @@ public class OrderController {
 	}
 	
 
-
+	// 주문 취소 후 상태를 다시 CREATED로 되돌리기
+	@PostMapping("/{orderId}/revert")
+	public ResponseEntity<OrderDto> revertCancel(@PathVariable("orderId") Long orderId, HttpSession session) {
+	    Long userId = getUserIdFromSession(session);
+	    OrderDto order = orderService.revertCancel(userId, orderId);
+	    return ResponseEntity.ok(order);
+	}
 
 
 }

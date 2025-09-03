@@ -20,7 +20,7 @@
     		const productListDiv = document.querySelector(".product-list");
     		const paginationDiv = document.querySelector(".pagination");
     		const productsTable = document.querySelector(".liststable");
-    		const targetCategoryIds = [178, 153, 180];
+    		const targetCategoryIds = [30, 31, 32, 33, 34, 35, 36, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144];
     		const params = new URLSearchParams();
     		params.append("pageNo", pageNo);
     		params.append("amount", amount);
@@ -46,7 +46,7 @@
 				let list = products.list;	            
     			// 리스트 초기화
     			
-    			products.list.forEach((product)=>{
+    			(products.list || []).forEach((product)=>{
 	    			let contents = `<a href="/category/digital/${product.listingId}">
 						                <div class="product-item">
 						                    <img src="/images/product1.jpg" alt="상품명 1" />
@@ -63,7 +63,7 @@
 	    			productListDiv.innerHTML += contents;
 
     			});
-					let pageDto = products.pageDto;
+    			const pageDto = products.pageDto || { isPrev:false, isNext:false, startNo:1, endNo:1, pageNo:1, totalPages:1 };
 	    			
 	    			console.log(pageDto);
 	    			

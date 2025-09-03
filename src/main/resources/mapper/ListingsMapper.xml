@@ -5,7 +5,7 @@
  
   <mapper namespace="amgn.amu.mapper.ListingsMapper">
   
-  <select id="getLists" parameterType="amgn.amu.dto.SearchDto" resultType="amgn.amu.domain.Listing">
+  <select id="getLists" parameterType="amgn.amu.dto.SearchDto" resultType="amgn.amu.dto.ListingsDto">
   		select title, description, price, seller_id, category_id
   		from listings
   		<where>
@@ -25,7 +25,9 @@
       </if>
     </where>
     ORDER BY created_at DESC
-    OFFSET (#{pageNo} - 1) * #{amount} ROWS FETCH NEXT #{amount} ROWS ONLY
+    OFFSET (#{pageNo} - 1) * #{amount} ROWS 
+    FETCH NEXT #{amount} ROWS ONLY
+
   </select>
   	<select id="getTotalCount" parameterType="amgn.amu.dto.SearchDto" resultType="int">
 	    SELECT COUNT(*)
