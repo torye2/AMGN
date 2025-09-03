@@ -2,6 +2,8 @@ package amgn.amu.controller;
 
 import amgn.amu.common.ApiResult;
 import amgn.amu.common.LoginUser;
+import amgn.amu.domain.User;
+import amgn.amu.dto.LoginUserDto;
 import amgn.amu.dto.PasswordVerifyRequest;
 import amgn.amu.dto.UpdateProfileRequest;
 import amgn.amu.dto.UserProfileDto;
@@ -34,12 +36,20 @@ public class ProfileController {
     }
 
     @PutMapping("/profile")
-    public ApiResult<Void> updateProfile(
+    public ApiResult<LoginUserDto> updateProfile(
             @RequestBody @Valid UpdateProfileRequest updatereq,
             HttpServletRequest req
             ) {
         String loginId = loginUser.loginId(req);
-        profileService.updateProfile(loginId, updatereq);
-        return ApiResult.ok(null);
+
+        User updateUser = profileService.updateProfile(loginId, updatereq);
+
+        req.changeSessionId();
+
+        LoginUserDto loginUser = LoginUserDto.from(updateUser);
+
+        req.getSession().setAttribute("loginUser", loginUser);
+
+        return ApiResult.ok(loginUser);
     }
 }
