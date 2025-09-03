@@ -37,7 +37,7 @@ public class ProfileService {
     }
 
     @Transactional
-    public void updateProfile(String loginId, UpdateProfileRequest req) {
+    public User updateProfile(String loginId, UpdateProfileRequest req) {
         User user = userRepository.findById(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if(!"ACTIVE".equals(user.getStatus())) {
@@ -45,7 +45,8 @@ public class ProfileService {
         }
 
         if(req.id()!=null && !req.id().equals(user.getId())){
-            if(userMapper.existsById(req.id())) throw new AppException(ErrorCode.DUPLICATE_ID);
+            if(userMapper.existsById(req.id()))
+                throw new AppException(ErrorCode.DUPLICATE_ID);
             user.setId(req.id());
         }
 
@@ -69,7 +70,7 @@ public class ProfileService {
             }
         }
 
-        userRepository.save(user);
+        return userRepository.save(user);
     }
 
     public UserProfileDto maptoDto(User user) {

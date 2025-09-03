@@ -1,5 +1,6 @@
 package amgn.amu.dto;
 
+import amgn.amu.domain.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
@@ -40,4 +41,23 @@ public class LoginUserDto {
     private String detailAddress;
     @NotBlank
     private LocalDateTime createdAt;
+
+    public static LoginUserDto from(User user) {
+        LoginUserDto dto = new LoginUserDto();
+        dto.userId = user.getUserId();
+        dto.id = user.getId();
+        dto.userName = user.getUserName();
+        dto.email = user.getEmail();
+        dto.nickName = user.getNickName();
+        dto.phoneNumber = user.getPhoneNumber();
+        dto.birthYear = user.getBirthYear();
+        dto.birthMonth = user.getBirthMonth();
+        dto.birthDay = user.getBirthDay();
+        dto.province = user.getProvince();
+        dto.city = user.getCity();
+        dto.detailAddress = user.getDetailAddress();
+        dto.createdAt = user.getCreatedAt();
+
+        return dto;
+    }
 }
