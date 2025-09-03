@@ -56,3 +56,76 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(err);
         });
 });
+
+// 관련 상품 리스트
+document.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get("id");
+
+    // 상품 상세 불러오기
+    fetch(`/product/${productId}`)
+        .then(res => res.json())
+        .then(product => {
+            document.getElementById("productTitle").textContent = product.title;
+            document.getElementById("productPrice").textContent = product.price + " 원";
+            document.getElementById("productDesc").textContent = product.description;
+
+            // 관련 상품 불러오기
+            loadRelatedProducts(product.listingId);
+        })
+        .catch(err => console.error(err));
+});
+
+function loadRelatedProducts(productId) {
+    fetch(`/product/${productId}/related`)
+        .then(res => res.json())
+        .then(relatedProducts => {
+            const container = document.querySelector(".related-products");
+
+            if (relatedProducts.length === 0) {
+                container.innerHTML += "<p>관련 상품이 없습니다.</p>";
+                return;
+            }
+
+            relatedProducts.forEach(p => {
+                const item = document.createElement("div");
+                item.className = "product-item";
+
+                const imgUrl = (p.photoUrls && p.photoUrls.length > 0)
+                    ? p.photoUrls[0]
+                    : "https://placehold.co/300x200?text=No+Image";
+
+                item.innerHTML = `
+                    <a href="/productDetail.html?id=${p.listingId}">
+                        <img src="${imgUrl}" alt="${p.title}" />
+                        <p>${p.title}</p>
+                        <p>${p.price} 원</p>
+                    </a>
+                `;
+                container.appendChild(item);
+            });
+        })
+        .catch(err => console.error(err));
+}
+
+	document.addEventListener("DOMContentLoaded", () => {
+	    const orderButton = document.getElementById("order-button");
+	    if (orderButton) {
+	        orderButton.addEventListener("click", () => {
+	            window.location.href = "order/order.html";
+	        });
+	    }
+	});
+	
+	document.addEventListener("DOMContentLoaded", () => {
+	    const orderButton = document.getElementById("order-button");
+	    const urlParams = new URLSearchParams(window.location.search);
+	    const productId = urlParams.get("id"); // productDetail?id=32 → 32 추출
+	
+	    if (orderButton && productId) {
+	        orderButton.addEventListener("click", () => {
+	            // order.html로 이동하면서 id 값 전달
+	            window.location.href = `/order/order.html?listingId=${productId}`;
+	        });
+	    }
+	});

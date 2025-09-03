@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<title>가전제품</title>
+<title>휴대폰</title>
 <link rel="stylesheet" href="../css/reset.css" />
-<link rel="stylesheet" href="../css/main.css" />
-<link rel="stylesheet" href="../css/category.css" />
-<link rel="stylesheet" href="../css/onlyCategory.css" />
-<script type="text/javascript">
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/category.css" />
+    <link rel="stylesheet" href="../css/onlyCategory.css" />
+     <script type="text/javascript">
    
     	window.onload = function(){
     		console.log('리스트 조회');
@@ -20,7 +19,7 @@
     		const productListDiv = document.querySelector(".product-list");
     		const paginationDiv = document.querySelector(".pagination");
     		const productsTable = document.querySelector(".liststable");
-    		const targetCategoryIds = [30, 31, 32, 33, 34, 35, 36, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144];
+    		const targetCategoryIds = [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126];
     		const params = new URLSearchParams();
     		params.append("pageNo", pageNo);
     		params.append("amount", amount);
@@ -69,7 +68,7 @@
 	    			
 	    			paginationDiv.innerHTML = "";
 	    			
-	    			let paginationHtml = `<nav aria-label="Page navigation"><ul class="pagination justify-content-center">`;
+	    			let paginationHtml = `<ul class="pagination">`;
 		    			
 		    			if(pageDto.isPrev){
 		    				paginationHtmlL += ` 
@@ -95,7 +94,7 @@
 		    						<a class="page-link" href="javascript:loadProducts(${pageDto.endNo + 1})">다음</a>
 		   						</li>`;
 		    			}
-		    		paginationHtml += `</ul></nav>`;
+		    		paginationHtml += `</ul>`;
 		    		
 		    		paginationDiv.innerHTML = paginationHtml;
 		    			
@@ -113,30 +112,15 @@
     </script>
 </head>
 <body>
-	<div id="wrap">
-		<header id="header"></header>
-
-		<!-- 카테고리 메뉴 -->
-		<div class="product-menu">
-			<a href="/category/homeAppliances/household">생활가전</a> <a
-				href="/category/homeAppliances/kitchen">주방가전</a> <a
-				href="/category/homeAppliances/beauty">미용가전</a> <a
-				href="/category/homeAppliances/refrige">냉장고</a> <a
-				href="/category/homeAppliances/aircone">에어컨</a> <a
-				href="/category/homeAppliances/washing">세탁기/건조기</a> <a
-				href="/category/homeAppliances/tv">TV</a> <a
-				href="/category/homeAppliances/copy">사무기기</a> <a
-				href="/category/homeAppliances/other">기타 가전제품</a>
-		</div>
-
-		<div class="container">
-			<h2>가전제품 상품 목록</h2>
-			<div class="product-list"></div>
-			<ul class="pagination"></ul>
-
-		</div>
-	</div>
-
-	<script src="../js/header.js"></script>
+<div id="wrap">
+<div>
+	<header id="header"></header>
+</div>
+	<div class="container">
+        <h2>휴대폰 상품 목록</h2>
+        <div class="product-list">
+        </div>
+           <ul class="pagination"></ul>
+</div>
 </body>
 </html>

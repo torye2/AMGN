@@ -118,4 +118,20 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<ListingDto>> getRelatedProducts(@PathVariable Long id) {
+        ListingDto product = listingService.getListingById(id);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<ListingDto> relatedProducts = listingService.getListingsByCategoryExceptCurrent(
+                product.getCategoryId().longValue(), id
+        );
+
+        return ResponseEntity.ok(relatedProducts);
+    }
+
 }
