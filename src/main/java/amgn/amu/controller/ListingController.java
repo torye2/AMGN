@@ -3,8 +3,6 @@ package amgn.amu.controller;
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.LoginUserDto;
-import amgn.amu.entity.Listing;
-import amgn.amu.entity.ListingPhoto;
 import amgn.amu.service.ListingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,10 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.*;
 
 @Slf4j
