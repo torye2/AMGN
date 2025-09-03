@@ -70,13 +70,62 @@ document.addEventListener("DOMContentLoaded", async () => {
             this.reset();
             meetupFields.style.display = "block";
             deliveryFields.style.display = "none";
-            loadOrders();
+            window.location.href = '/main.html';
         } catch (err) {
             console.error(err);
             alert('주문 등록 중 오류가 발생했습니다.');
         }
     });
+	
+	async function loadOrders() {
+	    const tbody = document.querySelector('#ordersTable tbody');
+	    tbody.innerHTML = '';
 
-    // 초기 주문 내역 불러오기
-    loadOrders();
+	    try {
+	        const res = await fetch('/orders/buy'); // 구매 내역 API 호출
+	        if (!res.ok) throw new Error('주문 내역 불러오기 실패');
+
+	        const orders = await res.json();
+	        if (!orders || orders.length === 0) {
+	            tbody.innerHTML = `<tr><td colspan="8">주문 내역이 없습니다.</td></tr>`;
+	            return;
+	        }
+
+	        for (const order of orders) {
+	            const tr = document.createElement('tr');
+	            tr.innerHTML = `
+	                <td>${order.id}</td>
+	                <td><a href="/productDetail.html?id=${order.listingId}">${order.listingTitle ?? '-'}</a></td>
+	                <td>${order.method ?? '-'}</td>
+	                <td>${order.status ?? '-'}</td>
+	                <td>${order.finalPrice ?? '-'}</td>
+	                <td></td>
+	            `;
+	            const actionTd = tr.querySelector('td:last-child');
+
+	            // 상태별 버튼/텍스트 처리
+	            if (order.status === 'CREATED') {
+	                actionTd.appendChild(createButton('결제', () => payOrder(order)));
+	                actionTd.appendChild(createButton('취소', () => cancelOrder(order.id, actionTd, order)));
+	            } else if (order.status === 'PAID') {
+	                actionTd.appendChild(createButton('주문 확정', () => completeOrder(order.id, actionTd)));
+	                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, order)));
+	            } else if (order.status === 'COMPLETED') {
+	                actionTd.textContent = '주문 확정';
+	            } else if (order.status === 'CANCELLED') {
+	                actionTd.textContent = '취소됨';
+	            }
+
+	            tbody.appendChild(tr);
+	        }
+	    } catch (err) {
+	        console.error(err);
+	        tbody.innerHTML = `<tr><td colspan="8">주문 내역을 불러오는 중 오류가 발생했습니다.</td></tr>`;
+	    }
+	}
+
+
+	loadOrders();
+
+
 });
