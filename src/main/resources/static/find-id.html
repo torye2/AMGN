@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아이디 찾기</title>
+  <link rel="stylesheet" href="/css/reset.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/find.css" />
+</head>
+<body>
+<div id="wrap">
+  <div>
+    <header id="header"></header>
+  </div>
+
+  <div id="formError" class="form-alert" aria-live="polite"></div>
+
+  <fieldset class="find-box">
+    <h1>아이디 찾기</h1>
+
+    <div class="row">
+      <label for="name">이름</label>
+      <input type="text" id="name" autocomplete="name" required />
+    </div>
+
+    <div class="row">
+      <label>생년월일</label>
+      <div class="inline-3">
+        <input id="birthYear" type="number" placeholder="년(YYYY)" min="1900" max="2100" required />
+        <select id="birthMonth" required>
+          <option value="">월</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+        </select>
+        <select id="birthDay" required>
+          <option value="">일</option>
+        </select>
+      </div>
+      <div class="helper">예) 1994년 07월 03일</div>
+    </div>
+
+    <div class="row">
+      <label for="phone">핸드폰 번호</label>
+      <input type="tel" id="phone" inputmode="tel" placeholder="010-1234-5678" required />
+    </div>
+
+    <button class="btn" id="btnFindId" type="button">아이디 찾기</button>
+
+    <div id="result" class="result-box" style="display:none;"></div>
+  </fieldset>
+</div>
+<script src="js/header.js"></script>
+<script>
+// populate day select based on month/year
+(function(){
+  const daySel = document.getElementById('birthDay');
+  function fillDays(){
+    const y = parseInt(document.getElementById('birthYear').value || '2000', 10);
+    const m = parseInt(document.getElementById('birthMonth').value || '1', 10);
+    const last = new Date(y, m, 0).getDate();
+    daySel.innerHTML = '<option value="">일</option>';
+    for(let d=1; d<=last; d++){
+      const opt = document.createElement('option');
+      opt.value = String(d);
+      opt.textContent = String(d);
+      daySel.appendChild(opt);
+    }
+  }
+  document.getElementById('birthYear').addEventListener('input', fillDays);
+  document.getElementById('birthMonth').addEventListener('change', fillDays);
+  fillDays();
+})();
+
+const $ = (s)=>document.querySelector(s);
+const showError = (msg)=>{ const el=$('#formError'); el.textContent=msg||''; };
+
+$('#btnFindId').addEventListener('click', async ()=>{
+  showError('');
+  const name = $('#name').value.trim();
+  const birthYear = $('#birthYear').value.trim();
+  const birthMonth = $('#birthMonth').value.trim();
+  const birthDay = $('#birthDay').value.trim();
+  const phone = $('#phone').value.trim();
+
+  if(!name || !birthYear || !birthMonth || !birthDay || !phone){
+    showError('모든 값을 입력해 주세요.');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/find-id', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, birthYear: Number(birthYear), birthMonth: Number(birthMonth), birthDay: Number(birthDay), phone })
+    });
+    if(resp.ok){
+      const data = await resp.json(); // { maskedUserId: 'ab****23' }
+      $('#result').style.display='block';
+      $('#result').textContent = '아이디: ' + (data.maskedUserId || '(없음)');
+    } else if(resp.status === 404){
+      showError('일치하는 회원 정보를 찾을 수 없습니다.');
+    } else {
+      showError('요청 처리 중 오류가 발생했습니다.');
+    }
+  } catch (e){
+    showError('네트워크 오류가 발생했습니다.');
+  }
+});
+</script>
+</body>
+</html>

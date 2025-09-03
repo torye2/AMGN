@@ -1,6 +1,7 @@
 package amgn.amu.common;
 
 public enum ErrorCode {
+    NOT_FOUND_USER(400, "유저를 찾을 수 없습니다."),
     DUPLICATE_ID(400, "이미 사용 중인 아이디입니다."),
     DUPLICATE_PW(400, "이미 사용 중인 비밀번호입니다."),
     MATCH_PW(400, "비밀번호가 일치하지 않습니다."),
