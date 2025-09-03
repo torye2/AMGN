@@ -173,3 +173,25 @@ hr {
     color: #555;
     font-size: 1em;
 }
+
+
+.order-button {
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 180px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.order-button:hover {
+    background-color: gray;
+}
+
+.order-button-container {
+    text-align: center;
+    margin-top: 10px; /* chat 버튼 바로 아래 */
+    margin-left: 530px; /* chat 버튼과 같은 정렬 */
+}
