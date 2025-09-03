@@ -366,3 +366,70 @@
 .gallery_img img {
   width: 100%;
 }
+
+
+
+
+/* 최상위 메뉴 */
+.menu {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    padding: 10px 15px;
+    font-weight: bold;
+}
+
+/* 최상위 메뉴의 서브메뉴 */
+.menu > .submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    min-width: 150px;
+    padding: 5px 0;
+    z-index: 1000;
+}
+
+/* 서브메뉴 아이템 */
+.submenu-item {
+    position: relative;
+    padding: 5px 15px;
+    white-space: nowrap;
+}
+
+/* 링크 스타일 */
+.submenu-item a {
+    text-decoration: none;
+    color: #333;
+    display: block;
+}
+
+/* 링크 호버 시 */
+.submenu-item a:hover {
+    background-color: #f0f0f0;
+}
+
+/* 마우스 올리면 최상위 서브메뉴 표시 */
+.menu:hover > .submenu {
+    display: block;
+}
+
+/* 하위 서브메뉴(재귀) */
+.submenu-item > .submenu {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    min-width: 150px;
+    padding: 5px 0;
+    z-index: 1000;
+}
+
+/* 마우스 올리면 하위 서브메뉴 표시 */
+.submenu-item:hover > .submenu {
+    display: block;
+}

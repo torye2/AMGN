@@ -1,47 +1,26 @@
 package amgn.amu.controller;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import amgn.amu.entity.CategoryList;
+import amgn.amu.service.CategoryListService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/categories")
+@RequiredArgsConstructor
 public class CategoryController {
-    @GetMapping("/digital")
-    public String showDigital() {
-        return "redirect:/category/digital.html";
+
+    private final CategoryListService service;
+
+    @GetMapping
+    public List<CategoryList> getCategories() {
+        return service.getAllCategories();
     }
 
-    @GetMapping("/menClothes")
-    public String showMenClothes() {
-        return "redirect:/category/menClothes.html";
-    }
-
-    @GetMapping("/womenClothes")
-    public String showWomenClothes() {
-        return "redirect:/category/womenClothes.html";
-    }
-
-    @GetMapping("/menShoes")
-    public String showMenShoes() {
-        return "redirect:/category/menShoes.html";
-    }
-
-    @GetMapping("/womenShoes")
-    public String showWomenShoes() {
-        return "redirect:/category/womenShoes.html";
-    }
-
-    @GetMapping("/homeAppliances")
-    public String showHomeAppliances() {
-        return "redirect:/category/homeAppliances.html";
-    }
-
-    @GetMapping("/voucher")
-    public String showVoucher() {
-        return "redirect:/category/voucher.html";
-    }
-
-    @GetMapping("/furniture")
-    public String showFurniture() {
-        return "redirect:/category/furniture.html";
+    @GetMapping("/{parentId}")
+    public List<CategoryList> getSubCategories(@PathVariable Long parentId) {
+        return service.getSubCategories(parentId);
     }
 }
