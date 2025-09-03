@@ -103,7 +103,7 @@ async function buildCategoryMenu() {
 
         const link = document.createElement('a');
         link.textContent = cat.name;
-        link.href = `/category/${encodeURIComponent(cat.name)}.html`;
+        link.href = `list.html?id=${encodeURIComponent(cat.categoryId)}`;
         itemDiv.appendChild(link);
 
         if (cat.children.length > 0) {
