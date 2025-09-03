@@ -17,4 +17,6 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 
     // 가격 범위로 상품 조회
     List<Listing> findByPriceBetween(Long minPrice, Long maxPrice);
+
+    List<Listing> findByCategoryIdAndListingIdNot(Long categoryId, Long listingId);
 }

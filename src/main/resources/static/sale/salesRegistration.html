@@ -32,17 +32,21 @@
                     </label>
                 </div>
                 <div>
-                    <label>카테고리
-                        <select name="categoryId" required>
-                            <option value="1">디지털기기</option>
-                            <option value="2">남성의류</option>
-                            <option value="3">여성의류</option>
-                            <option value="4">남성신발</option>
-                            <option value="5">여성신발</option>
-                            <option value="6">가전제품</option>
-                            <option value="7">상품권</option>
-                            <option value="8">가구</option>
-                        </select> </label>
+                    <label>카테고리</label>
+                    <select id="category1" required>
+                        <option value="">-- 대분류 선택 --</option>
+                    </select>
+
+                    <select id="category2" disabled>
+                        <option value="">-- 중분류 선택 --</option>
+                    </select>
+
+                    <select id="category3" disabled>
+                        <option value="">-- 소분류 선택 --</option>
+                    </select>
+
+                    <!-- 선택된 카테고리 ID 전송용 -->
+                    <input type="hidden" name="categoryId" id="categoryId" />
                 </div>
                 <div class="radio-group">
                     <p>제품 상태:</p>

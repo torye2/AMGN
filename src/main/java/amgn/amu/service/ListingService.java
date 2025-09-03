@@ -80,6 +80,15 @@ public class ListingService {
 	        }
 	    }
 
+
+
+	public List<ListingDto> getListingsByCategoryExceptCurrent(Long categoryId, Long listingId) {
+		List<Listing> listings = listingRepository.findByCategoryIdAndListingIdNot(categoryId, listingId);
+		return listings.stream()
+				.map(this::convertToDto)
+				.collect(Collectors.toList());
+	}
+
     // 4 Listing → DTO 변환
     public ListingDto convertToDto(Listing listing) {
         ListingDto dto = new ListingDto();
