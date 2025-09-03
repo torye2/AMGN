@@ -54,25 +54,25 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public void createReview(Long userId, Map<String, Object> payload) {
-        Long orderId = Long.valueOf(payload.get("orderId").toString());
-        Integer score = Integer.valueOf(payload.get("score").toString());
-        String rvComment = payload.getOrDefault("rvComment", "").toString();
+    public void createReview(Long raterId, Map<String, Object> payload) {
+        Long orderId = ((Number) payload.get("orderId")).longValue();
+        Integer score = ((Number) payload.get("score")).intValue();
+        String rvComment = (String) payload.getOrDefault("rvComment", ""); // null이면 공란 처리
 
-        if (reviewRepository.existsByOrderIdAndRaterId(orderId, userId)) {
-            throw new RuntimeException("이미 리뷰를 작성했습니다.");
-        }
-
+        // 주문 가져오기
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문이 존재하지 않습니다: " + orderId));
+                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+
 
         Review review = new Review();
         review.setOrder(order);
-        review.setRaterId(userId);
+        review.setRaterId(raterId);
+        review.setRateeId(order.getSeller().getUserId()); // Long 타입 맞춤
         review.setScore(score);
-        review.setRvComment(rvComment);
+        review.setRvComment(rvComment); // 빈 문자열 들어가도 OK
         review.setCreatedAt(LocalDateTime.now());
 
         reviewRepository.save(review);
     }
+
 }

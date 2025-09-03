@@ -108,7 +108,7 @@ async function buildCategoryMenu() {
 
         if (cat.children.length > 0) {
             const subDiv = document.createElement('div');
-            subDiv.classList.add('submenu');
+            subDiv.classList.add('submenu2');
             cat.children.forEach(child => subDiv.appendChild(createMenuItem(child)));
             itemDiv.appendChild(subDiv);
         }
