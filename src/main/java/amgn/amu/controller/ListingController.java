@@ -3,6 +3,8 @@ package amgn.amu.controller;
 import amgn.amu.dto.AttrDto;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.LoginUserDto;
+import amgn.amu.entity.Listing;
+import amgn.amu.repository.ListingRepository;
 import amgn.amu.service.ListingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,13 +53,13 @@ public class ListingController {
                 ListingDto listingDto = objectMapper.readValue(listingDataJson, ListingDto.class);
                 listingDto.setSellerId(loginUser.getUserId());
 
-                // 1️⃣ Listing 저장
+                // Listing 저장
                 Long listingId = listingService.saveListing(listingDto);
 
-                // 2️⃣ 파일 저장
+                // 파일 저장
                 listingService.saveListingPhotos(listingId, files);
 
-                // 3️⃣ 속성(attrs) 저장
+                // 속성(attrs) 저장
                 if (attrsJson != null && !attrsJson.isEmpty()) {
                     List<AttrDto> attrs = objectMapper.readValue(attrsJson, new TypeReference<List<AttrDto>>() {});
                     listingService.saveListingAttrs(listingId, attrs);
@@ -128,4 +130,15 @@ public class ListingController {
         return ResponseEntity.ok(relatedProducts);
     }
 
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ListingDto>> searchByTitle(@RequestParam String title) {
+        try {
+            List<ListingDto> results = listingService.findByTitle(title);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            log.error("title 검색 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
