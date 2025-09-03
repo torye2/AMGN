@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 로그인 상태 확인
         const authLinksDiv = document.getElementById('auth-links');
+        const reportMenu = document.getElementById('report-menu');
 
         // 서버에서 로그인 정보를 확인하는 API 호출
         if (authLinksDiv) {
@@ -44,12 +45,25 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;">로그아웃</button>
                             </form>
                         `;
+                        if(data.username == "관리자") {
+                            reportMenu.innerHTML = `
+                            <div><a href="/reportList">신고목록</a></div>
+                            <div><a href="/reportForm">신고하기</a></div>
+                            <div>문의하기</div>
+                        `;
+                        } else {
+                            reportMenu.innerHTML = `
+                            <div><a href="/reportForm">신고하기</a></div>
+                            <div>문의하기</div>
+                        `;
+                        }
                     } else {
                         authLinksDiv.innerHTML = `
                             <a href="/login.html">로그인</a>
                             <a href="/signup.html">회원가입</a>
                         `;
                     }
+
                 })
                 .catch(error => {
                     console.error('Failed to fetch user status:', error);

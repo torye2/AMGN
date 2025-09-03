@@ -23,5 +23,6 @@ public interface OrderService {
 	  void deleteOrder(Long userId, Long orderId);
 	  List<OrderDto> getSellOrders(Long userId);									// 판매 내역 조회
 	  List<OrderDto> getBuyOrders(Long userId);										// 구매 내역 조회
+	  OrderDto revertCancel(Long userId, Long orderId);
 	  
 	}
