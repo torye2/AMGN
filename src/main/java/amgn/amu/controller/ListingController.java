@@ -121,7 +121,7 @@ public class ListingController {
 
 
     @GetMapping("/{id}/related")
-    public ResponseEntity<List<ListingDto>> getRelatedProducts(@PathVariable Long id) {
+    public ResponseEntity<List<ListingDto>> getRelatedProducts(@PathVariable("id") Long id) {
         ListingDto product = listingService.getListingById(id);
         if (product == null) {
             return ResponseEntity.notFound().build();

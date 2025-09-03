@@ -81,7 +81,6 @@ function loadRelatedProducts(productId) {
         .then(res => res.json())
         .then(relatedProducts => {
             const container = document.querySelector(".related-products");
-            container.innerHTML = "<h2>관련 상품</h2>";
 
             if (relatedProducts.length === 0) {
                 container.innerHTML += "<p>관련 상품이 없습니다.</p>";
