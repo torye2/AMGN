@@ -35,6 +35,13 @@ fetch('header.html')
     window.onload = loadNotices;
 
     function deleteNotice(index) {
+		const isConfirmed = confirm("정말 삭제하시겠습니까?");
+		
+		if(!isConfirmed) {
+			window.location.href = "notice-l.html";
+			return;
+		}
+		
         let notices = JSON.parse(localStorage.getItem('notices')) || [];
         notices.splice(index, 1);
         localStorage.setItem('notices', JSON.stringify(notices));
