@@ -5,6 +5,10 @@
   position: relative;
 }
 
+* {
+	box-sizing : border-box;
+}
+
 #skip a {
   position: absolute;
   left: 0px;
@@ -163,7 +167,6 @@
   left: 0;
   background: white;
   border: 1px solid #ccc;
-  border-radius: 4px;
   min-width: 150px;
   padding: 10px 0;
   display: grid;
@@ -188,7 +191,7 @@
 }
 
 .submenu div:hover {
-  background-color: #f0f0f0
+  background-color: #f0f0f0;
 }
 
 /* 마우스 오버 시 하위 메뉴 표시 */
@@ -219,7 +222,7 @@
   position: relative;
   border: 1px solid #ccc;
   padding: 8px;
-  height: 105px;
+  height: 120px;
 }
 
 .tab_menu ul {
@@ -396,11 +399,12 @@
     min-width: 150px;
     padding: 5px 0;
     z-index: 1000;
+    height:750px;
 }
 
 /* 서브메뉴 아이템 */
 .submenu-item {
-    position: relative;
+    /*position: relative;*/
     padding: 5px 15px;
     white-space: nowrap;
     
@@ -435,14 +439,16 @@
     padding: 5px 0;
     z-index: 1000;
     width: 250px;
+    height:750px;
 }
 
 /* 마우스 올리면 하위 서브메뉴 표시 */
 .submenu-item:hover{
-	border: 2px solid #ccc;
+	background: #ccc;
 }
 .submenu-item:hover > .submenu2 {
     display: block;
-    border: 2px solid #ccc;
+    border: 1px solid #ccc;
     background: white;
+    top: -1px; 
 }
