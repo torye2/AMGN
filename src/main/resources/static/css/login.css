@@ -56,3 +56,7 @@
 .login-box button:hover {
   background-color: gray;
 }
+
+.aux-actions { margin-top: 12px; text-align: center; font-size: 14px; }
+.aux-actions .link { text-decoration: none; }
+.aux-actions .sep { margin: 0 8px; color: #bbb; }

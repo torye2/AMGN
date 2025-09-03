@@ -31,6 +31,7 @@ public class User {
     private String id;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(nullable = false, length = 20)

@@ -3,7 +3,13 @@ package amgn.amu.repository;
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
+//import org.apache.ibatis.annotations.Param;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+
 
 import java.util.List;
 
@@ -19,4 +25,6 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findByPriceBetween(Long minPrice, Long maxPrice);
 
     List<Listing> findByCategoryIdAndListingIdNot(Long categoryId, Long listingId);
+
+    List<Listing> findByTitle(String title);
 }

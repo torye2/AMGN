@@ -1,5 +1,7 @@
 package amgn.amu.service;
 
+import amgn.amu.common.AppException;
+import amgn.amu.common.ErrorCode;
 import amgn.amu.domain.User;
 import amgn.amu.dto.LoginRequest;
 import amgn.amu.dto.LoginUserDto;
@@ -19,18 +21,15 @@ public class LoginService {
     public LoginUserDto login(LoginRequest req) {
         User user = userMapper.findById(req.getId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+
         if (!(passwordEncoder.matches(req.getPasswordHash(), user.getPasswordHash())
             || user.getPasswordHash().equals(req.getPasswordHash()))) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new AppException(ErrorCode.MATCH_PW);
         }
 
         if(!user.getStatus().equals("ACTIVE")) {
             throw new IllegalArgumentException("정지된 계정입니다.");
         }
-        return new LoginUserDto(user.getUserId(), user.getId(), user.getUserName()
-                , user.getEmail(), user.getNickName(), user.getPhoneNumber()
-                , user.getBirthYear(), user.getBirthMonth(), user.getBirthDay()
-                , user.getProvince(), user.getCity(), user.getDetailAddress()
-                , user.getCreatedAt());
+        return LoginUserDto.from(user);
     }
 }

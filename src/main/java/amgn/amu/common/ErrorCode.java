@@ -3,6 +3,7 @@ package amgn.amu.common;
 public enum ErrorCode {
     DUPLICATE_ID(400, "이미 사용 중인 아이디입니다."),
     DUPLICATE_PW(400, "이미 사용 중인 비밀번호입니다."),
+    MATCH_PW(400, "비밀번호가 일치하지 않습니다."),
     DUPLICATE_EMAIL(400, "이미 가입된 이메일입니다."),
     DUPLICATE_PHONE(400, "이미 가입된 전화번호입니다."),
     VERIFICATION_RATE_LIMIT(429, "인증코드는 1분에 1회만 요청할 수 있어요."),
