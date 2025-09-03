@@ -74,9 +74,14 @@ public class OrderServiceImpl implements OrderService {
         // order.setMeetupTime(req.meetupTime());
         // order.setMeetupPlace(req.meetupPlace());
 
+        // ✅ 리스팅 상태 업데이트
+        listing.setStatus("RESERVED");
+        listingRepository.save(listing);
+
         // 5. 저장
         orderRepository.save(order);
-
+        
+        
         // 6. DTO 변환 후 반환
         return toDto(order);
     }
@@ -96,6 +101,12 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // ✅ 결제 완료시에도 RESERVED 유지
+        Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
+        listing.setStatus("RESERVED");
+        listingRepository.save(listing);
+        
         return toDto(order);
     }
 
@@ -128,6 +139,13 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setStatus(OrderDto.OrderStatus.COMPLETED);
         orderRepository.save(order);
+
+        // ✅ 구매 확정 시 → SOLD
+        Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
+        listing.setStatus("SOLD");
+        listingRepository.save(listing);
+
         return toDto(order);
     }
 
@@ -155,7 +173,13 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
-
+        
+        // ✅ 주문 취소 시 Listing 상태 ACTIVE로 복원
+        Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
+        listing.setStatus("ACTIVE");
+        listingRepository.save(listing);
+        
         return toDto(order);
     }
 
@@ -224,8 +248,11 @@ public class OrderServiceImpl implements OrderService {
         if (!order.getBuyerId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
-
+        Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
         // 실제 삭제
+        listing.setStatus("ACTIVE");
+        listingRepository.save(listing);
         orderRepository.delete(order);
     }
 
@@ -267,30 +294,32 @@ public class OrderServiceImpl implements OrderService {
     }
 
     
+
+
     @Override
     public OrderDto revertCancel(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문이 존재하지 않습니다: " + orderId));
 
-        // 권한 체크 (구매자만 취소 복원 가능)
         if (!order.getBuyerId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
 
-        // 현재 상태가 CANCELLED가 아니면 복원 불가
         if (order.getStatus() != OrderStatus.PAID) {
-            throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
+            throw new RuntimeException("주문 오류가 일어났습니다. 관리자에게 문의하세요.");
         }
 
-        // 상태를 CREATED로 되돌림
         order.setStatus(OrderStatus.CREATED);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // Listing 상태도 RESERVED로 유지
+        Listing listing = listingRepository.findById(order.getListingId())
+                .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다."));
+        listing.setStatus("RESERVED");
+        listingRepository.save(listing);
+
         return toDto(order);
     }
-
-
-
     
 }

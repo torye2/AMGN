@@ -173,7 +173,7 @@
   grid-template-columns:repeat(2, 1fr);
   gap:10px;
   z-index: 1000;
-  width: 250px;
+  width: 219px;
   /*
   transform: translateX(-50%);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -399,7 +399,6 @@
     min-width: 150px;
     padding: 5px 0;
     z-index: 1000;
-    height:750px;
 }
 
 /* 서브메뉴 아이템 */
@@ -438,8 +437,9 @@
     min-width: 150px;
     padding: 5px 0;
     z-index: 1000;
-    width: 250px;
-    height:750px;
+    /*width: 219px;*/
+    width: 209px;
+    height:732px;
 }
 
 /* 마우스 올리면 하위 서브메뉴 표시 */
