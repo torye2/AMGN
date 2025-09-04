@@ -165,4 +165,9 @@ public class ListingService {
 				.map(this::convertToDto)
 				.orElse(null);
 	}
+
+	public List<ListingDto> getListingsByCategory(Integer categoryId) {
+		// TODO Auto-generated method stub
+		return listingRepository.findByCategoryId(categoryId);
+	}
 }

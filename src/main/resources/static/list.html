@@ -41,12 +41,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     const productsAllDiv = document.getElementById('productsList');
 
-    fetch('/product/list') // 백엔드 API 호출
+    // URL 파라미터에서 categoryId 추출
+    const params = new URLSearchParams(window.location.search);
+    const categoryId = params.get("id");
+
+    // API 호출 경로 결정
+   
+
+    fetch('/product/list?categoryId=' +categoryId)
         .then(res => {
-            if (!res.ok) throw new Error('모든 상품을 불러오는 데 실패했습니다.');
+            if (!res.ok) throw new Error('상품을 불러오는 데 실패했습니다.');
             return res.json();
         })
-        .then(products => {
+        .then(map => {
+        	console.log(map);
+        	products = map.list;
             if (!products.length) {
                 productsAllDiv.innerHTML = '<p>등록된 상품이 없습니다.</p>';
                 return;
@@ -56,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productItem = document.createElement('div');
                 productItem.classList.add('product-item');
 
-                // 첫 번째 사진만 가져오기
+                // 첫 번째 사진 처리
                 let photoUrl = 'https://placehold.co/300x200?text=No+Image';
                 if (product.photoUrls && product.photoUrls.length > 0) {
                     photoUrl = product.photoUrls[0].startsWith('/uploads') 
@@ -72,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="/productDetail.html?id=${product.listingId}">
                         <img src="${photoUrl}" alt="${product.title}" />
                         <h4 class="product-title">${product.title}</h4>
-                        <p class="product-price">${product.price.toLocaleString()} 원</p>
+                        <p class="product-price">${Number(product.price).toLocaleString()} 원</p>
                     </a>
                 `;
                 productsAllDiv.appendChild(productItem);
@@ -84,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 </script>
+
 
 <script src="js/header.js"></script>
 </body>

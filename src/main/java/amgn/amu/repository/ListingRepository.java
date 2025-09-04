@@ -1,5 +1,6 @@
 package amgn.amu.repository;
 
+import amgn.amu.dto.ListingDto;
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
@@ -19,7 +20,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findBySellerId(Long sellerId);
 
     // 특정 카테고리 상품 조회
-    List<Listing> findByCategoryId(Integer categoryId);
+    List<ListingDto> findByCategoryId(Integer categoryId);
 
     // 가격 범위로 상품 조회
     List<Listing> findByPriceBetween(Long minPrice, Long maxPrice);

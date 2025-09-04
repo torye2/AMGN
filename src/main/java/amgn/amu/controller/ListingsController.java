@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,11 +27,11 @@ public class ListingsController {
 		this.listingsService = listingsService;
 	}
 	@GetMapping("/list")
-	public ResponseEntity<Map<String, Object>> getList(SearchDto searchDto){
+	public ResponseEntity<Map<String, Object>> getList( SearchDto searchDto){
 				System.out.println("리스트 조회 컨트롤러 호출");
 				System.out.println("pageNo=" + searchDto.getPageNo());
 			    System.out.println("amount=" + searchDto.getAmount());
-			    System.out.println("categoryIds=" + searchDto.getCategoryIds());
+			    System.out.println("categoryId=" + searchDto.getCategoryId());
 		try {
 			Map<String, Object> map = listingsService.getlist(searchDto);
 			System.out.println(map);

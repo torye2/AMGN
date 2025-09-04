@@ -141,4 +141,13 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+ // 카테고리별 상품 조회
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<ListingDto>> getProductsByCategory(@PathVariable("categoryId") Integer categoryId) {
+       System.out.println(categoryId);
+    	List<ListingDto> products = listingService.getListingsByCategory(categoryId);
+    	System.out.println(products);
+        return ResponseEntity.ok(products);
+    }
+
 }

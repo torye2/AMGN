@@ -18,7 +18,7 @@ public class SearchDto {
 	private String searchField ="" ; // 검색필드
 	private String searchWord =""; // 검색어
 	
-	private List<Integer> categoryIds;
+	private int categoryId;
 	public SearchDto(String pageNo, String amount) {
 		try {
 			if(pageNo != null)
