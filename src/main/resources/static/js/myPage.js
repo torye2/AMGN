@@ -106,7 +106,7 @@ function bindPostcode() {
                     city.value = sigungu;
                     let target = (sido + " " + sigungu).trim();
                     let detail = base.startsWith(target) ? base.replace(target, " ").trim() : base;
-                    addr2.addEventListener('input', function () {
+                    addr2.addEventListener('change', function () {
                         detail += addr2.value ? " " + addr2.value : " ";
                     })
                     detailAddress.value = detail.trim();
@@ -636,6 +636,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnStartEdit')?.addEventListener('click', openReauth);
     document.getElementById('btnReauthCancel')?.addEventListener('click', closeReauth);
     document.getElementById('reauthForm')?.addEventListener('submit', submitReauth);
+    const chatBtn = document.getElementById('chat-btn');
+    chatBtn.addEventListener('click', () => {
+        window.location.href = `/chatPage.html?roomId=1&listingId=1&sellerId=2`;
+    });
     // form submit
     document.getElementById('accountForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -647,8 +651,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const newPw2 = document.getElementById('acc-newpw2').value.trim();
         const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`-]).{8,}$/;
 
-        if(newPw && !pattern.test(newPw.value)) {
+        if(newPw && !pattern.test(newPw)) {
             alert("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야합니다.");
+            return;
         }
         if ((newPw || newPw2) && newPw !== newPw2) {
             alert('새 비밀번호가 일치하지 않습니다.');

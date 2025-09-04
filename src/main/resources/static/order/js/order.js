@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             window.location.href = '/main.html';
         } catch (err) {
             console.error(err);
-            alert('주문 등록 중 오류가 발생했습니다.');
+            alert('본인 상품은 주문할 수 없습니다.');
         }
     });
 	
