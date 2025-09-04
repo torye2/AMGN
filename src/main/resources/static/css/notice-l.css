@@ -125,3 +125,7 @@ body {
 .delete-btn:hover {
     background-color: #ddd;
 }
+
+.hidden {
+    display: none;
+}

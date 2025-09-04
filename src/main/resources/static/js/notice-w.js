@@ -7,6 +7,7 @@
       window.addEventListener("DOMContentLoaded", () => {
           const queryParams = new URLSearchParams(window.location.search);
           const index = queryParams.get("index");
+          const submitBtn = document.querySelector('.hidden');
 
           if(index !== null) {
               const notices = JSON.parse(localStorage.getItem('notices')) || [];
@@ -25,6 +26,25 @@
                   window.location.href = "notice-l.html"
               }
           }
+
+          fetch('/api/user/status')
+              .then(response => response.json())
+              .then(data => {
+                  if (data.isLoggedIn) {
+                      if(data.username == "관리자") {
+                          submitBtn.classList.remove('hidden');
+                      } else {
+                          if(!submitBtn.classList.contains('hidden')) {
+                              submitBtn.classList.add('hidden');
+                          }
+                      }
+                  } else {
+                      if(!submitBtn.classList.contains('hidden')) {
+                          submitBtn.classList.add('hidden');
+                      }
+                  }
+
+              })
       })
 
 

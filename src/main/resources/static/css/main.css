@@ -33,13 +33,13 @@
 
 #header {
   width: 100%;
-  height: 120px;
+
 }
 
 #contents {
   width: 100%;
   min-height: calc(100vh - 320px); /* 화면 높이 - header(120) - footer(200) */
-  overflow: auto; /* 필요하면 내부 스크롤 */
+
 }
 
 #footer {
@@ -50,7 +50,7 @@
 /*컨텐츠 레이아웃*/
 #cont_nav {
   width: 100%;
-  height: 200px;
+
 }
 
 #cont_tit {
@@ -65,7 +65,6 @@
 
 #cont_cont {
   width: 100%;
-  height: 200px;
 }
 
 /*컨테이너*/
@@ -433,7 +432,7 @@
     top: 0;
     left: 100%;
     background: #fff;
-    border: 1px solid ccc;
+    border: 1px solid;
     min-width: 150px;
     padding: 5px 0;
     z-index: 1000;

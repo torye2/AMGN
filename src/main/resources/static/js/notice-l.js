@@ -4,6 +4,43 @@ fetch('header.html')
         document.getElementById('header-p').innerHTML = data;
     });
 
+document.addEventListener('DOMContentLoaded', () => {
+    loadNotices();
+    // 로그인 상태 확인
+    const btnBox = document.getElementById('btn-box');
+    const adminBtns = document.querySelectorAll('.hidden');
+
+    // 서버에서 로그인 정보를 확인하는 API 호출
+    if (btnBox) {
+        fetch('/api/user/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.isLoggedIn) {
+                    btnBox.innerHTML = `
+                        `;
+                    if(data.username == "관리자") {
+                        btnBox.innerHTML = `
+                            <a href="notice-w.html" class="write-button" id="write-btn">글쓰기</a>
+                        `;
+                        adminBtns.forEach(btn => btn.classList.remove('hidden'));
+                    } else {
+                        btnBox.innerHTML = `
+                        `;
+                    }
+                } else {
+                    btnBox.innerHTML = `
+                        `;
+                }
+
+            })
+            .catch(error => {
+                console.error('Failed to fetch user status:', error);
+                btnBox.innerHTML = `
+                    `;
+            });
+    }
+})
+
     function editNotice(index) {
         window.location.href = `notice-w.html?index=${index}`;
     }
@@ -25,14 +62,12 @@ fetch('header.html')
                     ${notice.title}
                     </a>
                     <span class="date">${notice.date}</span>
-                <button class="edit-btn" onclick="editNotice(${index})">수정</button>
-                <button class="delete-btn" onclick="deleteNotice(${index})">삭제</button>
+                <button class="edit-btn hidden" onclick="editNotice(${index})">수정</button>
+                <button class="delete-btn hidden" onclick="deleteNotice(${index})">삭제</button>
             `;
             list.appendChild(li);
         });
     }
-
-    window.onload = loadNotices;
 
     function deleteNotice(index) {
 		const isConfirmed = confirm("정말 삭제하시겠습니까?");

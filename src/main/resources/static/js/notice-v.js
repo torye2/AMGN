@@ -31,3 +31,41 @@ function deleteNotice() {
 function editNotice() {
     window.location.href = `notice-w.html?index=${index}`;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const btnBox = document.getElementById('btn-box');
+
+    // 서버에서 로그인 정보를 확인하는 API 호출
+    if (btnBox) {
+        fetch('/api/user/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.isLoggedIn) {
+                    btnBox.innerHTML = `
+                    <a class="back-btn" href="notice-l.html">목록</a>
+                    `;
+                    if(data.username == "관리자") {
+                        btnBox.innerHTML = `
+                        <button class="edit-btn" onclick="editNotice()">수정</button>
+                        <button class="delete-btn" onclick="deleteNotice()">삭제</button>
+                        <a class="back-btn" href="notice-l.html">목록</a>
+                        `;
+                    } else {
+                        btnBox.innerHTML = `
+                        <a class="back-btn" href="notice-l.html">목록</a>
+                        `;
+                    }
+                } else {
+                    btnBox.innerHTML = `
+                    <a class="back-btn" href="notice-l.html">목록</a>
+                    `;
+                }
+
+            })
+            .catch(error => {
+                console.error('Failed to fetch user status:', error);
+                btnBox.innerHTML = `
+                    `;
+            });
+    }
+})
