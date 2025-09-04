@@ -18,41 +18,39 @@
     <header id="header"></header>
 
     <main class="container">
-        <!-- 상품 상세 정보 -->
-        <div id="product-details">
-            <!-- 상품 이미지 슬라이드 -->
-            <div class="product-gallery swiper">
-                <div class="swiper-wrapper" id="productSlides">
-                    <div class="swiper-slide">상품 사진 불러오는 중...</div>
-                </div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-pagination"></div>
-            </div>
+  <div class="product-detail-layout">
+    <!-- 상품 이미지 -->
+    <div class="product-gallery swiper">
+      <div class="swiper-wrapper" id="productSlides">
+        <div class="swiper-slide">상품 사진 불러오는 중...</div>
+      </div>
+      <div class="swiper-button-next"></div>
+      <div class="swiper-button-prev"></div>
+      <div class="swiper-pagination"></div>
+    </div>
 
-            <!-- 상품 정보 -->
-            <h1 class="product-name" id="productTitle">상품명</h1>
-            <p class="product-nickname" id="productSeller">판매자</p>
-            <p class="product-price" id="productPrice">가격</p>
-            <p class="product-introduct" id="productDesc">상품 설명</p>
-        </div>
+    <!-- 상품 정보 -->
+    <div class="product-info">
+      <h1 class="product-name" id="productTitle">상품명</h1>
+      <p class="product-nickname" id="productSeller">판매자</p>
+      <p class="product-price" id="productPrice">가격</p>
+      <p class="product-introduct" id="productDesc">상품 설명</p>
 
-        <!-- 채팅 버튼 -->
-        <div class="chat-button-container">
-            <button id="chat-button" class="chat-button">채팅하기</button>
-        </div>
-        
-         <div class="order-button-container">
-            <button id="order-button" class="order-button">주문하기</button>
-        </div>
+      <!-- 버튼 -->
+      <div class="button-group">
+        <button id="chat-button" class="chat-button">채팅하기</button>
+        <button id="order-button" class="order-button">주문하기</button>
+      </div>
+    </div>
+  </div>
 
-        <!-- 관련 상품 -->
-        <div class="productsAll">
-            <h2>관련 상품</h2>
-            <div class="related-products">
-            </div>
-        </div>
-    </main>
+  <!-- 관련 상품 -->
+  <div class="productsAll">
+    <h2>관련 상품</h2>
+    <div class="related-products"></div>
+  </div>
+</main>
+
 </div>
 
 <!-- JS -->
