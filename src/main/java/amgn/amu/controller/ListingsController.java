@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import amgn.amu.dto.ListingsDto;
 import amgn.amu.dto.SearchDto;
 import amgn.amu.service.ListingsService;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+@AllArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/product")
@@ -23,9 +25,6 @@ public class ListingsController {
 
 	private final ListingsService listingsService;
 	
-	public ListingsController(ListingsService listingsService) {
-		this.listingsService = listingsService;
-	}
 	@GetMapping("/list")
 	public ResponseEntity<Map<String, Object>> getList( SearchDto searchDto){
 				System.out.println("리스트 조회 컨트롤러 호출");

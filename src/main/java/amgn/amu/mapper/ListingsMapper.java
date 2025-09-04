@@ -5,6 +5,8 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
+import amgn.amu.dto.CategoryDto;
+import amgn.amu.dto.CategoryListDto;
 import amgn.amu.dto.ListingsDto;
 import amgn.amu.dto.SearchDto;
 
@@ -12,7 +14,8 @@ import amgn.amu.dto.SearchDto;
 public interface ListingsMapper {
 	
 	List<ListingsDto> getLists(SearchDto search);
-	
-
 	int getTotalCount(SearchDto searchDto);
+	List<CategoryDto> getSubCategoryList(SearchDto searchDto);
+	
+	
 }

@@ -7,7 +7,8 @@
   
   <select id="getLists" parameterType="amgn.amu.dto.SearchDto" resultType="amgn.amu.dto.ListingsDto">
   		select title, description, price, seller_id, category_id
-  		from listings
+  				, (select url from listing_photos p where  l.listing_id = p.listing_id and rownum=1) url
+  		from listings l
   		<where>
       <!-- 🔍 검색 조건 -->
       <if test="searchField != null and searchField != '' and searchWord != null and searchWord != ''">
@@ -18,7 +19,9 @@
 
       <!-- 📌 카테고리 필터 -->
       <if test="categoryId != null">
-        AND category_id = #{categoryId}
+        AND category_id in (  select category_id from categories
+                                start with category_id=#{categoryId}
+                                connect by prior category_id = parent_id)
         
       </if>
     </where>
@@ -30,11 +33,28 @@
   	<select id="getTotalCount" parameterType="amgn.amu.dto.SearchDto" resultType="int">
 	    SELECT COUNT(*)
 	    FROM listings
-	    <where>
-	      <if test="categoryId != null">
-	        category_id = #{categoryId}
-	       
-	      </if>
-	    </where>
+	   <where>
+      <!-- 🔍 검색 조건 -->
+      <if test="searchField != null and searchField != '' and searchWord != null and searchWord != ''">
+        <foreach collection="searchField.split('/')" item="field" open="(" close=")" separator="OR">
+          ${field} LIKE '%' || #{searchWord} || '%'
+        </foreach>
+      </if>
+
+      <!-- 📌 카테고리 필터 -->
+      <if test="categoryId != null">
+        AND category_id in (  select category_id from categories
+                                start with category_id=#{categoryId}
+                                connect by prior category_id = parent_id)
+        
+      </if>
+    </where>
 	  </select>
+	  <select id="getSubCategoryList" resultType="amgn.amu.dto.CategoryListDto">
+	   select name from categories
+        where level between 1 and 2
+        start with category_id= #{categoryId}
+        connect by prior category_id = parent_id
+	  </select>
+	 
   </mapper>

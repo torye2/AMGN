@@ -31,5 +31,6 @@ public class ListingsDto {
 	private int wishCount      ;
 	private int createdAt      ;
 	private int updatedAt      ;
+	private String url;
 	
 }

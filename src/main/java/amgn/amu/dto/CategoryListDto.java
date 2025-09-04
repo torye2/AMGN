@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CategoryListDto {
-    private Long categoryId;
+    private int categoryId;
     private String name;
     private Long parentId;
     private String path;
