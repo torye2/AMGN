@@ -4,8 +4,7 @@ import amgn.amu.common.AppException;
 import amgn.amu.common.ErrorCode;
 import amgn.amu.component.ResetTokenStore;
 import amgn.amu.domain.User;
-import amgn.amu.dto.FindIdRequest;
-import amgn.amu.dto.FindIdResponse;
+import amgn.amu.dto.*;
 import amgn.amu.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,5 +32,28 @@ public class FindService {
         return new FindIdResponse(user.getId());
     }
 
+    // 본인확인 → 토큰 발급
+    @Transactional
+    public ResetTokenResponse verifyAndToken(FindPwRequest req) {
+        User user = userRepository.findByIdAndUserNameAndBirthYearAndBirthMonthAndBirthDayAndPhoneNumber(
+                req.getId(), req.getUserName(), req.getBirthYear(), req.getBirthMonth(), req.getBirthDay(), req.getPhoneNumber()
+        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND_USER));
 
+        String token = tokenStore.issue(user.getId(), 10 * 60);
+        return new ResetTokenResponse(token);
+    }
+
+    // 커밋
+    @Transactional
+    public void resetPassword(ResetPwRequest req) {
+        String loginId = tokenStore.consume(req.getToken());
+        if(loginId == null) {
+            throw new AppException(ErrorCode.RESET_TOKEN_INVALID);
+        }
+        User user = userRepository.findById(loginId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND_USER));
+
+        String encodePw = passwordEncoder.encode(req.getNewPassword());
+        user.setPasswordHash(encodePw);
+    }
 }

@@ -1,9 +1,9 @@
 package amgn.amu.controller;
 
 import amgn.amu.common.ApiResult;
-import amgn.amu.dto.FindIdRequest;
-import amgn.amu.dto.FindIdResponse;
+import amgn.amu.dto.*;
 import amgn.amu.service.FindService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,9 +17,18 @@ public class FindController {
     private final FindService findService;
 
     @PostMapping("/find-id")
-    public ApiResult<FindIdResponse> findId(@RequestBody FindIdRequest req) {
+    public ApiResult<FindIdResponse> findId(@Valid @RequestBody FindIdRequest req) {
+        return ApiResult.ok(findService.findId(req));
+    }
 
+    @PostMapping("/pw-reset/check")
+    public ApiResult<ResetTokenResponse> verifyAndToken(@Valid @RequestBody FindPwRequest req) {
+        return ApiResult.ok(findService.verifyAndToken(req));
+    }
 
-        return ApiResult.ok(new FindIdResponse());
+    @PostMapping("/pw-reset/commit")
+    public ApiResult<Void> resetPassword(@Valid @RequestBody ResetPwRequest req) {
+        findService.resetPassword(req);
+        return ApiResult.ok(null);
     }
 }
