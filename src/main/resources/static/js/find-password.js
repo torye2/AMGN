@@ -73,6 +73,12 @@ document.getElementById('pwResetForm').addEventListener('submit', async (e)=>{
 
   const pw1 = $('#pw1').value;
   const pw2 = $('#pw2').value;
+  const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`-]).{8,}$/;
+
+  if(pw1 && !pattern.test(pw1)) {
+    showError("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야합니다.");
+    return;
+  }
 
   if(pw1 !== pw2){
     showError('비밀번호가 일치하지 않습니다.');
