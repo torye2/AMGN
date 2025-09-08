@@ -169,6 +169,9 @@ public class ListingService {
 
 	public List<ListingDto> getListingsByCategory(Integer categoryId) {
 		// TODO Auto-generated method stub
-		return listingRepository.findByCategoryId(categoryId);
+		//return listingRepository.findByCategoryId(categoryId);
+		return listingRepository.findByCategoryId(categoryId).stream()
+				.map(this::convertToDto)
+				.toList();
 	}
 }

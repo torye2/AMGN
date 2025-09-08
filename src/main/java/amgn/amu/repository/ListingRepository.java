@@ -20,7 +20,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findBySellerId(Long sellerId);
 
     // 특정 카테고리 상품 조회
-    List<ListingDto> findByCategoryId(Integer categoryId);
+    List<Listing> findByCategoryId(Integer categoryId);
 
     // 가격 범위로 상품 조회
     List<Listing> findByPriceBetween(Long minPrice, Long maxPrice);

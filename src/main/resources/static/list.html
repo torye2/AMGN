@@ -1,192 +1,51 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Document</title>
-<link rel="stylesheet" href="css/reset.css">
-<link rel="stylesheet" href="css/main.css">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link
-	href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap"
-	rel="stylesheet">
-<link rel="stylesheet" href="css/product.css">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-<style type="text/css">
-#cont_cont {
-	margin-top: 50px
-}
-</style>
+	<meta charset="UTF-8" />
+	<title>카테고리 상품 목록</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" href="css/reset.css" />
+	<link rel="stylesheet" href="css/main.css" />
+	<style>
+		.container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+        .breadcrumb { font-size: 14px; color: #666; margin-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .card { border: 1px solid #eee; border-radius: 8px; overflow: hidden; background:#fff; }
+        .thumb { width: 100%; height: 180px; object-fit: cover; background:#f8f8f8; }
+        .body { padding: 12px; }
+        .title { font-size: 15px; font-weight: 600; margin: 0 0 6px; line-height: 1.3; }
+        .price { font-size: 16px; font-weight: 700; }
+        .meta { font-size: 12px; color:#888; margin-top: 6px; }
+        .empty { text-align:center; padding: 48px 0; color:#777; }
+        .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+        .toolbar select { padding:6px 8px; }
+	</style>
 </head>
 <body>
-	<div id="skip">
-		<a href="#cont_nav">전체 메뉴 바로가기</a> <a href="#cont_ban">배너 영역 바로가기</a>
-		<a href="#cont_cont">컨텐츠 영역 바로가기</a>
-	</div>
-	<div id="wrap"></div>
-	<div>
-		<header id="header"> </header>
-	</div>
-	<div id="contents">
+<div id="header"></div>
 
-		<div id="cont_cont">
-			<div class="container">
-				
-				
-				<div class="product-menu">
-					<div id="subCatList"></div>
-					<div class="container">
-						<h2 id="title"></h2>
-						<div class="product-list"></div>
-				<div id="productsAll">
-                </div>
-                <div>
-						<ul class="pagination justify-content-center"></ul>
-						</div>
-					</div>
-					
-				</div>
-			</div>
+<main class="container">
+	<div class="breadcrumb" id="breadcrumb">카테고리</div>
+
+	<div class="toolbar">
+		<span id="count"></span>
+		<div style="margin-left:auto">
+			<label>
+				정렬:
+				<select id="sortSelect">
+					<option value="recent">최신순</option>
+					<option value="priceAsc">가격 낮은순</option>
+					<option value="priceDesc">가격 높은순</option>
+				</select>
+			</label>
 		</div>
 	</div>
-		<div id="footer">
-			<div class="container">footer</div>
-		</div>
-	<script>
-window.onload = function(){
-	console.log('리스트 조회');
-	loadProducts();
-}
-	
-function loadProducts(pageNo = 1, amount = 10 ){
-	const productListDiv = document.querySelector(".product-list");
-	const paginationDiv = document.querySelector(".pagination");
-	const productsTable = document.querySelector(".liststable");
-	// 쿼리 스트링 넘어온 파라메터 수집
-	const urlParams = new URLSearchParams(window.location.search);
-	const categoryId = urlParams.get("id"); 
-	
-	const params = new URLSearchParams();
-	params.append("pageNo", pageNo);
-	params.append("amount", amount);
-	params.append("categoryId", categoryId);
-	
-	
-	if(!paginationDiv){
-		console.error("pagination 요소를 찾을 수 없습니다.");
-		return;
-	}
-	console.log(pageNo, amount);
-	fetch(`/product/list?categoryId=${categoryId}&pageNo=${pageNo}`)
-	.then(response => {
-		if(!response.ok){
-			throw new Error('모든 상품을 불러오는 데 실패했습니다.');
-		}
-		return response.json();
-	})
-	.then(products => {
-		console.log('products', products);
-		console.log('products', products.subCategoryList);
-		
-		let title =  document.querySelector("#title")
-		let subcategorylist =  document.querySelector("#subCatList")
-		let category = products.subCategoryList.shift();
-		title.innerHTML = category.name;
-		products.subCategoryList.forEach(function(sub){
-		
-	        const link = document.createElement('a');
-	        link.textContent = sub.name;
-	        link.href = `list.html?id=${encodeURIComponent(sub.categoryId)}`;
-	        
-	        subcategorylist.appendChild(link);
-	        subcategorylist.appendChild(document.createTextNode(" "));
-		})
-        
-        
-        
-        
-		productListDiv.innerHTML = "";
-		let list = products.list;	            
-		// 리스트 초기화
-		let productsAllDiv = document.querySelector('#productsAll');
-                productsAllDiv.innerHTML = "";
-		  list.forEach(product => {
-                const productItem = document.createElement('div');
-                productItem.classList.add('product-item');
 
-                // 첫 번째 사진만 가져오기
-                let photoUrl = 'https://placehold.co/300x200?text=No+Image';
-                if (product.url) {
-                    photoUrl = product.url.startsWith('/uploads') 
-                        ? product.url 
-                        : `/uploads/listings/${product.url}`;
-                } else if (product.url) {
-                    photoUrl = product.url.startsWith('/uploads') 
-                        ? product.url 
-                        : `/uploads/listings/${product.url}`;
-                }
+	<div id="productGrid" class="grid"></div>
+	<div id="empty" class="empty" style="display:none;">해당 카테고리의 상품이 없습니다.</div>
+</main>
 
-                productItem.innerHTML = `
-                    <a href="/productDetail.html?id=${product.listingId}">
-                        <img src="${photoUrl}" alt="${product.title}" />
-                        <h4 class="product-title">${product.title}</h4>
-                        <p class="product-price">${product.price.toLocaleString()} 원</p>
-                    </a>
-                `;
-                productsAllDiv.appendChild(productItem);
-            });
-		
-		const pageDto = products.pageDto || { isPrev:false, isNext:false, startNo:1, endNo:1, pageNo:1, totalPages:1 };
-			
-			console.log(pageDto);
-			
-			paginationDiv.innerHTML = "";
-			
-			let paginationHtml = `<ul class="pagination justify-content-center">`;
-    			
-    			if(pageDto.isPrev){
-    				paginationHtml += ` 
-    							<li class="page-item">
-									<a class="page-link" href="javascript:loadProducts(${pageDto.startNo - 1})"> 이전 </a>
-									</li>`;
-    			}
-    			if(pageDto.totalPages > 1){
-    			for(let num = 1; num<= pageDto.endNo;num++){
-    				console.log(num);
-    				paginationHtml += `
-    					<li class="page-item ${pageDto.pageNo === num ? "active" : ""}">
-    						<a class="page-link" href="javascript:loadProducts(${num})">${num}</a>
-   						</li>`;
-    			
-    			}
-    			}else{
-    				paginationDiv.innerHTML = "";
-    			}
-    			if(pageDto.isNext){
-    				paginationHtml += `
-    					<li class="page-item">
-    						<a class="page-link" href="javascript:loadProducts(${pageDto.endNo + 1})">다음</a>
-   						</li>`;
-    			}
-    		paginationHtml += `</ul>`;
-    		
-    		paginationDiv.innerHTML = paginationHtml;
-    			
-    		})
-		.catch(error => {
-			console.error('Error fetching products:', error);
-			productListDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
-			
-			    
-		});
-	
-		}
-</script>
-
-
-	<script src="js/header.js"></script>
+<script src="js/header.js"></script>
+<script src="js/list.js"></script>
 </body>
 </html>
