@@ -51,6 +51,14 @@ public class OrderServiceImpl implements OrderService {
         )) {
             throw new RuntimeException("이미 거래 중인 상품입니다.");
         }
+        
+        // 3-1. 거래가 완료된 주문인지 확인
+        else if (orderRepository.existsByListingIdAndStatusIn(
+        	    req.listingId(),
+        	    List.of(OrderStatus.COMPLETED)
+        	)) {
+        	    throw new RuntimeException("이미 판매가 완료된 상품입니다.");
+        	}
 
         // 4. Order 엔티티 생성
         Order order = new Order();
