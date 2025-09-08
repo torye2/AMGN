@@ -10,7 +10,7 @@ description = 'PJ_AMUGEONA'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(24)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -40,7 +40,7 @@ dependencies {
     implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
     implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
-    implementation 'com.oracle.database.jdbc:ojdbc11:23.4.0.24.05'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
