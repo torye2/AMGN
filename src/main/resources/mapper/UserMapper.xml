@@ -4,7 +4,7 @@
 
     <resultMap id="UserMap" type="amgn.amu.domain.User">
         <id property="userId" column="USER_ID"/>
-        <result property="id" column="ID"/>
+        <result property="id" column="LOGIN_ID"/>
         <result property="passwordHash" column="PASSWORD_HASH"/>
         <result property="userName" column="USER_NAME"/>
         <result property="email" column="EMAIL"/>
@@ -25,7 +25,7 @@
 
     <select id="existsById" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE ID = #{id}
+        FROM USERS WHERE LOGIN_ID = #{id}
     </select>
 
     <select id="existsByEmail" resultType="boolean">
