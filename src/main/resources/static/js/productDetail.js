@@ -129,3 +129,10 @@ function loadRelatedProducts(productId) {
 	        });
 	    }
 	});
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const thecheatButton= document.getElementById("thecheat-button");
+        thecheatButton.addEventListener("click", () => {
+            window.location.href = "https://thecheat.co.kr/rb/?mod=_search";
+        })
+    })

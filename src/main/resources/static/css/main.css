@@ -3,6 +3,7 @@
 /*스킵 네비게이션*/
 #skip {
   position: relative;
+    overflow: hidden;
 }
 
 * {
