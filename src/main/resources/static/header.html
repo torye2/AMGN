@@ -111,6 +111,17 @@
         #header .search button:active {
             background-color: #000;  /* 눌림 상태 유지 */
         }
+        /* 고정 헤더: 스크롤 시에도 항상 상단에 표시 */
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1100;           /* 드롭다운 메뉴 위에 표시되도록 충분히 크게 */
+            background: #fff;         /* 내용과 겹칠 때 투명 배경 방지 */
+            width: 100%;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06); /* 선택: 상단 분리 효과 */
+        }
     </style>
 </head>
 <body>
