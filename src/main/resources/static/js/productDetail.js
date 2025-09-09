@@ -116,12 +116,12 @@ function loadRelatedProducts(productId) {
 	        });
 	    }
 	});
-	
+
 	document.addEventListener("DOMContentLoaded", () => {
 	    const orderButton = document.getElementById("order-button");
 	    const urlParams = new URLSearchParams(window.location.search);
 	    const productId = urlParams.get("id"); // productDetail?id=32 → 32 추출
-	
+
 	    if (orderButton && productId) {
 	        orderButton.addEventListener("click", () => {
 	            // order.html로 이동하면서 id 값 전달

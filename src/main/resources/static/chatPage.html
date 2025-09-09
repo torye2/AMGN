@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8" />
     <title>채팅방</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
-        #chat { border:1px solid #ccc; height:300px; overflow-y:scroll; padding:5px; margin-bottom:10px; }
-        #messageForm { display:flex; }
-        #messageForm input { flex:1; padding:5px; }
-        #messageForm button { padding:5px; }
+        #chat { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 8px; margin-bottom: 12px; }
+        #messageForm { display: flex; gap: 8px; }
+        #messageForm input { flex: 1; padding: 8px; }
+        #messageForm button { padding: 8px 12px; }
     </style>
 </head>
 <body>
@@ -17,69 +17,96 @@
 <div id="chat"></div>
 
 <form id="messageForm">
-    <input type="text" id="msg" placeholder="메시지 입력..." autocomplete="off"/>
+    <input type="text" id="msg" placeholder="메시지 입력..." autocomplete="off" />
     <button type="submit">보내기</button>
 </form>
 
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomId = Number(urlParams.get('roomId'));
-    const listingId = Number(urlParams.get('listingId'));
-    const sellerId = Number(urlParams.get('sellerId'));
+    const params = new URLSearchParams(window.location.search);
+    const roomId   = Number(params.get('roomId'));
+    const listingId = params.get('listingId'); // 선택적(백엔드 하위호환)
+    const sellerId  = params.get('sellerId');  // 선택적(백엔드 하위호환)
+
+    if (!roomId || Number.isNaN(roomId)) {
+      alert("roomId가 없습니다. 채팅 목록에서 다시 들어와 주세요.");
+    }
 
     let stompClient = null;
 
     function connect() {
-        const socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
 
-        stompClient.connect({}, function () {
-            console.log('WebSocket 연결됨');
+      stompClient.connect({}, function () {
+        console.log('WebSocket 연결됨');
 
-            stompClient.subscribe('/topic/messages', function (msg) {
-                const message = JSON.parse(msg.body);
-                if(message.roomId === roomId) showMessage(message);
-            });
+        // 모든 메시지를 구독하되, 현재 roomId의 메시지만 출력
+        stompClient.subscribe('/topic/messages', function (msg) {
+          try {
+            const message = JSON.parse(msg.body);
+            if (message.roomId === roomId) {
+              showMessage(message);
+            }
+          } catch (e) {
+            console.error('메시지 파싱 실패:', e);
+          }
         });
+      });
     }
 
     function loadPreviousMessages() {
-        fetch(`/chat/messages?listingId=${listingId}&sellerId=${sellerId}`)
-            .then(res => res.json())
-            .then(messages => {
-                messages.forEach(msg => showMessage(msg));
-            })
-            .catch(err => console.error("이전 메시지 불러오기 실패:", err));
+      // ✅ roomId로 이전 메시지 조회
+      fetch(`/chat/messages?roomId=${roomId}`)
+        .then(res => {
+          if (!res.ok) throw new Error('이전 메시지 조회 실패');
+          return res.json();
+        })
+        .then(messages => {
+          messages.forEach(showMessage);
+        })
+        .catch(err => console.error('이전 메시지 불러오기 실패:', err));
     }
 
     function sendMessage(event) {
-        event.preventDefault();
-        const content = document.getElementById('msg').value.trim();
-        if(!content || !stompClient) return;
+      event.preventDefault();
+      if (!stompClient) return;
 
-        const chatMessage = {
-            roomId: roomId,
-            listingId: listingId,
-            sellerId: sellerId,
-            msgType: "TEXT",
-            content: content
-        };
+      const input = document.getElementById('msg');
+      const content = input.value.trim();
+      if (!content) return;
 
-        stompClient.send("/app/chat/send", {}, JSON.stringify(chatMessage));
-        document.getElementById('msg').value = "";
+      // ✅ 기본은 roomId & 내용만 전송
+      const chatMessage = {
+        roomId: roomId,
+        msgType: 'TEXT',
+        content: content
+      };
+
+      // 🔁 하위호환: URL에 listingId/sellerId가 있으면 같이 보냄
+      if (listingId) chatMessage.listingId = Number(listingId);
+      if (sellerId)  chatMessage.sellerId  = Number(sellerId);
+
+      stompClient.send('/app/chat/send', {}, JSON.stringify(chatMessage));
+      input.value = '';
     }
 
     function showMessage(message) {
-        const chatDiv = document.getElementById('chat');
-        const p = document.createElement('p');
-        p.textContent = message.senderNickName + ": " + message.content;
-        chatDiv.appendChild(p);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+      const chatDiv = document.getElementById('chat');
+
+      const p = document.createElement('p');
+      const nick = message.senderNickName || '알수없음';
+      p.textContent = `${nick}: ${message.content}`;
+
+      chatDiv.appendChild(p);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
     document.getElementById('messageForm').addEventListener('submit', sendMessage);
-    loadPreviousMessages();
-    connect();
+
+    if (roomId && !Number.isNaN(roomId)) {
+      loadPreviousMessages();
+      connect();
+    }
 </script>
 </body>
 </html>
