@@ -16,7 +16,7 @@ public class SignupService {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public void regist(SignupDto dto) {
-        if (userMapper.existsById(dto.getId())) {
+        if (userMapper.existsByLoginId(dto.getLoginId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
         if (dto.getEmail() != null && userMapper.existsByEmail(dto.getEmail())) {
@@ -29,20 +29,36 @@ public class SignupService {
         String passwordHash = passwordEncoder.encode(dto.getPasswordHash());
 
         User user = new User();
-        user.setId(dto.getId());
-        user.setPasswordHash(passwordHash);
-        user.setUserName(dto.getUserName());
-        user.setEmail(dto.getEmail());
-        user.setNickName(dto.getNickName());
-        user.setGender(dto.getGender());
-        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setLoginId(req(dto.getLoginId(), "아이디"));                    // 필수값은 req(...)로 강제
+        user.setPasswordHash(passwordEncoder.encode(req(dto.getPasswordHash(), "비밀번호")));
+        user.setUserName(req(dto.getUserName(), "이름"));
+        user.setEmail(req(dto.getEmail(), "이메일"));
+
+        // 선택값들은 전부 null-safe 가공
+        user.setNickName(defaultIfBlank(dto.getNickName(), dto.getUserName())); // 닉네임 없으면 이름으로
+        user.setGender(trimToNull(dto.getGender()));            // "", "   " -> null
+        user.setPhoneNumber(trimToNull(dto.getPhoneNumber()));
         user.setBirthYear(dto.getBirthYear());
         user.setBirthMonth(dto.getBirthMonth());
         user.setBirthDay(dto.getBirthDay());
-        user.setProvince(dto.getProvince());
-        user.setCity(dto.getCity());
-        user.setDetailAddress(dto.getDetailAddress());
 
-        userMapper.insert(user);
+        int row = userMapper.insert(user);
+        if (row != 1) {
+            throw new IllegalStateException("회원가입 저장 실패");
+        }
+    }
+    private static String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+    private static String defaultIfBlank(String s, String def) {
+        if (s == null) return def;
+        String t = s.trim();
+        return t.isEmpty() ? def : t;
+    }
+    private static String req(String s, String label) {
+        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(label + "은(는) 필수입니다.");
+        return s.trim();
     }
 }

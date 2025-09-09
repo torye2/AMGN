@@ -11,6 +11,6 @@ public class CheckService {
     private final UserMapper userMapper;
 
     public boolean extistById(String id) {
-        return userMapper.existsById(id);
+        return userMapper.existsByLoginId(id);
     }
 }

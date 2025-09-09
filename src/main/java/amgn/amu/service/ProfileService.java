@@ -21,7 +21,7 @@ public class ProfileService {
     private final UserMapper userMapper;
 
     public UserProfileDto getProfile(String loginId) {
-        User user = userRepository.findById(loginId)
+        User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if(!"ACTIVE".equals(user.getStatus())) {
             throw new IllegalStateException("정지된 계정입니다.");
@@ -30,7 +30,7 @@ public class ProfileService {
     }
 
     public boolean verifyPassword(String loginId, String password) {
-        User user = userRepository.findById(loginId)
+        User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return passwordEncoder.matches(password, user.getPasswordHash())
                 || user.getPasswordHash().equals(password);
@@ -38,16 +38,16 @@ public class ProfileService {
 
     @Transactional
     public User updateProfile(String loginId, UpdateProfileRequest req) {
-        User user = userRepository.findById(loginId)
+        User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         if(!"ACTIVE".equals(user.getStatus())) {
             throw new IllegalStateException("정지된 계정입니다.");
         }
 
-        if(req.id()!=null && !req.id().equals(user.getId())){
-            if(userMapper.existsById(req.id()))
+        if(req.id()!=null && !req.id().equals(user.getLoginId())){
+            if(userMapper.existsByLoginId(req.id()))
                 throw new AppException(ErrorCode.DUPLICATE_ID);
-            user.setId(req.id());
+            user.setLoginId(req.id());
         }
 
         if(req.email()!=null) user.setEmail(req.email());
@@ -56,9 +56,6 @@ public class ProfileService {
         if(req.birthYear()!=null) user.setBirthYear(req.birthYear());
         if(req.birthMonth()!=null) user.setBirthMonth(req.birthMonth());
         if(req.birthDay()!=null) user.setBirthDay(req.birthDay());
-        if(req.province()!=null) user.setProvince(req.province());
-        if(req.city()!=null) user.setCity(req.city());
-        if(req.detailAddress()!=null) user.setDetailAddress(req.detailAddress());
 
         // 비밀번호 변경 (선택)
         if(req.newPassword()!=null && !req.newPassword().isBlank()){
@@ -75,10 +72,9 @@ public class ProfileService {
 
     public UserProfileDto maptoDto(User user) {
         return new UserProfileDto(
-                user.getId(), user.getUserName(), user.getEmail()
+                user.getLoginId(), user.getUserName(), user.getEmail()
                 , user.getNickName(), user.getGender(), user.getPhoneNumber()
                 , user.getBirthYear(), user.getBirthMonth(), user.getBirthDay()
-                , user.getProvince(), user.getCity(), user.getDetailAddress()
         );
     }
 }

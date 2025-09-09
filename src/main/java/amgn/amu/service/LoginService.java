@@ -19,7 +19,7 @@ public class LoginService {
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public LoginUserDto login(LoginRequest req) {
-        User user = userMapper.findById(req.getId())
+        User user = userMapper.findByLoginId(req.getId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
 
         if (!(passwordEncoder.matches(req.getPasswordHash(), user.getPasswordHash())

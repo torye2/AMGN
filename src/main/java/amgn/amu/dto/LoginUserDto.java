@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class LoginUserDto {
     private Long userId;
     @NotBlank
-    private String id;
+    private String loginId;
     @NotBlank
     private String userName;
     @NotBlank
@@ -45,7 +45,7 @@ public class LoginUserDto {
     public static LoginUserDto from(User user) {
         LoginUserDto dto = new LoginUserDto();
         dto.userId = user.getUserId();
-        dto.id = user.getId();
+        dto.loginId = user.getLoginId();
         dto.userName = user.getUserName();
         dto.email = user.getEmail();
         dto.nickName = user.getNickName();
@@ -53,9 +53,6 @@ public class LoginUserDto {
         dto.birthYear = user.getBirthYear();
         dto.birthMonth = user.getBirthMonth();
         dto.birthDay = user.getBirthDay();
-        dto.province = user.getProvince();
-        dto.city = user.getCity();
-        dto.detailAddress = user.getDetailAddress();
         dto.createdAt = user.getCreatedAt();
 
         return dto;

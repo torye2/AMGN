@@ -22,7 +22,7 @@ public class AuthStatusController {
                 "isLoggedIn", u != null,
                 "username", u != null ? u.getUserName() : null,
                 "nickname",   u != null ? u.getNickName() : null,
-                "userId",     u != null ? u.getId()      : null,
+                "userId",     u != null ? u.getLoginId()      : null,
                 "createdAt", u != null ? u.getCreatedAt().toLocalDate().toString() : null
         );
     }

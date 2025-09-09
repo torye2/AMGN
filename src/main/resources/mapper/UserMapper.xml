@@ -4,7 +4,7 @@
 
     <resultMap id="UserMap" type="amgn.amu.domain.User">
         <id property="userId" column="USER_ID"/>
-        <result property="id" column="LOGIN_ID"/>
+        <result property="loginId" column="LOGIN_ID"/>
         <result property="passwordHash" column="PASSWORD_HASH"/>
         <result property="userName" column="USER_NAME"/>
         <result property="email" column="EMAIL"/>
@@ -23,9 +23,9 @@
         <result property="updatedAt" column="UPDATED_AT"/>
     </resultMap>
 
-    <select id="existsById" resultType="boolean">
+    <select id="existsByLoginId" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE LOGIN_ID = #{id}
+        FROM USERS WHERE LOGIN_ID = #{loginId}
     </select>
 
     <select id="existsByEmail" resultType="boolean">
@@ -38,18 +38,21 @@
         FROM USERS WHERE PHONE_NUMBER = #{phoneNumber}
     </select>
 
-    <select id="findById" resultMap="UserMap">
-        SELECT * FROM USERS WHERE ID = #{id}
+    <select id="findByLoginId" resultMap="UserMap">
+        SELECT * FROM USERS WHERE LOGIN_ID = #{loginId}
     </select>
 
-    <insert id="insert" parameterType="amgn.amu.domain.User">
+    <insert id="insert"
+            parameterType="amgn.amu.domain.User"
+            useGeneratedKeys="true"
+            keyProperty="userId"
+            keyColumn="user_id">
         INSERT INTO USERS (
-        ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
-        BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, PROVINCE, CITY, DETAIL_ADDRESS, STATUS, CREATED_AT, UPDATED_AT
+        LOGIN_ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
+        BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, STATUS
         ) VALUES (
-        #{id}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
-        #{birthYear}, #{birthMonth}, #{birthDay}, #{province}, #{city}, #{detailAddress},
-        'ACTIVE', SYSTIMESTAMP, SYSTIMESTAMP
+        #{loginId}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
+        #{birthYear}, #{birthMonth}, #{birthDay}, 'ACTIVE'
         )
     </insert>
 </mapper>

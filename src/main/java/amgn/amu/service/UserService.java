@@ -19,7 +19,7 @@ public class UserService {
 
     public boolean login(String account, String password) {
         // 데이터베이스에서 아이디로 사용자를 찾음
-        Optional<User> userOptional = userRepository.findById(account);
+        Optional<User> userOptional = userRepository.findByLoginId(account);
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
@@ -33,7 +33,7 @@ public class UserService {
     }
 
     public String getNicknameByAccount(String account) {
-        Optional<User> userOptional = userRepository.findById(account);
+        Optional<User> userOptional = userRepository.findByLoginId(account);
         return userOptional.map(User::getNickName).orElse(null);
     }
 }

@@ -29,17 +29,17 @@ public class FindService {
 
         User user = findUser.orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND_USER));
 
-        return new FindIdResponse(user.getId());
+        return new FindIdResponse(user.getLoginId());
     }
 
     // 본인확인 → 토큰 발급
     @Transactional
     public ResetTokenResponse verifyAndToken(FindPwRequest req) {
-        User user = userRepository.findByIdAndUserNameAndBirthYearAndBirthMonthAndBirthDayAndPhoneNumber(
+        User user = userRepository.findByLoginIdAndUserNameAndBirthYearAndBirthMonthAndBirthDayAndPhoneNumber(
                 req.getId(), req.getUserName(), req.getBirthYear(), req.getBirthMonth(), req.getBirthDay(), req.getPhoneNumber()
         ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND_USER));
 
-        String token = tokenStore.issue(user.getId(), 10 * 60);
+        String token = tokenStore.issue(user.getLoginId(), 10 * 60);
         return new ResetTokenResponse(token);
     }
 
@@ -50,7 +50,7 @@ public class FindService {
         if(loginId == null) {
             throw new AppException(ErrorCode.RESET_TOKEN_INVALID);
         }
-        User user = userRepository.findById(loginId)
+        User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND_USER));
 
         String encodePw = passwordEncoder.encode(req.getNewPassword());

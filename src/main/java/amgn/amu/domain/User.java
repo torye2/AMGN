@@ -28,7 +28,7 @@ public class User {
     private Long userId;
 
     @Column(unique = true, nullable = false, length = 50)
-    private String id;
+    private String loginId;
 
     @Column(nullable = false)
     @JsonIgnore
@@ -55,13 +55,6 @@ public class User {
     private Integer birthMonth;  // 생월
     @Column(nullable = false, length = 10)
     private Integer birthDay;  // 생일
-
-    @Column(nullable = false, length = 40)
-    private String province;  // 시/도
-    @Column(nullable = false, length = 40)
-    private String city;  // 시/군/구
-    @Column(nullable = false)
-    private String detailAddress;  // 상세주소
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";

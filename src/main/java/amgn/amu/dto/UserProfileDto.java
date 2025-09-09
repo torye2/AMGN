@@ -9,8 +9,5 @@ public record UserProfileDto(
    String phoneNumber,
    Integer birthYear,
    Integer birthMonth,
-   Integer birthDay,
-   String province,
-   String city,
-   String detailAddress
+   Integer birthDay
 ) {}
