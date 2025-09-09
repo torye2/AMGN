@@ -60,7 +60,10 @@
 
 #cont_ban {
   width: 100%;
-  height: 200px;
+  /* 캐러셀 실제 높이에 맞춰 부모 높이를 자동으로 확장 */
+  height: auto;
+  /* 아래 컨텐츠와의 간격 확보 */
+  margin-bottom: 20px;
 }
 
 #cont_cont {
