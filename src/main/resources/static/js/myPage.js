@@ -1,24 +1,18 @@
 // ----- Endpoints -----
 const ENDPOINTS = {
-    // ListingController
     myProducts: (status) => `/product/my-products${status ? `?status=${status}` : ''}`,
     favorites: undefined, // 없으면 탭 숨김 권장
-
-    // OrderController
     orders: '/orders', // 내 주문 전체(판매/구매 혼합) → 클라이언트에서 역할 추정/분리
-
-    // ReviewController
     reviewableOrders: '/api/reviews/mine', // "받은 후기" API가 없으므로 임시로 사용
-
-    // AuthStatusController
     meStatus: '/api/user/status', // { isLoggedIn, nickname, userId(로그인ID 문자열) }
-
-    // (없다면 주석처리)
-    notifications: undefined, // '/notifications'
-    meShop: undefined, // '/me/shop'
-    userProfile: '/api/user/profile',            // GET/PUT: 이메일, 연락처, 알림 설정
-    verifyPassword: '/api/user/verify-password', // POST: {password}
-    idAvailable: (newId) => `/api/users/exist?id=${encodeURIComponent(newId)}`
+    notifications: undefined,
+    meShop: undefined,
+    userProfile: '/api/user/profile',
+    verifyPassword: '/api/user/verify-password',
+    idAvailable: (newId) => `/api/users/exist?id=${encodeURIComponent(newId)}`,
+    addresses: '/api/addresses',
+    addressById: (id) => `/api/addresses/${id}`,
+    addressSetDefault: (id) => `/api/addresses/${id}/default`
 };
 
 // ===== Signup-style birth selectors & postcode helpers =====
@@ -120,6 +114,205 @@ function bindPostcode() {
     }
 }
 
+function bindPostcodeScoped(root, btnSel, map = {
+    zipcode: '#addrZipcode',
+    base: '#addrBase',
+    detail2: '#addrDetail2',
+    province: '#addrProvince',
+    city: '#addrCity',
+    final: '#addrDetailFinal'
+}) {
+    const btn = root.querySelector(btnSel);
+    if (!btn) return;
+    const zipcode = root.querySelector(map.zipcode);
+    const addr1 = root.querySelector(map.base);
+    const addr2 = root.querySelector(map.detail2);
+    const province = root.querySelector(map.province);
+    const city = root.querySelector(map.city);
+    const detailAddress = root.querySelector(map.final);
+
+    if (typeof daum !== 'undefined' && daum.Postcode) {
+        btn.addEventListener('click', function () {
+            new daum.Postcode({
+                oncomplete: function (data) {
+                    const zip = data.zonecode || '';
+                    const base = data.roadAddress || data.jibunAddress || '';
+                    const sido = expandSidoName(data.sido) || '';
+                    const sigungu = data.sigungu || '';
+                    zipcode.value = zip;
+                    addr1.value = base;
+                    addr2 && addr2.focus();
+                    province.value = sido;
+                    city.value = sigungu;
+                    let target = (sido + " " + sigungu).trim();
+                    let detail = base.startsWith(target) ? base.replace(target, " ").trim() : base;
+                    // 상세 주소 타이핑 시 최종 주소에 붙이기
+                    addr2.addEventListener('input', function () {
+                        detailAddress.value = (detail + ' ' + addr2.value).trim();
+                    });
+                    detailAddress.value = detail.trim();
+                }
+            }).open();
+        });
+    } else {
+        btn.addEventListener('click', function () {
+            alert('주소 검색 스크립트를 불러오지 못했습니다.');
+        });
+    }
+}
+
+// ===== Addresses (CRUD) =====
+function renderAddrRow(a) {
+    const badge = a.isDefault ? '<span class="tag">대표</span>' : '';
+    const label = a.addressType || 'OTHER';
+    const namePhone = `${a.recipientName ?? '-'} / ${a.recipientPhone ?? '-'}`;
+    const full = a.detailAddress ?? [a.province, a.city, a.addressLine1, a.addressLine2].filter(Boolean).join(' ');
+    return `
+    <tr data-id="${a.addressId}">
+      <td>${label}</td>
+      <td>${namePhone}</td>
+      <td>${full}</td>
+      <td>${a.isDefault ? 'V' : ''}</td>
+      <td>
+        ${a.isDefault ? '' : `<button class="btn-addr-default" type="button">대표지정</button>`}
+        <button class="btn-addr-edit" type="button">수정</button>
+        <button class="btn-addr-del" type="button">삭제</button>
+      </td>
+    </tr>`;
+}
+
+async function loadAddresses() {
+    const body = document.getElementById('addrBody');
+    if (!body) return;
+    body.innerHTML = '<tr><td colspan="5" class="empty">불러오는 중...</td></tr>';
+    try {
+        const res = await fetch(ENDPOINTS.addresses);
+        noAuthGuard(res);
+        const list = await res.json();
+        if (!Array.isArray(list) || list.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" class="empty">저장된 주소가 없습니다.</td></tr>';
+            return;
+        }
+        body.innerHTML = list.map(renderAddrRow).join('');
+    } catch (e) {
+        body.innerHTML = `<tr><td colspan="5" class="empty">불러오기 실패: ${e.message}</td></tr>`;
+    }
+}
+
+function openAddrForm(a = null) {
+    const form = document.getElementById('addrForm');
+    if (!form) return;
+    form.style.display = 'grid';
+    // 초기화
+    form.querySelector('#addrId').value = a?.addressId ?? '';
+    form.querySelector('#addrType').value = a?.addressType ?? 'HOME';
+    form.querySelector('#addrRecipient').value = a?.recipientName ?? '';
+    form.querySelector('#addrPhone').value = a?.phone ?? '';
+    form.querySelector('#addrZipcode').value = a?.postalCode ?? '';
+    form.querySelector('#addrBase').value = a?.addressLine1 ?? '';
+    form.querySelector('#addrDetail2').value = a?.addressLine2 ?? '';
+    form.querySelector('#addrProvince').value = a?.province ?? '';
+    form.querySelector('#addrCity').value = a?.city ?? '';
+    form.querySelector('#addrDetailFinal').value = a?.detailAddress ?? '';
+    form.querySelector('#addrDefault').checked = !!a?.isDefault;
+
+    // 스코프 바인딩 (다음 주소검색)
+    bindPostcodeScoped(form, '#btnAddrFind');
+
+    // 스크롤 포커스
+    form.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function closeAddrForm() {
+    const form = document.getElementById('addrForm');
+    if (!form) return;
+    form.reset();
+    form.style.display = 'none';
+}
+
+async function saveAddress(e) {
+    e?.preventDefault();
+    const form = document.getElementById('addrForm');
+    const id = form.querySelector('#addrId').value.trim();
+    const payload = {
+        addressType: form.querySelector('#addrType').value,
+        recipientName: form.querySelector('#addrRecipient').value.trim(),
+        recipientPhone: form.querySelector('#addrPhone').value.trim(),
+        postalCode: form.querySelector('#addrZipcode').value.trim(),
+        addressLine1: form.querySelector('#addrBase').value.trim(),
+        addressLine2: form.querySelector('#addrDetail2').value.trim(),
+        province: form.querySelector('#addrProvince').value.trim(),
+        city: form.querySelector('#addrCity').value.trim(),
+        detailAddress: form.querySelector('#addrDetailFinal').value.trim(),
+        isDefault: form.querySelector('#addrDefault').checked
+    };
+
+    try {
+        const r = await fetch(id ? ENDPOINTS.addressById(id) : ENDPOINTS.addresses, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        noAuthGuard(r);
+        const j = await r.json().catch(()=>({ok:true}));
+        if (j?.ok === false) throw new Error(j.message || '저장 실패');
+        alert('저장되었습니다.');
+        closeAddrForm();
+        await loadAddresses();
+    } catch (err) {
+        alert(err.message || '저장 실패');
+    }
+}
+
+async function setDefaultAddress(id) {
+    try {
+        const r = await fetch(ENDPOINTS.addressSetDefault(id), {method:'PATCH'});
+        noAuthGuard(r);
+        await loadAddresses();
+    } catch (e) { alert('대표 지정 실패: ' + e.message); }
+}
+
+async function deleteAddress(id) {
+    if (!confirm('이 주소를 삭제하시겠어요?')) return;
+    try {
+        const r = await fetch(ENDPOINTS.addressById(id), {method:'DELETE'});
+        noAuthGuard(r);
+        await loadAddresses();
+    } catch (e) { alert('삭제 실패: ' + e.message); }
+}
+
+// 이벤트 바인딩 (DOM ready)
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnAddrNew')?.addEventListener('click', () => openAddrForm(null));
+    document.getElementById('btnAddrCancel')?.addEventListener('click', closeAddrForm);
+    document.getElementById('addrForm')?.addEventListener('submit', saveAddress);
+
+    // 목록 내 액션 위임
+    document.getElementById('addrBody')?.addEventListener('click', async (e) => {
+        const tr = e.target.closest('tr[data-id]');
+        if (!tr) return;
+        const id = tr.getAttribute('data-id');
+
+        if (e.target.classList.contains('btn-addr-edit')) {
+            // 단건 조회 후 편집 열기
+            try {
+                const r = await fetch(ENDPOINTS.addressById(id));
+                noAuthGuard(r);
+                const a = await r.json();
+                openAddrForm(a);
+            } catch (err) { alert('조회 실패: ' + err.message); }
+        }
+
+        if (e.target.classList.contains('btn-addr-del')) {
+            deleteAddress(id);
+        }
+
+        if (e.target.classList.contains('btn-addr-default')) {
+            setDefaultAddress(id);
+        }
+    });
+});
+
 // ----- Utils -----
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
@@ -173,6 +366,7 @@ function switchTab(name) {
     if (name === 'alerts') loadAlerts();
     if (name === 'shop') loadShopSettings();
     if (name === 'account') loadAccount();
+    if (name === 'addresses') loadAddresses();
 }
 
 document.addEventListener('click', (e) => {

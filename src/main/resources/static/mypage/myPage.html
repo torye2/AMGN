@@ -31,15 +31,16 @@
             <h4>거래</h4>
             <div class="mp-link" data-tab="sales" role="tab">판매 내역</div>
             <div class="mp-link" data-tab="purchases" role="tab">구매 내역</div>
+            <h4>관리</h4>
+            <div class="mp-link" data-tab="shop" role="tab">상점 관리</div>
+            <div class="mp-link" data-tab="addresses" role="tab">주소 관리</div>
+            <div class="mp-link" data-tab="account" role="tab">계정 관리</div>
+            <div class="mp-link" data-tab="support" role="tab">신고/문의</div>
             <h4>후기</h4>
             <div class="mp-link" data-tab="reviews" role="tab">받은 후기</div>
             <h4>메시지·알림</h4>
             <div class="mp-link" data-tab="messages" role="tab">채팅</div>
             <div class="mp-link" data-tab="alerts" role="tab">알림</div>
-            <h4>설정</h4>
-            <div class="mp-link" data-tab="shop" role="tab">상점 관리</div>
-            <div class="mp-link" data-tab="account" role="tab">계정 관리</div>
-            <div class="mp-link" data-tab="support" role="tab">신고/문의</div>
         </nav>
     </aside>
 
@@ -159,6 +160,92 @@
             </form>
         </div>
 
+        <!-- Addresses -->
+        <div class="tab section" id="tab-addresses" role="tabpanel">
+            <div class="flex-head">
+                <h2>주소 관리</h2>
+                <div class="btn-row">
+                    <button id="btnAddrNew" type="button">새 주소 추가</button>
+                </div>
+            </div>
+
+            <!-- 목록 -->
+            <table>
+                <thead>
+                <tr>
+                    <th>라벨</th>
+                    <th>수령인/연락처</th>
+                    <th>주소</th>
+                    <th>대표</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody id="addrBody">
+                <!-- JS로 렌더 -->
+                </tbody>
+            </table>
+
+            <!-- 폼 (신규/수정 공용, 처음엔 숨김) -->
+            <form id="addrForm" class="form-grid" style="display:none; margin-top:16px;">
+                <input type="hidden" id="addrId"/>
+
+                <label>라벨
+                    <select id="addrType" required>
+                        <option value="HOME">집</option>
+                        <option value="WORK">회사</option>
+                        <option value="OTHER">기타</option>
+                    </select>
+                </label>
+
+                <div class="grid-2">
+                    <label>수령인
+                        <input id="addrRecipient" type="text" required />
+                    </label>
+                    <label>연락처
+                        <input id="addrPhone" type="tel" required />
+                    </label>
+                </div>
+
+                <div class="grid-2">
+                    <label>우편번호
+                        <div class="input-with-button">
+                            <input id="addrZipcode" placeholder="우편번호" type="text" />
+                            <button id="btnAddrFind" type="button">주소 찾기</button>
+                        </div>
+                    </label>
+                    <label>기본 주소
+                        <input id="addrBase" placeholder="도로명/지번 주소" type="text" />
+                    </label>
+                </div>
+
+                <label>상세 주소
+                    <input id="addrDetail2" placeholder="상세 주소 입력" type="text" />
+                </label>
+
+                <div class="grid-2">
+                    <label>시/도
+                        <input id="addrProvince" type="text" />
+                    </label>
+                    <label>시/군/구
+                        <input id="addrCity" type="text" />
+                    </label>
+                </div>
+
+                <label>상세주소(최종)
+                    <input id="addrDetailFinal" type="text" />
+                </label>
+
+                <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                    <input id="addrDefault" type="checkbox" /> 대표 주소로 설정
+                </label>
+
+                <div class="btn-row">
+                    <button id="btnAddrSave" class="btn" type="submit">저장</button>
+                    <button id="btnAddrCancel" class="btn btn-secondary" type="button">취소</button>
+                </div>
+            </form>
+        </div>
+
         <!-- Account management -->
         <div class="tab section" id="tab-account" role="tabpanel">
             <h2>계정 관리</h2>
@@ -199,32 +286,32 @@
                     </label>
                 </div>
                 <!-- 주소 입력 (우편번호 검색 + addr1/addr2) -->
-                <div class="grid-2">
-                    <label>우편번호
-                        <div class="input-with-button">
-                            <input disabled="" id="zipcode" placeholder="우편번호" type="text"/>
-                            <button disabled="" id="btnFindAddr" type="button">주소 찾기</button>
-                        </div>
-                    </label>
-                    <label>기본 주소
-                        <input disabled="" id="addr1" placeholder="도로명/지번 주소" type="text"/>
-                    </label>
-                </div>
-                <label>상세 주소
-                    <input disabled="" id="addr2" placeholder="상세 주소 입력" type="text"/>
-                </label>
-                <!-- 서버로 보낼 행정구역/최종 상세주소 (자동 채움 가능, 필요 시 수정) -->
-                <div class="grid-2">
-                    <label>시/도
-                        <input disabled="" id="province" name="province" type="text"/>
-                    </label>
-                    <label>시/군/구
-                        <input disabled="" id="city" name="city" type="text"/>
-                    </label>
-                </div>
-                <label>상세주소(최종)
-                    <input disabled="" id="detailAddress" name="detailAddress" type="text"/>
-                </label>
+<!--                <div class="grid-2">-->
+<!--                    <label>우편번호-->
+<!--                        <div class="input-with-button">-->
+<!--                            <input disabled="" id="zipcode" placeholder="우편번호" type="text"/>-->
+<!--                            <button disabled="" id="btnFindAddr" type="button">주소 찾기</button>-->
+<!--                        </div>-->
+<!--                    </label>-->
+<!--                    <label>기본 주소-->
+<!--                        <input disabled="" id="addr1" placeholder="도로명/지번 주소" type="text"/>-->
+<!--                    </label>-->
+<!--                </div>-->
+<!--                <label>상세 주소-->
+<!--                    <input disabled="" id="addr2" placeholder="상세 주소 입력" type="text"/>-->
+<!--                </label>-->
+<!--                서버로 보낼 행정구역/최종 상세주소 (자동 채움 가능, 필요 시 수정)-->
+<!--                <div class="grid-2">-->
+<!--                    <label>시/도-->
+<!--                        <input disabled="" id="province" name="province" type="text"/>-->
+<!--                    </label>-->
+<!--                    <label>시/군/구-->
+<!--                        <input disabled="" id="city" name="city" type="text"/>-->
+<!--                    </label>-->
+<!--                </div>-->
+<!--                <label>상세주소(최종)-->
+<!--                    <input disabled="" id="detailAddress" name="detailAddress" type="text"/>-->
+<!--                </label>-->
                 <!-- 비밀번호 변경: 선택 입력 -->
                 <label>비밀번호 변경 (선택)
                     <input autocomplete="new-password" disabled="" id="acc-newpw" name="newPassword" placeholder="새 비밀번호" type="password"/>
