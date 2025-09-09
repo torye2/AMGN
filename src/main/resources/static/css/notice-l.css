@@ -1,14 +1,13 @@
 body {
-    justify-items: center;
     margin: 0;
-    padding: 0;
+    padding-top: 180px;
     font-family: 'Noto Sans KR', sans-serif;
     background-color: #ffffff;
 }
 
 .container {
     max-width: 1000px;
-    margin: 0;
+    margin: 0 auto;
     padding: 0;
 }
 

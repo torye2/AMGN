@@ -130,9 +130,13 @@ function loadRelatedProducts(productId) {
 	    }
 	});
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const thecheatButton= document.getElementById("thecheat-button");
-        thecheatButton.addEventListener("click", () => {
-            window.location.href = "https://thecheat.co.kr/rb/?mod=_search";
-        })
-    })
+    // 더치트 버튼 새 창 열기
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('thecheat-button');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const url = 'https://thecheat.co.kr/';
+                window.open(url, '_blank', 'noopener,noreferrer');
+            });
+        }
+    });
