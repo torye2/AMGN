@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>구매 채팅 목록</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
         body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
         h1 { margin-bottom: 16px; }
@@ -36,51 +36,40 @@
       const errorEl  = document.getElementById('error');
 
       try {
-        // 1) 로그인 상태 조회
-        const userRes = await fetch('/api/user/status', { cache: 'no-store', credentials: 'include' });
-        if (!userRes.ok) throw new Error('사용자 상태 조회 실패');
-        const user = await userRes.json();
+        // 1) 로그인 사용자 조회
+        const meRes = await fetch('/api/user/me', { cache: 'no-store', credentials: 'include' });
+        if (!meRes.ok) throw new Error('로그인 사용자 조회 실패');
+        const me = await meRes.json();
 
-        if (!user.isLoggedIn) {
+        if (!me.loggedIn) {
           statusEl.textContent = '로그인이 필요합니다.';
           alert('로그인이 필요합니다.');
           location.href = '/login.html';
           return;
         }
 
-        const myUserId = user.userId; // 회원가입으로 증가하는 PK (user_id)
-        statusEl.textContent = `구매자: ${user.nickname || user.username || myUserId}`;
+        const myUserId = me.userId; // 숫자 PK
+        statusEl.textContent = `구매자: ${me.nickname ?? myUserId}`;
 
-        // 2) 우선 구매자 전용 엔드포인트 시도
-        let rooms = [];
-        let primaryOk = false;
-        try {
-          const r1 = await fetch(`/api/chatRooms/buyer?userId=${encodeURIComponent(myUserId)}`, { credentials: 'include' });
-          if (r1.ok) {
-            rooms = await r1.json();
-            primaryOk = true;
-          }
-        } catch (_) { /* 무시하고 fallback 진행 */ }
+        // 2) 내가 속한 모든 채팅방 조회
+        const roomsRes = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(myUserId)}`, { credentials: 'include' });
+        if (!roomsRes.ok) throw new Error('채팅방 목록 조회 실패');
+        const allRooms = await roomsRes.json();
 
-        // 3) 엔드포인트 없거나 실패하면 fallback: 전체 방 조회 후 buyerId 필터
-        if (!primaryOk) {
-          const r2 = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(myUserId)}`, { credentials: 'include' });
-          if (!r2.ok) throw new Error('채팅방 목록 조회 실패');
-          const allRooms = await r2.json();
-          rooms = Array.isArray(allRooms) ? allRooms.filter(r => String(r.buyerId) === String(myUserId)) : [];
-        }
+        // 3) 구매자로서 속한 방만 필터 (buyerId == myUserId)
+        const buyerRooms = (allRooms || []).filter(r => String(r.buyerId) === String(myUserId));
 
-        // 4) 렌더링
         listEl.innerHTML = '';
-        if (!Array.isArray(rooms) || rooms.length === 0) {
+        if (buyerRooms.length === 0) {
           listEl.innerHTML = `<li class="empty">구매 채팅방이 없습니다.</li>`;
           return;
         }
 
-        // 최신 생성순으로 정렬 (선택)
-        rooms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // 최신 생성 순(선택)
+        buyerRooms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        rooms.forEach(room => {
+        // 4) 목록 렌더
+        buyerRooms.forEach(room => {
           const li = document.createElement('li');
           li.innerHTML = `
             <div><strong>방번호:</strong> ${room.roomId} &nbsp; <strong>상품ID:</strong> ${room.listingId}</div>
@@ -91,11 +80,12 @@
             </div>
           `;
           li.addEventListener('click', () => {
-            // roomId 기준으로 채팅방 입장 (chatPage.html은 roomId로 메시지 조회하도록 구현되어 있어야 함)
+            // 입장: roomId 기준으로 메시지 로드
             location.href = `/chatPage.html?roomId=${room.roomId}`;
           });
           listEl.appendChild(li);
         });
+
       } catch (err) {
         console.error(err);
         errorEl.textContent = `오류: ${err.message}`;
