@@ -324,7 +324,7 @@
             <div class="flex-head">
                 <h2>신고/문의</h2>
                 <div class="btn-row">
-                    <a class="btn btn-secondary" href="/report/reportForm.html">신고하기</a>
+                    <a class="btn btn-primary" href="/report/reportForm.html">신고하기</a>
                     <a class="btn btn-primary" href="/inquiries.html">문의하기</a>
                 </div>
             </div>
@@ -345,6 +345,7 @@
                         ul.style.paddingLeft = '1.25rem';
                         items.forEach(it => {
                             const li = document.createElement('li');
+                            li.style.margin = '12px 0';
 
                             const status = typeof it.status === 'string' ? it.status.trim().toUpperCase() : '';
                             const isAnswered = status === 'ANSWERED';
@@ -379,15 +380,18 @@
                             li.appendChild(head);
 
                             const p = document.createElement('p');
-                            p.textContent = it.content ? (it.content.length > 120 ? it.content.slice(0, 120) + '…' : it.content) : '';
+                            p.textContent = it.content || '';
                             p.style.margin = '4px 0 0';
                             p.style.color = '#555';
                             p.style.fontSize = '0.95em';
+                            p.style.textAlign = 'left';
+                            p.style.display = 'none';
                             li.appendChild(p);
 
                             const replyBox = document.createElement('div');
                             replyBox.style.display = 'none';
                             replyBox.style.marginTop = '8px';
+                            replyBox.style.textAlign = 'left';
                             li.appendChild(replyBox);
 
                             if (isAdmin) {
@@ -470,7 +474,9 @@
 
                                 const toggle = (e) => {
                                     e.preventDefault();
-                                    replyBox.style.display = replyBox.style.display === 'none' ? 'block' : 'none';
+                                    const willShow = replyBox.style.display === 'none';
+                                    replyBox.style.display = willShow ? 'block' : 'none';
+                                    p.style.display = willShow ? 'block' : 'none';
                                 };
                                 title.addEventListener('click', toggle);
                                 p.addEventListener('click', toggle);
@@ -522,6 +528,7 @@
                                     e.preventDefault();
                                     const willShow = replyBox.style.display === 'none';
                                     replyBox.style.display = willShow ? 'block' : 'none';
+                                    p.style.display = willShow ? 'block' : 'none';
                                     if (willShow && !loaded) {
                                         loaded = true;
                                         loadReplies();
