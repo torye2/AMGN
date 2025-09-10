@@ -21,7 +21,7 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    // 실시간 메시지 전송
+    // 실시간 메시지 전송: 프론트에서 roomId, content만 보내면 됨
     @MessageMapping("/chat/send")
     @SendTo("/topic/messages")
     public ChatMessageDto sendMessage(ChatMessageDto dto, StompHeaderAccessor accessor) {
@@ -33,39 +33,33 @@ public class ChatController {
             throw new IllegalStateException("로그인하지 않은 사용자");
         }
 
-        LoginUserDto loginUser = (LoginUserDto) loginUserObj;
-        Long buyerId = loginUser.getUserId();
+        if (dto.getRoomId() == null) {
+            throw new IllegalStateException("roomId가 필요합니다.");
+        }
 
-        // 메시지 저장 (채팅방이 없으면 생성)
-        ChatMessageDto savedDto = chatService.saveMessage(dto, dto.getListingId(), buyerId, dto.getSellerId());
-        return savedDto;
+        LoginUserDto loginUser = (LoginUserDto) loginUserObj;
+        Long senderId = loginUser.getUserId(); // 보낸 사람은 항상 로그인 유저
+
+        // roomId 기준으로 해당 방에만 메시지 저장 (방 생성 X)
+        return chatService.saveMessageToRoom(dto.getRoomId(), senderId, dto);
     }
 
-    // 이전 메시지 불러오기
+    // 이전 메시지 불러오기: roomId로만 조회 (방 생성 X)
     @GetMapping("/chat/messages")
-    public ResponseEntity<List<ChatMessageDto>> getPreviousMessages(
-            @RequestParam Long listingId,
-            @RequestParam Long sellerId,
+    public ResponseEntity<List<ChatMessageDto>> getMessages(
+            @RequestParam Long roomId,
             HttpSession session
     ) {
         LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
-        if (loginUser == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (loginUser == null) return ResponseEntity.status(401).build();
 
-        Long buyerId = loginUser.getUserId();
-        ChatRoom room = chatService.getOrCreateRoom(listingId, buyerId, sellerId);
-
-        if (room == null) {
-            return ResponseEntity.ok(List.of());
-        }
-
-        List<ChatMessageDto> messages = chatService.getMessagesByRoomId(room.getRoomId());
+        List<ChatMessageDto> messages = chatService.getMessagesByRoomId(roomId);
         return ResponseEntity.ok(messages);
     }
 
+    // (선택) 판매자 채팅 목록 - 세션에서 판매자 id 사용
     @GetMapping("/chat/rooms")
-    public ResponseEntity<List<ChatRoomDto>> getSellerChatRooms(HttpSession session) {
+    public ResponseEntity<List<ChatRoomDto>> getSellerRooms(HttpSession session) {
         LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
         if (loginUser == null) return ResponseEntity.status(401).build();
 
@@ -74,17 +68,32 @@ public class ChatController {
         return ResponseEntity.ok(rooms);
     }
 
+    // 판매자/구매자 공용: userId로 내가 속한 모든 방
     @GetMapping("/api/chat/rooms")
     public ResponseEntity<List<ChatRoom>> getChatRooms(@RequestParam Long userId) {
-        // 판매자 또는 구매자가 속한 방 모두 조회
         List<ChatRoom> rooms = chatService.getRoomsByUserId(userId);
         return ResponseEntity.ok(rooms);
     }
 
+    // roomId로 방 단건 조회
     @GetMapping("/api/chat/room")
     public ResponseEntity<ChatRoom> getRoom(@RequestParam Long roomId) {
         ChatRoom room = chatService.getRoomById(roomId);
-        if(room == null) return ResponseEntity.notFound().build();
+        if (room == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(room);
+    }
+
+    @PostMapping("/api/chat/room/open")
+    public ResponseEntity<ChatRoom> openRoom(
+            @RequestParam Long listingId,
+            @RequestParam Long sellerId,
+            HttpSession session
+    ) {
+        LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+        if (loginUser == null) return ResponseEntity.status(401).build();
+
+        Long buyerId = loginUser.getUserId();
+        ChatRoom room = chatService.getOrCreateRoom(listingId, buyerId, sellerId);
         return ResponseEntity.ok(room);
     }
 }

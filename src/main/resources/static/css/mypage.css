@@ -250,8 +250,6 @@ th{color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.02em; te
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
 
-
-
 /* --- Account form: button visibility by state --- */
 #accountForm .account-edit-only{ display:none; }
 #accountForm .account-view-only{ display:flex; }
@@ -267,3 +265,36 @@ th{color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.02em; te
     .input-with-button .btn{ width:100%; }
 }
 
+.tag{
+    display:inline-block; padding:2px 8px; font-size:12px; border-radius:999px;
+    background:#e9efff; color:#1a3fb5; border:1px solid #b6c7ff;
+}
+
+/* === Address form responsive fix === */
+/* 기본: 2컬럼이지만 minmax(0,1fr)로 내용이 칸을 밀어내지 못하게 */
+#addrForm.form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* 중간 폭 이하(= 반창/태블릿)에서는 1컬럼로 세로 배치 */
+@media (max-width: 1024px) {
+    #addrForm.form-grid { grid-template-columns: 1fr; }
+    #addrForm .grid-2,
+    #addrForm .grid-3 { grid-template-columns: 1fr; }
+}
+
+/* 라벨/인풋이 좁아지지 않도록 최소폭/랩핑 보강 */
+#addrForm label { min-width: 0; }
+#addrForm input,
+#addrForm select {
+    width: 100%;
+    min-width: 0; /* 긴 placeholder가 칸을 밀지 않게 */
+}
+
+/* 우편번호 + 버튼 행이 좁은 화면에서 자연스럽게 줄바꿈되도록 */
+#addrForm .input-with-button { flex-wrap: wrap; }
+#addrForm .input-with-button input { min-width: 0; flex: 1; }
+#addrForm .input-with-button .btn { flex: 0 0 auto; min-width: 110px; }
+@media (max-width: 1024px) {
+    #addrForm .input-with-button .btn { width: 100%; }
+}
