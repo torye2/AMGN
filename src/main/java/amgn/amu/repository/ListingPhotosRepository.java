@@ -7,4 +7,5 @@ import java.util.Collection;
 
 public interface ListingPhotosRepository extends JpaRepository<ListingPhoto, Long> {
     void deleteByListing_ListingIdAndPhotoIdIn(Long listingId, Collection<Long> photoIds);
+    void deleteByListing_ListingId(Long listingId);
 }

@@ -217,5 +217,42 @@ public class ListingController {
         }
     }
 
+    @DeleteMapping("/{listingId}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> deleteListing(
+            @PathVariable Long listingId,
+            HttpSession session
+    ) {
+        try {
+            // 로그인 체크
+            LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+            if (loginUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "로그인이 필요합니다."));
+            }
+
+            // 기존 엔티티 조회
+            Listing existing = listingService.getListingEntity(listingId);
+            if (existing == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "상품이 존재하지 않습니다."));
+            }
+
+            // 판매자 본인 확인
+            if (!Objects.equals(existing.getSellerId(), loginUser.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "본인만 삭제할 수 있습니다."));
+            }
+
+            // 삭제
+            listingService.deleteListing(listingId);
+
+            return ResponseEntity.ok(Map.of("message", "삭제 성공"));
+        } catch (Exception e) {
+            log.error("상품 삭제 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "삭제 실패"));
+        }
+    }
 
 }

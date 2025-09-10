@@ -216,4 +216,15 @@ public class ListingService {
 		// 실제 파일 삭제가 필요하면 여기서 스토리지도 함께 삭제 처리
 		listingPhotosRepository.deleteByListing_ListingIdAndPhotoIdIn(listingId, photoIds);
 	}
+
+	@Transactional
+	public void deleteListing(Long listingId) {
+		// 1) 첨부/속성 등 자식 먼저 정리 (연관관계/제약에 따라 순서 중요)
+		// 물리 파일 삭제가 필요하면 여기서 photo url로 스토리지도 지워줘야 함.
+		listingAttrsRepository.deleteByListing_ListingId(listingId);
+		listingPhotosRepository.deleteByListing_ListingId(listingId);
+
+		// 2) 본문 삭제
+		listingRepository.deleteById(listingId);
+	}
 }
