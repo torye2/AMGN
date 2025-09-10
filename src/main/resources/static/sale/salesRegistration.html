@@ -69,8 +69,23 @@
                 </div>
 
                 <div id="location-field">
-                    <label>거래 희망 지역
-                        <input type="text" name="region" required /></label>
+                    <label>거래 희망 지역</label>
+                    <div class="region-selects">
+                        <select id="region1" required>
+                            <option value="">-- 시/도 --</option>
+                        </select>
+
+                        <select id="region2" required disabled>
+                            <option value="">-- 시·군·구 --</option>
+                        </select>
+
+                        <select id="region3" disabled>
+                            <option value="">-- 읍·면·동 --</option>
+                        </select>
+                    </div>
+
+                    <!-- 선택된 지역의 regionId를 담아 서버로 전송 -->
+                    <input type="hidden" name="region" id="regionId" />
                 </div>
 
                 <div class="checkbox-group">

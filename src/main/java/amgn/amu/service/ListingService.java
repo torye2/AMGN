@@ -174,4 +174,46 @@ public class ListingService {
 				.map(this::convertToDto)
 				.toList();
 	}
+
+	@Transactional(readOnly = true)
+	public Listing getListingEntity(Long id) {
+		return listingRepository.findById(id).orElse(null);
+	}
+
+	@Transactional
+	public void updateListing(Listing entity, ListingDto dto) {
+		if (dto.getTitle() != null) entity.setTitle(dto.getTitle());
+		if (dto.getPrice() != null) entity.setPrice(dto.getPrice());
+		if (dto.getNegotiable() != null) entity.setNegotiable(dto.getNegotiable());
+		if (dto.getCategoryId() != null) entity.setCategoryId(dto.getCategoryId());
+		if (dto.getItemCondition() != null) entity.setItemCondition(dto.getItemCondition());
+		if (dto.getDescription() != null) entity.setDescription(dto.getDescription());
+		if (dto.getTradeType() != null) entity.setTradeType(dto.getTradeType());
+		if (dto.getRegionId() != null) entity.setRegionId(dto.getRegionId());
+		if (dto.getSafePayYn() != null) entity.setSafePayYn(dto.getSafePayYn());
+		listingRepository.save(entity);
+	}
+
+	@Transactional
+	public void replaceListingAttrs(Long listingId, List<AttrDto> attrs) {
+		listingAttrsRepository.deleteByListing_ListingId(listingId);
+		Listing listingRef = listingRepository.getReferenceById(listingId);
+		if (attrs == null) return;
+		for (AttrDto a : attrs) {
+			if ((a.getAttrKey() == null || a.getAttrKey().isBlank())
+					&& (a.getAttrValue() == null || a.getAttrValue().isBlank())) continue;
+			ListingAttr la = new ListingAttr();
+			la.setListing(listingRef);
+			la.setAttrKey(a.getAttrKey());
+			la.setAttrValue(a.getAttrValue());
+			listingAttrsRepository.save(la);
+		}
+	}
+
+	@Transactional
+	public void deleteListingPhotos(Long listingId, List<Long> photoIds) {
+		if (photoIds == null || photoIds.isEmpty()) return;
+		// 실제 파일 삭제가 필요하면 여기서 스토리지도 함께 삭제 처리
+		listingPhotosRepository.deleteByListing_ListingIdAndPhotoIdIn(listingId, photoIds);
+	}
 }

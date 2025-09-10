@@ -157,3 +157,111 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const region1 = document.getElementById("region1");
+  const region2 = document.getElementById("region2");
+  const region3 = document.getElementById("region3");
+  const regionHidden = document.getElementById("regionId");
+
+  try {
+    const rres = await fetch("/api/regions");
+    if (!rres.ok) throw new Error("지역 목록을 불러오지 못했습니다.");
+    const regions = await rres.json();
+
+    // regionMap 예시 구조:
+    // { "서울특별시": { "강남구": { "개포동": 123, ... , _id: 45(강남구 자체 id) }, ... } }
+    const regionMap = {};
+
+    regions.forEach(r => {
+      const parts = (r.path || "").split("/").map(s => s.trim()).filter(Boolean);
+      if (parts.length === 1) {
+        if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+      } else if (parts.length === 2) {
+        if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+        if (!regionMap[parts[0]][parts[1]]) regionMap[parts[0]][parts[1]] = {};
+        // 시·군·구 자체 선택 시 사용할 ID 보관
+        regionMap[parts[0]][parts[1]]._id = r.regionId;
+      } else if (parts.length === 3) {
+        if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+        if (!regionMap[parts[0]][parts[1]]) regionMap[parts[0]][parts[1]] = {};
+        regionMap[parts[0]][parts[1]][parts[2]] = r.regionId;
+      }
+    });
+
+    // 시/도 채우기
+    Object.keys(regionMap)
+      .sort((a, b) => a.localeCompare(b, "ko"))
+      .forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = opt.textContent = p;
+        region1.appendChild(opt);
+      });
+
+    // 시/도 선택
+    region1.addEventListener("change", () => {
+      region2.innerHTML = `<option value="">-- 시·군·구 --</option>`;
+      region3.innerHTML = `<option value="">-- 읍·면·동 --</option>`;
+      region2.disabled = true;
+      region3.disabled = true;
+      region3.required = false;
+      regionHidden.value = "";
+
+      if (region1.value) {
+        Object.keys(regionMap[region1.value])
+          .sort((a, b) => a.localeCompare(b, "ko"))
+          .forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = opt.textContent = c;
+            region2.appendChild(opt);
+          });
+        region2.disabled = false;
+      }
+    });
+
+    // 시·군·구 선택
+    region2.addEventListener("change", () => {
+      region3.innerHTML = `<option value="">-- 읍·면·동 --</option>`;
+      region3.disabled = true;
+      region3.required = false;
+      regionHidden.value = "";
+
+      if (region2.value) {
+        const sub = regionMap[region1.value][region2.value];
+        const subKeys = Object.keys(sub).filter(k => k !== "_id");
+
+        if (subKeys.length === 0) {
+          // 하위 읍·면·동 없는 경우 → 시·군·구 자체 regionId 사용
+          regionHidden.value = sub._id || "";
+        } else {
+          subKeys
+            .sort((a, b) => a.localeCompare(b, "ko"))
+            .forEach(s => {
+              const opt = document.createElement("option");
+              opt.value = opt.textContent = s;
+              region3.appendChild(opt);
+            });
+          region3.disabled = false;
+          region3.required = true;
+        }
+      }
+    });
+
+    // 읍·면·동 선택
+    region3.addEventListener("change", () => {
+      regionHidden.value = "";
+      if (region3.value) {
+        const id = regionMap[region1.value][region2.value][region3.value];
+        regionHidden.value = id;
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    // 필요 시 사용자에게 안내 메시지 표시
+    // messageDiv가 있다면:
+    if (typeof messageDiv !== "undefined" && messageDiv) {
+      messageDiv.textContent = "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도하세요.";
+      messageDiv.style.color = "red";
+    }
+  }
+});

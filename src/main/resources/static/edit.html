@@ -17,11 +17,12 @@
         .attr-item input[type="text"] { flex:1; }
         .attr-item .remove-attr { white-space:nowrap; }
         .button-row { display:flex; gap:8px; margin-top:16px; }
-          .hidden { display:none !important; }
+        .hidden { display:none !important; }
         .selected-category { display:flex; align-items:center; gap:8px; margin:8px 0 12px; }
         .cat-pill { background:#f1f5f9; border:1px solid #e2e8f0; padding:6px 12px; border-radius:9999px; font-size:14px; }
         .cat-remove { background:none; border:none; font-size:18px; line-height:1; cursor:pointer; padding:0 6px; }
         .cat-hint { font-size:12px; color:#64748b; margin-top:6px; }
+        .region-selects { display:flex; gap:8px; margin-top:6px; }
     </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
                         가격 협상 가능
                     </label>
                 </div>
+
                 <div>
                     <label>카테고리</label>
 
@@ -93,10 +95,31 @@
                     <label><input type="radio" name="tradeType" value="BOTH" /> 모두 가능</label>
                 </div>
 
+                <!-- ===== 거래 희망 지역 (카테고리와 동일 UX) ===== -->
                 <div id="location-field">
-                    <label>거래 희망 지역
-                        <input type="text" name="region" />
-                    </label>
+                    <label>거래 희망 지역</label>
+
+                    <!-- 저장된 지역 표시 (처음엔 JS가 켜줌) -->
+                    <div id="selectedRegionBox" class="selected-category hidden"></div>
+
+                    <!-- 드롭다운: X 누르면 보여줌 -->
+                    <div id="regionSelectBox" class="hidden">
+                        <div class="region-selects">
+                            <select id="region1" required>
+                                <option value="">-- 시/도 --</option>
+                            </select>
+                            <select id="region2" required disabled>
+                                <option value="">-- 시·군·구 --</option>
+                            </select>
+                            <select id="region3" disabled>
+                                <option value="">-- 읍·면·동 --</option>
+                            </select>
+                        </div>
+                        <div class="cat-hint">필요 시 시/도 → 시·군·구 → 읍·면·동 순으로 선택하세요.</div>
+                    </div>
+
+                    <!-- 최종 전송용 (숫자 regionId) -->
+                    <input type="hidden" name="region" id="regionId" />
                 </div>
 
                 <div class="checkbox-group">
@@ -147,13 +170,24 @@
       window.location.replace('/');
     }
 
-    // 전역 상태(삭제 예정 사진, 카테고리 트리)
+    // 전역 상태(삭제 예정 사진, 카테고리/지역 트리)
     let deletedPhotoIds = new Set();
+
+    // 카테고리
     let categoryTree = [];
     let categoryFlat = [];
     let catMap = new Map();
     let originalCategoryId = null; // DB 저장된 카테고리
     let usingOriginalCategory = true; // X를 누르면 false로 전환
+
+    // 지역
+    let regionMap = {};          // { "서울특별시": { "강남구": { "개포동": 123, _id: 45 } } }
+    let regionFlat = [];         // [{regionId, name, level_no, parent_id, path}, ...]
+    let regionById = new Map();  // regionId -> node
+    let originalRegionId = null; // DB 저장된 지역 ID
+    let usingOriginalRegion = true;
+
+    const messageDiv = document.getElementById('message');
 
     // 유틸: 라디오/체크/인풋 셋업
     function setChecked(name, value) {
@@ -185,24 +219,22 @@
 
     async function loadTreeFallbackFromFlat() {
       try {
-        const resP = fetch('/api/categories');
-        return resP.then(async (res) => {
-          if (!res.ok) return;
-          const flat = await res.json();
-          const map = new Map();
-          flat.forEach(c => map.set(c.categoryId, { id: c.categoryId, name: c.name, children: [] }));
-          flat.forEach(c => {
-            const node = map.get(c.categoryId);
-            const p = c.parentId;
-            if (p == null || p === 0) return; // 루트
-            const parent = map.get(p);
-            if (parent) parent.children.push(node);
-          });
-          categoryTree = flat
-            .filter(c => c.parentId == null || c.parentId === 0)
-            .map(c => map.get(c.categoryId));
-          fillSelect(document.getElementById('category1'), categoryTree);
+        const res = await fetch('/api/categories');
+        if (!res.ok) return;
+        const flat = await res.json();
+        const map = new Map();
+        flat.forEach(c => map.set(c.categoryId, { id: c.categoryId, name: c.name, children: [] }));
+        flat.forEach(c => {
+          const node = map.get(c.categoryId);
+          const p = c.parentId;
+          if (p == null || p === 0) return; // 루트
+          const parent = map.get(p);
+          if (parent) parent.children.push(node);
         });
+        categoryTree = flat
+          .filter(c => c.parentId == null || c.parentId === 0)
+          .map(c => map.get(c.categoryId));
+        fillSelect(document.getElementById('category1'), categoryTree);
       } catch (err) {
         console.error('카테고리 폴백 로딩 실패:', err);
       }
@@ -328,7 +360,6 @@
       const hidden = document.getElementById('categoryId');
 
       if (!path || !path.length) {
-        // 카테고리 정보가 없으면 hidden만 보정
         hidden.value = product.categoryId ?? '';
         return;
       }
@@ -350,8 +381,226 @@
         c3.value = String(path[2]);
       }
 
-      // hidden 최종 셋
       hidden.value = String(product.categoryId || c3.value || c2.value || c1.value || '');
+    }
+
+    // =============================
+    // 지역 드롭다운/필 로직
+    // =============================
+    function splitRegionPath(p) {
+      if (!p) return [];
+      const sep = p.includes(' > ') ? ' > ' : '/';
+      return p.split(sep).map(s => s.trim()).filter(Boolean);
+    }
+    function normRegion(r) {
+      return {
+        regionId: r.regionId ?? r.region_id,
+        name: r.name,
+        level_no: r.level_no ?? r.levelNo,
+        parent_id: r.parent_id ?? r.parentId,
+        path: r.path
+      };
+    }
+
+    async function loadRegions() {
+      const res = await fetch('/api/regions', { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('지역 목록 로딩 실패');
+      const payload = await res.json();
+      regionFlat = Array.isArray(payload) ? payload.map(normRegion) : (payload?.data ?? []).map(normRegion);
+
+      regionMap = {};
+      regionById.clear();
+      regionFlat.forEach(r => regionById.set(String(r.regionId), r));
+
+      regionFlat.forEach(r => {
+        const parts = splitRegionPath(r.path);
+        if (parts.length === 1) {
+          if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+        } else if (parts.length === 2) {
+          if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+          if (!regionMap[parts[0]][parts[1]]) regionMap[parts[0]][parts[1]] = {};
+          regionMap[parts[0]][parts[1]]._id = r.regionId; // 시·군·구 자체 id
+        } else if (parts.length === 3) {
+          if (!regionMap[parts[0]]) regionMap[parts[0]] = {};
+          if (!regionMap[parts[0]][parts[1]]) regionMap[parts[0]][parts[1]] = {};
+          regionMap[parts[0]][parts[1]][parts[2]] = r.regionId;
+        }
+      });
+
+      // 1단계 채우기
+      const r1 = document.getElementById('region1');
+      r1.innerHTML = `<option value="">-- 시/도 --</option>`;
+      Object.keys(regionMap)
+        .sort((a,b)=>a.localeCompare(b,'ko'))
+        .forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = opt.textContent = p;
+          r1.appendChild(opt);
+        });
+    }
+
+    function fillRegionSelect(select, list, placeholder) {
+      select.innerHTML = `<option value="">${placeholder}</option>`;
+      const arr = Array.isArray(list) ? list : [];
+      arr.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = v;
+        select.appendChild(opt);
+      });
+      select.disabled = arr.length === 0;
+    }
+
+    function getRegionPathTextById(regionId) {
+      const chain = [];
+      let cur = regionById.get(String(regionId));
+      const guard = new Set();
+      while (cur && !guard.has(cur.regionId)) {
+        guard.add(cur.regionId);
+        chain.push(cur.name);
+        cur = cur.parent_id ? regionById.get(String(cur.parent_id)) : null;
+      }
+      return chain.reverse().join(' / ');
+    }
+
+    function renderSelectedRegionPill(regionId) {
+      const box = document.getElementById('selectedRegionBox');
+      const selectBox = document.getElementById('regionSelectBox');
+      const r1 = document.getElementById('region1');
+      const r2 = document.getElementById('region2');
+      const r3 = document.getElementById('region3');
+      const hidden = document.getElementById('regionId');
+
+      const text = getRegionPathTextById(regionId) || `지역 ID: ${regionId}`;
+      box.innerHTML = `<span class="cat-pill">${text}</span>
+        <button type="button" id="removeRegion" class="cat-remove" aria-label="지역 변경">×</button>`;
+      box.classList.remove('hidden');
+      selectBox.classList.add('hidden');
+
+      r1.disabled = r2.disabled = r3.disabled = true;
+      r1.required = false;
+      hidden.value = String(regionId);
+      usingOriginalRegion = true;
+
+      document.getElementById('removeRegion').onclick = () => {
+        usingOriginalRegion = false;
+        box.classList.add('hidden');
+        selectBox.classList.remove('hidden');
+
+        r1.disabled = false; r1.required = true;
+        r2.disabled = true; r3.disabled = true;
+        r1.value = ''; r2.value = ''; r3.value = '';
+        r2.innerHTML = `<option value="">-- 시·군·구 --</option>`;
+        r3.innerHTML = `<option value="">-- 읍·면·동 --</option>`;
+        hidden.value = '';
+      };
+    }
+
+    function bindRegionHandlers() {
+      const r1 = document.getElementById('region1');
+      const r2 = document.getElementById('region2');
+      const r3 = document.getElementById('region3');
+      const hidden = document.getElementById('regionId');
+
+      r1.addEventListener('change', () => {
+        const cityMap = regionMap[r1.value] || {};
+        const cities = Object.keys(cityMap).filter(k => k !== '_id').sort((a,b)=>a.localeCompare(b,'ko'));
+        fillRegionSelect(r2, cities, '-- 시·군·구 --');
+        r3.innerHTML = `<option value="">-- 읍·면·동 --</option>`;
+        r3.disabled = true;
+        r3.required = false;
+        hidden.value = '';
+      });
+
+      r2.addEventListener('change', () => {
+        const cityMap = (regionMap[r1.value] || {})[r2.value] || {};
+        const towns = Object.keys(cityMap).filter(k => k !== '_id').sort((a,b)=>a.localeCompare(b,'ko'));
+        if (towns.length === 0) {
+          r3.innerHTML = `<option value="">-- 읍·면·동 --</option>`;
+          r3.disabled = true;
+          r3.required = false;
+          hidden.value = cityMap._id || '';
+        } else {
+          fillRegionSelect(r3, towns, '-- 읍·면·동 --');
+          r3.disabled = false;
+          r3.required = true;
+          hidden.value = '';
+        }
+      });
+
+      r3.addEventListener('change', () => {
+        const cityMap = (regionMap[r1.value] || {})[r2.value] || {};
+        hidden.value = r3.value ? String(cityMap[r3.value]) : '';
+      });
+    }
+
+    async function preselectRegionByProduct(product) {
+      const r1 = document.getElementById('region1');
+      const r2 = document.getElementById('region2');
+      const r3 = document.getElementById('region3');
+
+      let path = product.regionPath; // [provId, cityId, townId]
+      const regionId = product.regionId ?? product.region_id ?? null;
+
+      if ((!Array.isArray(path) || path.length === 0) && regionId) {
+        // 서버가 경로 API를 제공하면 더 정확
+        try {
+          const resp = await fetch(`/api/regions/path?id=${encodeURIComponent(regionId)}`);
+          if (resp.ok) {
+            const arr = await resp.json();
+            if (Array.isArray(arr) && arr.length) path = arr;
+          }
+        } catch {}
+      }
+
+      // path가 없으면 regionId에서 parent 체인을 타고 구성
+      if ((!Array.isArray(path) || path.length === 0) && regionId) {
+        const chain = [];
+        let cur = regionById.get(String(regionId));
+        const guard = new Set();
+        while (cur && !guard.has(cur.regionId)) {
+          guard.add(cur.regionId);
+          chain.push(cur);
+          cur = cur.parent_id ? regionById.get(String(cur.parent_id)) : null;
+        }
+        path = chain.reverse().map(n => n.regionId);
+      }
+
+      // 드롭다운 값 셋팅 (표시는 이름으로 매칭)
+      if (path && path.length > 0) {
+        const p0 = regionById.get(String(path[0]));
+        if (p0) {
+          r1.value = splitRegionPath(p0.path)[0] || '';
+          r1.dispatchEvent(new Event('change'));
+        }
+      }
+      if (path && path.length > 1) {
+        const p1 = regionById.get(String(path[1]));
+        if (p1) {
+          const name1 = splitRegionPath(p1.path)[1];
+          if (name1) {
+            r2.value = name1;
+            r2.dispatchEvent(new Event('change'));
+          }
+        }
+      }
+      if (path && path.length > 2) {
+        const p2 = regionById.get(String(path[2]));
+        if (p2) {
+          const name2 = splitRegionPath(p2.path)[2];
+          if (name2) {
+            r3.value = name2;
+            r3.dispatchEvent(new Event('change'));
+          }
+        }
+      }
+
+      if (regionId) renderSelectedRegionPill(regionId);
+      else {
+        document.getElementById('selectedRegionBox').classList.add('hidden');
+        document.getElementById('regionSelectBox').classList.remove('hidden');
+        document.getElementById('region1').disabled = false;
+        document.getElementById('region1').required = true;
+      }
     }
 
     // =============================
@@ -441,19 +690,10 @@
         form.elements['price'].value = product.price ?? '';
         setCheckbox('negotiable', product.negotiable === 'Y' || product.negotiable === true);
 
-        // 상태 라디오
         if (product.itemCondition) setChecked('itemCondition', product.itemCondition);
-
-        // 설명
         form.elements['description'].value = product.description ?? '';
-
-        // 거래 방식 라디오
         if (product.tradeType) setChecked('tradeType', product.tradeType);
 
-        // 지역 (문자 → 숫자 ID는 서버에서 매핑 가능)
-        form.elements['region'].value = product.regionName || product.addressText || '';
-
-        // 안전결제
         setCheckbox('safePayYn', product.safePayYn === 'Y' || product.safePayYn === true);
 
         // ===== 카테고리 처리 =====
@@ -462,17 +702,22 @@
         await loadCategoryTree();
         bindCategoryHandlers();
 
-        // 드롭다운은 채워두되, 초기에는 저장값을 Pill로 보여줌
         fillSelect(document.getElementById('category1'), categoryTree);
-
         if (originalCategoryId) {
           renderSelectedCategoryPill(originalCategoryId);
+          await preselectCategoryByProduct(product);
         } else {
           document.getElementById('selectedCategoryBox').classList.add('hidden');
           document.getElementById('categorySelectBox').classList.remove('hidden');
           const c1 = document.getElementById('category1');
           c1.disabled = false; c1.required = true;
         }
+
+        // ===== 지역 처리 =====
+        originalRegionId = product.regionId ?? product.region_id ?? null;
+        await loadRegions();
+        bindRegionHandlers();
+        await preselectRegionByProduct(product);
 
         // 기존 사진
         renderExistingPhotos(product);
@@ -491,10 +736,9 @@
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
 
-          // FormData를 새로 만들어 백엔드의 write 시그니처와 동일하게 보냄
           const fd = new FormData();
 
-          // 선택된 카테고리 최종값 보정
+          // 선택된 카테고리 최종값
           const c1 = document.getElementById('category1');
           const c2 = document.getElementById('category2');
           const c3 = document.getElementById('category3');
@@ -509,9 +753,12 @@
             return;
           }
 
-          // region 텍스트가 숫자면 regionId로 전달 (아니면 서버에서 매핑)
-          const regionText = form.elements['region'].value?.trim();
-          const regionIdNum = regionText && new RegExp('^\d+$').test(regionText) ? Number(regionText) : null;
+          // 지역 최종값 (히든)
+          const hiddenRegionVal = document.getElementById('regionId').value;
+          const regionIdNum = hiddenRegionVal ? Number(hiddenRegionVal) : null;
+          if (!regionIdNum && (document.querySelector('input[name="tradeType"][value="MEETUP"]:checked') || document.querySelector('input[name="tradeType"][value="BOTH"]:checked'))) {
+            if (!confirm('직거래/모두 가능을 선택했지만 지역을 지정하지 않았습니다. 계속하시겠습니까?')) return;
+          }
 
           const listingData = {
             listingId: Number(listingId),
@@ -546,7 +793,6 @@
           for (const f of files) fd.append('productPhotos', f);
 
           try {
-            // 권장 엔드포인트: POST /product/{listingId}/edit (write와 동일한 시그니처)
             const resp = await fetch(`/product/${encodeURIComponent(listingId)}/edit`, {
               method: 'POST',
               body: fd,

@@ -150,4 +150,72 @@ public class ListingController {
         return ResponseEntity.ok(products);
     }
 
+    // ListingController.java
+    @PostMapping("/{listingId}/edit")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> editListing(
+            @PathVariable Long listingId,
+            @RequestParam("listingData") String listingDataJson,
+            @RequestParam(value = "attrs", required = false) String attrsJson,
+            @RequestParam(value = "productPhotos", required = false) MultipartFile[] newFiles,
+            @RequestParam(value = "deletedPhotoIds", required = false) String deletedPhotoIdsJson,
+            HttpSession session
+    ) {
+        try {
+            // 1) 로그인 체크
+            LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
+            if (loginUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "로그인이 필요합니다."));
+            }
+
+            // 2) 기존 엔티티 로드
+            Listing existing = listingService.getListingEntity(listingId);
+            if (existing == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "상품이 존재하지 않습니다."));
+            }
+
+            // 3) 판매자 본인 확인
+            if (!Objects.equals(existing.getSellerId(), loginUser.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "본인만 수정할 수 있습니다."));
+            }
+
+            // 4) JSON 파싱 → DTO
+            ListingDto dto = objectMapper.readValue(listingDataJson, ListingDto.class);
+            dto.setListingId(listingId);
+            dto.setSellerId(loginUser.getUserId());
+
+            // 5) 기본 필드 업데이트
+            listingService.updateListing(existing, dto);
+
+            // 6) 속성 교체
+            if (attrsJson != null && !attrsJson.isBlank()) {
+                List<AttrDto> attrs = objectMapper.readValue(
+                        attrsJson, new com.fasterxml.jackson.core.type.TypeReference<List<AttrDto>>() {});
+                listingService.replaceListingAttrs(listingId, attrs);
+            }
+
+            // 7) 사진 삭제
+            if (deletedPhotoIdsJson != null && !deletedPhotoIdsJson.isBlank()) {
+                List<Long> delIds = objectMapper.readValue(
+                        deletedPhotoIdsJson, new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
+                listingService.deleteListingPhotos(listingId, delIds);
+            }
+
+            // 8) 새 사진 추가
+            if (newFiles != null && newFiles.length > 0) {
+                listingService.saveListingPhotos(listingId, newFiles); // 이미 있는 메서드 재사용
+            }
+
+            return ResponseEntity.ok(Map.of("message", "수정 성공", "listingId", listingId));
+        } catch (Exception e) {
+            log.error("상품 수정 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "수정 실패"));
+        }
+    }
+
+
 }
