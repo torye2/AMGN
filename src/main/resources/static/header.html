@@ -111,6 +111,34 @@
         #header .search button:active {
             background-color: #000;  /* 눌림 상태 유지 */
         }
+
+        /* 지역 선택 버튼 */
+        #header .search .region-btn {
+            height: 100%;
+            margin-right: 6px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 20px;
+            background: #111;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        #header .search .region-btn:hover {
+            background: #000;
+        }
+        /* 지역 버튼 오른쪽에 오는 입력창 보더/라운드 보정 */
+        #header .search .region-btn + input[type="text"] {
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+            border-left: 1px solid #e5e7eb;
+        }
+
         /* 고정 헤더: 스크롤 시에도 항상 상단에 표시 */
         #header {
             position: fixed;
@@ -142,6 +170,9 @@
                 </h1>
             </div>           
             <div class="search">   
+                <button id="regionOpenBtn" class="region-btn" type="button" data-bs-toggle="modal" data-bs-target="#regionModal">
+                    <span id="regionBtnLabel">내 근처</span> ▾
+                </button>
                 <input type="text" id="searchInput" placeholder="검색어를 입력하세요" />
                 <button id="searchBtn">검색</button>
             </div>

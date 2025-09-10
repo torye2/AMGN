@@ -1,7 +1,7 @@
 fetch('header.html')
 .then(response => response.text())
 .then(data => {
-    document.getElementById('header-p').innerHTML = data;
+    document.getElementById('header').innerHTML = data;
 });
 
 const queryParams = new URLSearchParams(window.location.search);
