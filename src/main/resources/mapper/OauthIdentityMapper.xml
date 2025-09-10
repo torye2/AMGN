@@ -1,0 +1,28 @@
+<mapper xmlns="http://mybatis.org/schema/mybatis-mapper"
+        namespace="amgn.amu.mapper.OauthIdentityMapper">
+
+    <resultMap id="UserMfaTotp" type="amgn.amu.entity.OauthIdentity">
+        <id property="oauthId" column="oauth_id" />
+        <result property="userId" column="user_id" />
+        <result property="provider" column="provider" />
+        <result property="providerUserId" column="provider_user_id" />
+        <result property="email" column="email" />
+        <result property="displayName" column="display_name" />
+        <result property="accessToken" column="access_token"/>
+        <result property="refreshToken" column="refresh_token"/>
+        <result property="tokenExpiresAt" column="token_expires_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findUserByProvider" resultType="amgn.amu.domain.User">
+        SELECT U.*
+        FROM OAUTH_IDENTITIES OI
+        JOIN USERS U ON U.USER_ID = OI.USER_ID
+        WHERE OI.PROVIDER = #{provider}
+        AND OI.PROVIDER_USER_ID = #{pid}
+        LIMIT 1
+    </select>
+
+
+</mapper>

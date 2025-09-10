@@ -55,4 +55,14 @@
         #{birthYear}, #{birthMonth}, #{birthDay}, 'ACTIVE'
         )
     </insert>
+
+    <select id="findByEmail" resultType="amgn.amu.domain.User">
+        SELECT * FROM USERS WHERE EMAIL = #{email}
+    </select>
+
+    <insert id="createSocialUser" parameterType="amgn.amu.domain.User"
+            useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO USERS (LOGIN_ID, PASSWORD_HASH, EMAIL, USER_NAME, STATUS, CREATED_AT)
+        VALUES (CONCAT('SOC_', UUID()), NULL, #{email}, #{userName}, 'ACTIVE', NOW())
+    </insert>
 </mapper>

@@ -1,0 +1,18 @@
+package amgn.amu.mapper;
+
+import amgn.amu.domain.User;
+import amgn.amu.entity.OauthIdentity;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Optional;
+
+@Mapper
+public interface OauthIdentityMapper {
+    Optional<User> findUserByProvider(@Param("provider") String provider,
+                                      @Param("pid") String providerUserId);
+    Optional<OauthIdentity> findByProvider(@Param("provider") String provider,
+                                           @Param("pid") String providerUserId);
+    int insertLink(OauthIdentity link);
+    int updateTokens(OauthIdentity link);
+}
