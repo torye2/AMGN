@@ -285,33 +285,6 @@
                         </select>
                     </label>
                 </div>
-                <!-- 주소 입력 (우편번호 검색 + addr1/addr2) -->
-<!--                <div class="grid-2">-->
-<!--                    <label>우편번호-->
-<!--                        <div class="input-with-button">-->
-<!--                            <input disabled="" id="zipcode" placeholder="우편번호" type="text"/>-->
-<!--                            <button disabled="" id="btnFindAddr" type="button">주소 찾기</button>-->
-<!--                        </div>-->
-<!--                    </label>-->
-<!--                    <label>기본 주소-->
-<!--                        <input disabled="" id="addr1" placeholder="도로명/지번 주소" type="text"/>-->
-<!--                    </label>-->
-<!--                </div>-->
-<!--                <label>상세 주소-->
-<!--                    <input disabled="" id="addr2" placeholder="상세 주소 입력" type="text"/>-->
-<!--                </label>-->
-<!--                서버로 보낼 행정구역/최종 상세주소 (자동 채움 가능, 필요 시 수정)-->
-<!--                <div class="grid-2">-->
-<!--                    <label>시/도-->
-<!--                        <input disabled="" id="province" name="province" type="text"/>-->
-<!--                    </label>-->
-<!--                    <label>시/군/구-->
-<!--                        <input disabled="" id="city" name="city" type="text"/>-->
-<!--                    </label>-->
-<!--                </div>-->
-<!--                <label>상세주소(최종)-->
-<!--                    <input disabled="" id="detailAddress" name="detailAddress" type="text"/>-->
-<!--                </label>-->
                 <!-- 비밀번호 변경: 선택 입력 -->
                 <label>비밀번호 변경 (선택)
                     <input autocomplete="new-password" disabled="" id="acc-newpw" name="newPassword" placeholder="새 비밀번호" type="password"/>
@@ -364,7 +337,7 @@
 
                     function renderList(items, isAdmin) {
                         if (!items || items.length === 0) {
-                            box.textContent = '접수한 문의가 없습니다.';
+                            box.textContent = '접수한 신고/문의가 없습니다.';
                             return;
                         }
                         const ul = document.createElement('ul');
@@ -373,12 +346,37 @@
                         items.forEach(it => {
                             const li = document.createElement('li');
 
+                            const status = typeof it.status === 'string' ? it.status.trim().toUpperCase() : '';
+                            const isAnswered = status === 'ANSWERED';
+
+                            // 제목 + 상태 배지 래퍼
+                            const head = document.createElement('div');
+                            head.style.display = 'flex';
+                            head.style.alignItems = 'center';
+                            head.style.gap = '8px';
+
                             const title = document.createElement('a');
                             title.textContent = it.title || '(제목 없음)';
                             title.style.display = 'block';
                             title.href = '#';
                             title.style.cursor = 'pointer';
-                            li.appendChild(title);
+
+                            head.appendChild(title);
+
+                            if (isAnswered) {
+                                const badge = document.createElement('span');
+                                badge.textContent = '답변 완료';
+                                badge.style.display = 'inline-block';
+                                badge.style.padding = '2px 6px';
+                                badge.style.borderRadius = '10px';
+                                badge.style.backgroundColor = '#e6f6ea';
+                                badge.style.color = '#15803d';
+                                badge.style.fontSize = '0.8em';
+                                badge.style.border = '1px solid #86efac';
+                                head.appendChild(badge);
+                            }
+
+                            li.appendChild(head);
 
                             const p = document.createElement('p');
                             p.textContent = it.content ? (it.content.length > 120 ? it.content.slice(0, 120) + '…' : it.content) : '';
@@ -393,54 +391,82 @@
                             li.appendChild(replyBox);
 
                             if (isAdmin) {
-                                // 관리자: 답변 입력 폼
-                                const ta = document.createElement('textarea');
-                                ta.rows = 3;
-                                ta.placeholder = '답변을 입력하세요';
-                                ta.style.width = '100%';
-                                ta.maxLength = 2000;
+                                // 관리자: 답변 입력 폼 또는 상태 표시
+                                if (isAnswered) {
+                                    const done = document.createElement('div');
+                                    done.textContent = '답변 완료된 문의입니다.';
+                                    done.style.color = '#15803d';
+                                    done.style.fontSize = '0.9em';
+                                    replyBox.appendChild(done);
+                                } else {
+                                    const ta = document.createElement('textarea');
+                                    ta.rows = 3;
+                                    ta.placeholder = '답변을 입력하세요';
+                                    ta.style.width = '100%';
+                                    ta.maxLength = 2000;
 
-                                const btnWrap = document.createElement('div');
-                                btnWrap.className = 'btn-row';
-                                btnWrap.style.marginTop = '6px';
+                                    const btnWrap = document.createElement('div');
+                                    btnWrap.className = 'btn-row';
+                                    btnWrap.style.marginTop = '6px';
 
-                                const btn = document.createElement('button');
-                                btn.type = 'button';
-                                btn.className = 'btn btn-primary';
-                                btn.textContent = '답변하기';
+                                    const btn = document.createElement('button');
+                                    btn.type = 'button';
+                                    btn.className = 'btn btn-primary';
+                                    btn.textContent = '답변하기';
 
-                                btn.addEventListener('click', async () => {
-                                    const content = (ta.value || '').trim();
-                                    if (!content) {
-                                        alert('답변 내용을 입력하세요.');
-                                        ta.focus();
-                                        return;
-                                    }
-                                    try {
-                                        btn.disabled = true;
-                                        const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            credentials: 'same-origin',
-                                            body: JSON.stringify({ content })
-                                        });
-                                        if (!res.ok) {
-                                            const msg = await res.text().catch(() => '');
-                                            throw new Error(msg || '저장에 실패했습니다.');
+                                    btn.addEventListener('click', async () => {
+                                        const content = (ta.value || '').trim();
+                                        if (!content) {
+                                            alert('답변 내용을 입력하세요.');
+                                            ta.focus();
+                                            return;
                                         }
-                                        alert('답변이 등록되었습니다.');
-                                        ta.value = '';
-                                    } catch (err) {
-                                        console.error(err);
-                                        alert('답변 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-                                    } finally {
-                                        btn.disabled = false;
-                                    }
-                                });
+                                        try {
+                                            btn.disabled = true;
+                                            const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                credentials: 'same-origin',
+                                                body: JSON.stringify({ content })
+                                            });
+                                            if (!res.ok) {
+                                                const msg = await res.text().catch(() => '');
+                                                throw new Error(msg || '저장에 실패했습니다.');
+                                            }
+                                            alert('답변이 등록되었습니다.');
+                                            ta.value = '';
+                                            // UI 반영: 상태를 ANSWERED로 표시하고 배지 추가, 입력 폼을 상태 안내로 교체
+                                            it.status = 'ANSWERED';
+                                            const badge = document.createElement('span');
+                                            badge.textContent = '답변 완료';
+                                            badge.style.display = 'inline-block';
+                                            badge.style.padding = '2px 6px';
+                                            badge.style.borderRadius = '10px';
+                                            badge.style.backgroundColor = '#e6f6ea';
+                                            badge.style.color = '#15803d';
+                                            badge.style.fontSize = '0.8em';
+                                            badge.style.border = '1px solid #86efac';
+                                            if (title.parentElement) {
+                                                title.parentElement.appendChild(badge);
+                                            }
+                                            replyBox.innerHTML = '';
+                                            const done = document.createElement('div');
+                                            done.textContent = '답변 완료된 문의입니다.';
+                                            done.style.color = '#15803d';
+                                            done.style.fontSize = '0.9em';
+                                            replyBox.appendChild(done);
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert('답변 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                                        } finally {
+                                            btn.disabled = false;
+                                        }
+                                    });
 
-                                btnWrap.appendChild(btn);
-                                replyBox.appendChild(ta);
-                                replyBox.appendChild(btnWrap);
+                                    btnWrap.appendChild(btn);
+                                    replyBox.appendChild(ta);
+                                    replyBox.appendChild(btnWrap);
+                                }
 
                                 const toggle = (e) => {
                                     e.preventDefault();

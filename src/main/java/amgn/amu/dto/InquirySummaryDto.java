@@ -9,4 +9,5 @@ public class InquirySummaryDto {
     private Long inquiryId;
     private String title;
     private String content;
+    private String status;
 }

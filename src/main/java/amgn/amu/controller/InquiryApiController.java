@@ -69,7 +69,12 @@ public class InquiryApiController {
         }
         List<Inquiry> list = inquiryRepository.findByUserIdOrderByCreatedAtDesc(user.getUserId());
         List<InquirySummaryDto> result = list.stream()
-                .map(i -> new InquirySummaryDto(i.getInquiryId(), i.getTitle(), i.getContent()))
+                .map(i -> new InquirySummaryDto(
+                        i.getInquiryId(),
+                        i.getTitle(),
+                        i.getContent(),
+                        i.getStatus() != null ? i.getStatus().name() : null
+                ))
                 .toList();
         return ResponseEntity.ok(result);
     }
@@ -92,7 +97,12 @@ public class InquiryApiController {
         }
         List<Inquiry> list = inquiryRepository.findAllByOrderByCreatedAtDesc();
         List<InquirySummaryDto> result = list.stream()
-                .map(i -> new InquirySummaryDto(i.getInquiryId(), i.getTitle(), i.getContent()))
+                .map(i -> new InquirySummaryDto(
+                        i.getInquiryId(),
+                        i.getTitle(),
+                        i.getContent(),
+                        i.getStatus() != null ? i.getStatus().name() : null
+                ))
                 .toList();
         return ResponseEntity.ok(result);
     }
