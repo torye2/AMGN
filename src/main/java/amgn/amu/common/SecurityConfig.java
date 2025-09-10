@@ -1,5 +1,6 @@
 package amgn.amu.common;
 
+import amgn.amu.service.OauthBridgeService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -33,7 +34,7 @@ public class SecurityConfig {
     @Bean
     AuthenticationSuccessHandler successHandler(OauthBridgeService bridge) {
         return (req, res, auth) -> {
-            bridge.upsertAndLogin(req, auth); // 아래 4) 참조
+            //bridge.upsertAndLogin(req, auth); // 아래 4) 참조
             res.sendRedirect("/"); // 필요 시 originalUrl로
         };
     }
