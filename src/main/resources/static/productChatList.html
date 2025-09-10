@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>이 상품의 대화중인 채팅</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+        header { display:flex; align-items:center; gap:12px; margin-bottom: 16px; }
+        header h1 { font-size: 20px; margin: 0; }
+        .btn { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background:#fff; cursor:pointer; }
+        .btn:hover { background:#f6f7f9; }
+        #status { color:#666; margin: 8px 0 16px; }
+        ul { list-style: none; padding: 0; }
+        li {
+          padding: 12px 14px;
+          border: 1px solid #e3e6ea;
+          border-radius: 10px;
+          margin-bottom: 10px;
+          cursor: pointer;
+          transition: background 0.15s ease-in-out, border 0.15s;
+        }
+        li:hover { background: #f8f9fb; border-color:#d8dde4; }
+        .meta { font-size: 13px; color: #666; margin-top: 6px; }
+        .empty { color: #999; padding: 12px; border:1px dashed #ddd; border-radius:10px; }
+        .error { color: #d33; white-space: pre-line; margin-top: 12px; }
+        .pill { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #ddd; color:#555; }
+    </style>
+</head>
+<body>
+<header>
+    <button class="btn" id="backBtn">← 상품으로</button>
+    <h1>이 상품의 대화중인 채팅</h1>
+</header>
+
+<div id="status">로그인 상태 확인 중...</div>
+<ul id="roomList"></ul>
+<div id="error" class="error"></div>
+
+<script>
+    (async function () {
+      const qs = new URLSearchParams(location.search);
+      const listingId = qs.get('listingId');
+
+      const statusEl = document.getElementById('status');
+      const listEl   = document.getElementById('roomList');
+      const errorEl  = document.getElementById('error');
+      const backBtn  = document.getElementById('backBtn');
+
+      // 뒤로가기(상품 상세로)
+      backBtn.addEventListener('click', () => {
+        if (listingId) location.href = `/productDetail.html?id=${encodeURIComponent(listingId)}`;
+        else history.back();
+      });
+
+      if (!listingId) {
+        statusEl.textContent = '잘못된 접근: listingId가 없습니다.';
+        return;
+      }
+
+      try {
+        // 1) 로그인 사용자 확인
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        if (!meRes.ok) throw new Error('로그인 상태 확인 실패');
+        const me = await meRes.json(); // { loggedIn, userId, nickname }
+
+        if (!me.loggedIn) {
+          statusEl.textContent = '로그인이 필요합니다.';
+          alert('로그인이 필요합니다.');
+          location.href = '/login.html';
+          return;
+        }
+
+        const myUserId = me.userId;
+        statusEl.textContent = `판매자: ${me.nickname ?? myUserId} · 상품ID: ${listingId}`;
+
+        // 2) 내가 속한 모든 채팅방 조회
+        const roomsRes = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(myUserId)}`, {
+          credentials: 'include'
+        });
+        if (!roomsRes.ok) throw new Error('채팅방 목록 조회 실패');
+        const allRooms = await roomsRes.json();
+
+        // 3) 이 상품(listingId)의 "판매자=나" 인 채팅방만 필터
+        const productSellerRooms = (allRooms || []).filter(r =>
+          String(r.listingId) === String(listingId) &&
+          String(r.sellerId)  === String(myUserId)
+        );
+
+        listEl.innerHTML = '';
+
+        if (productSellerRooms.length === 0) {
+          listEl.innerHTML = `<li class="empty">이 상품에 대한 대화중인 채팅이 없습니다.</li>`;
+          return;
+        }
+
+        // (선택) 최신 생성순 정렬
+        productSellerRooms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // 4) 목록 렌더링
+        productSellerRooms.forEach(room => {
+          const li = document.createElement('li');
+
+          const created = room.createdAt ? new Date(room.createdAt).toLocaleString() : '-';
+          const buyer   = room.buyerId ?? '-';
+          const status  = room.status ?? 'OPEN';
+
+          li.innerHTML = `
+            <div>
+              <strong>방번호</strong> ${room.roomId}
+              &nbsp;&nbsp;<span class="pill">상품ID ${room.listingId}</span>
+            </div>
+            <div class="meta">
+              구매자ID: ${buyer} &nbsp;|&nbsp; 상태: ${status} &nbsp;|&nbsp; 생성: ${created}
+            </div>
+          `;
+
+          li.addEventListener('click', () => {
+            // 채팅방 입장: roomId 기준으로 메시지 조회하도록 구현된 chatPage.html로 이동
+            location.href = `/chatPage.html?roomId=${room.roomId}`;
+          });
+
+          listEl.appendChild(li);
+        });
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = `오류: ${err.message}`;
+      }
+    })();
+</script>
+</body>
+</html>
