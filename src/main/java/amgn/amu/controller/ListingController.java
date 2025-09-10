@@ -90,7 +90,7 @@ public class ListingController {
         }
     }
 
-    @GetMapping("/{listingId}")
+    @GetMapping("/{listingId:\\d+}")
     public ResponseEntity<ListingDto> getProductDetail(@PathVariable("listingId") long listingId) {
         try {
             ListingDto listingDto = listingService.getListingById(listingId);

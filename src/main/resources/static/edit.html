@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>판매 글 수정</title>
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/salesRegistration.css" />
+    <style>
+        /* 편의용 보조 스타일 (프로젝트 스타일에 맞게 조정 가능) */
+        .thumbs { display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
+        .thumb { position:relative; width:120px; }
+        .thumb img { width:120px; height:90px; object-fit:cover; border-radius:6px; border:1px solid #ddd; }
+        .thumb .del { position:absolute; top:6px; right:6px; background:#00000099; color:#fff; border:none; border-radius:12px; padding:2px 8px; cursor:pointer; font-size:12px; }
+        .attr-item { display:flex; gap:8px; margin-bottom:8px; }
+        .attr-item input[type="text"] { flex:1; }
+        .attr-item .remove-attr { white-space:nowrap; }
+        .button-row { display:flex; gap:8px; margin-top:16px; }
+          .hidden { display:none !important; }
+        .selected-category { display:flex; align-items:center; gap:8px; margin:8px 0 12px; }
+        .cat-pill { background:#f1f5f9; border:1px solid #e2e8f0; padding:6px 12px; border-radius:9999px; font-size:14px; }
+        .cat-remove { background:none; border:none; font-size:18px; line-height:1; cursor:pointer; padding:0 6px; }
+        .cat-hint { font-size:12px; color:#64748b; margin-top:6px; }
+    </style>
+</head>
+<body>
+<div id="wrap">
+    <header id="header"></header>
+    <main class="container">
+        <fieldset class="sales-box">
+            <h2>판매 글 수정</h2>
+            <form id="salesForm" enctype="multipart/form-data">
+                <div>
+                    <label>제품 이름
+                        <input type="text" name="title" required />
+                    </label>
+                </div>
+                <div>
+                    <label>제품 가격
+                        <input type="number" name="price" min="0" required />
+                    </label>
+                </div>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="negotiable" value="Y" />
+                        가격 협상 가능
+                    </label>
+                </div>
+                <div>
+                    <label>카테고리</label>
+
+                    <!-- 저장된 카테고리 표시 영역 (처음엔 JS가 켜줌) -->
+                    <div id="selectedCategoryBox" class="selected-category hidden"></div>
+
+                    <!-- 드롭다운 영역: X를 누르면 보여줌 -->
+                    <div id="categorySelectBox" class="hidden">
+                        <select id="category1" required>
+                            <option value="">-- 대분류 선택 --</option>
+                        </select>
+                        <select id="category2" disabled>
+                            <option value="">-- 중분류 선택 --</option>
+                        </select>
+                        <select id="category3" disabled>
+                            <option value="">-- 소분류 선택 --</option>
+                        </select>
+                        <div class="cat-hint">필요 시 대/중/소 순서로 선택하세요.</div>
+                    </div>
+
+                    <!-- 최종 전송용 -->
+                    <input type="hidden" name="categoryId" id="categoryId" />
+                </div>
+
+                <div class="radio-group">
+                    <p>제품 상태:</p>
+                    <label><input type="radio" name="itemCondition" value="NEW" required /> 새상품</label>
+                    <label><input type="radio" name="itemCondition" value="LIKE_NEW" /> 거의 새것</label>
+                    <label><input type="radio" name="itemCondition" value="GOOD" /> 사용감 적음</label>
+                    <label><input type="radio" name="itemCondition" value="FAIR" /> 사용감 많음</label>
+                    <label><input type="radio" name="itemCondition" value="POOR" /> 고장/파손</label>
+                </div>
+
+                <div>
+                    <label>제품 설명
+                        <textarea name="description" required></textarea>
+                    </label>
+                </div>
+
+                <div class="radio-group" id="trade-type-radio">
+                    <p>거래 방식:</p>
+                    <label><input type="radio" name="tradeType" value="DELIVERY" required /> 택배</label>
+                    <label><input type="radio" name="tradeType" value="MEETUP" /> 직거래</label>
+                    <label><input type="radio" name="tradeType" value="BOTH" /> 모두 가능</label>
+                </div>
+
+                <div id="location-field">
+                    <label>거래 희망 지역
+                        <input type="text" name="region" />
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="safePayYn" value="Y" />
+                        안전 결제 가능
+                    </label>
+                </div>
+
+                <div>
+                    <label>등록된 사진</label>
+                    <div id="existingPhotos" class="thumbs"></div>
+                </div>
+
+                <div>
+                    <label>사진 추가 업로드
+                        <input type="file" name="productPhotos" id="productPhotos" multiple />
+                    </label>
+                </div>
+
+                <div class="attr-section">
+                    <h3>제품 부가 정보 (선택 사항)</h3>
+                    <div id="attributes"></div>
+                    <div class="attr-buttons">
+                        <button type="button" id="addAttrBtn">항목 추가</button>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit" id="submitBtn">수정하기</button>
+                    <button type="button" id="cancelBtn">취소</button>
+                </div>
+
+                <div id="message"></div>
+            </form>
+        </fieldset>
+    </main>
+</div>
+
+<script>
+    // =============================
+    // 공통: 쿼리스트링에서 listingId 조회
+    // =============================
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get('id');
+    if (!listingId) {
+      alert('잘못된 접근: listingId 없음');
+      window.location.replace('/');
+    }
+
+    // 전역 상태(삭제 예정 사진, 카테고리 트리)
+    let deletedPhotoIds = new Set();
+    let categoryTree = [];
+    let categoryFlat = [];
+    let catMap = new Map();
+    let originalCategoryId = null; // DB 저장된 카테고리
+    let usingOriginalCategory = true; // X를 누르면 false로 전환
+
+    // 유틸: 라디오/체크/인풋 셋업
+    function setChecked(name, value) {
+      const node = document.querySelector(`input[name="${name}"][value="${value}"]`);
+      if (node) node.checked = true;
+    }
+    function setCheckbox(name, flagY) {
+      const node = document.querySelector(`input[name="${name}"]`);
+      if (node) node.checked = !!flagY;
+    }
+
+    // =============================
+    // 카테고리 로딩 & 프리필
+    // =============================
+    async function loadCategoryTree() {
+      // 전체 트리: GET /api/categories/tree  => [{id, name, children:[...]}, ...]
+      try {
+        const res = await fetch('/api/categories/tree');
+        if (!res.ok) throw new Error('카테고리 트리 로딩 실패');
+        categoryTree = await res.json();
+        if (!Array.isArray(categoryTree)) throw new Error('카테고리 형식 오류');
+        fillSelect(document.getElementById('category1'), categoryTree);
+      } catch (e) {
+        console.error(e);
+        // 폴백: 평면 목록에서 클라이언트 트리 구성
+        await loadTreeFallbackFromFlat();
+      }
+    }
+
+    async function loadTreeFallbackFromFlat() {
+      try {
+        const resP = fetch('/api/categories');
+        return resP.then(async (res) => {
+          if (!res.ok) return;
+          const flat = await res.json();
+          const map = new Map();
+          flat.forEach(c => map.set(c.categoryId, { id: c.categoryId, name: c.name, children: [] }));
+          flat.forEach(c => {
+            const node = map.get(c.categoryId);
+            const p = c.parentId;
+            if (p == null || p === 0) return; // 루트
+            const parent = map.get(p);
+            if (parent) parent.children.push(node);
+          });
+          categoryTree = flat
+            .filter(c => c.parentId == null || c.parentId === 0)
+            .map(c => map.get(c.categoryId));
+          fillSelect(document.getElementById('category1'), categoryTree);
+        });
+      } catch (err) {
+        console.error('카테고리 폴백 로딩 실패:', err);
+      }
+    }
+
+    // ====== 평면 목록 로딩(경로 표시용) ======
+    async function loadFlatCategories() {
+      const res = await fetch('/api/categories');
+      if (!res.ok) throw new Error('카테고리 목록 로딩 실패');
+      categoryFlat = await res.json();
+      catMap = new Map(categoryFlat.map(c => [String(c.categoryId), c]));
+    }
+
+    function getPathText(catId) {
+      const path = [];
+      const seen = new Set();
+      let cur = catMap.get(String(catId));
+      while (cur && !seen.has(cur.categoryId)) {
+        seen.add(cur.categoryId);
+        path.push(cur);
+        cur = cur.parentId == null ? null : catMap.get(String(cur.parentId));
+      }
+      return path.reverse().map(n => n.name).join(' > ');
+    }
+
+    function renderSelectedCategoryPill(catId) {
+      const box = document.getElementById('selectedCategoryBox');
+      const selectBox = document.getElementById('categorySelectBox');
+      const hidden = document.getElementById('categoryId');
+      const c1 = document.getElementById('category1');
+      const c2 = document.getElementById('category2');
+      const c3 = document.getElementById('category3');
+
+      const text = getPathText(catId) || `카테고리 ID: ${catId}`;
+      box.innerHTML = `<span class="cat-pill">${text}</span>
+        <button type="button" id="removeCategory" class="cat-remove" aria-label="카테고리 변경">×</button>`;
+      box.classList.remove('hidden');
+      selectBox.classList.add('hidden');
+
+      // 드롭다운은 비활성화 + required 해제(브라우저 유효성 검사 회피)
+      c1.disabled = c2.disabled = c3.disabled = true;
+      c1.required = false;
+
+      hidden.value = String(catId);
+      usingOriginalCategory = true;
+
+      document.getElementById('removeCategory').onclick = () => {
+        usingOriginalCategory = false;
+        box.classList.add('hidden');
+        selectBox.classList.remove('hidden');
+
+        // 드롭다운 활성화 및 초기화
+        c1.disabled = false; c2.disabled = true; c3.disabled = true;
+        c1.required = true;
+        c1.value = ''; c2.value = ''; c3.value = '';
+        fillSelect(c2, []); fillSelect(c3, []);
+        hidden.value = '';
+      };
+    }
+
+    function fillSelect(select, nodes) {
+      const safeNodes = Array.isArray(nodes) ? nodes : [];
+      select.innerHTML = '<option value="">-- 선택 --</option>' +
+        safeNodes.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
+      select.disabled = safeNodes.length === 0;
+    }
+
+    function findById(nodes, id) {
+      if (!id) return null;
+      const stack = Array.isArray(nodes) ? [...nodes] : [];
+      const target = String(id);
+      while (stack.length) {
+        const n = stack.pop();
+        if (String(n.id) === target) return n;
+        if (n.children?.length) stack.push(...n.children);
+      }
+      return null;
+    }
+
+    function bindCategoryHandlers() {
+      const c1 = document.getElementById('category1');
+      const c2 = document.getElementById('category2');
+      const c3 = document.getElementById('category3');
+      const hidden = document.getElementById('categoryId');
+
+      c1.addEventListener('change', () => {
+        const n1 = findById(categoryTree, c1.value);
+        const children = n1?.children ?? [];
+        fillSelect(c2, children);
+        c2.value = '';
+        fillSelect(c3, []);
+        c3.value = '';
+        hidden.value = c1.value || '';
+      });
+
+      c2.addEventListener('change', () => {
+        const n1 = findById(categoryTree, c1.value);
+        const n2 = n1?.children?.find(ch => String(ch.id) === String(c2.value));
+        const children = n2?.children ?? [];
+        fillSelect(c3, children);
+        c3.value = '';
+        hidden.value = c2.value || c1.value || '';
+      });
+
+      c3.addEventListener('change', () => {
+        hidden.value = c3.value || c2.value || c1.value || '';
+      });
+    }
+
+    async function preselectCategoryByProduct(product) {
+      // product.categoryId 또는 categoryPath([c1Id, c2Id, c3Id])를 사용
+      let path = product.categoryPath; // 예: [대분류ID, 중분류ID, 소분류ID]
+      if ((!path || !path.length) && product.categoryId) {
+        try {
+          const resp = await fetch(`/api/categories/path?id=${encodeURIComponent(product.categoryId)}`);
+          if (resp.ok) path = await resp.json();
+        } catch {}
+      }
+
+      const c1 = document.getElementById('category1');
+      const c2 = document.getElementById('category2');
+      const c3 = document.getElementById('category3');
+      const hidden = document.getElementById('categoryId');
+
+      if (!path || !path.length) {
+        // 카테고리 정보가 없으면 hidden만 보정
+        hidden.value = product.categoryId ?? '';
+        return;
+      }
+
+      // 1단계
+      c1.value = String(path[0] ?? '');
+      const n1 = findById(categoryTree, c1.value);
+      fillSelect(c2, n1?.children ?? []);
+
+      // 2단계
+      if (path[1]) {
+        c2.value = String(path[1]);
+        const n2 = n1?.children?.find(ch => String(ch.id) === String(c2.value));
+        fillSelect(c3, n2?.children ?? []);
+      }
+
+      // 3단계
+      if (path[2]) {
+        c3.value = String(path[2]);
+      }
+
+      // hidden 최종 셋
+      hidden.value = String(product.categoryId || c3.value || c2.value || c1.value || '');
+    }
+
+    // =============================
+    // 기존 사진 렌더링(개별 삭제 토글)
+    // =============================
+    function renderExistingPhotos(product) {
+      const wrap = document.getElementById('existingPhotos');
+      wrap.innerHTML = '';
+      const photos = Array.isArray(product.photos)
+        ? product.photos // 권장 구조: [{photoId, url}]
+        : (Array.isArray(product.photoUrls) ? product.photoUrls.map((u, i) => ({ photoId: product.photoIds?.[i] ?? i, url: u })) : []);
+
+      photos.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'thumb';
+
+        const img = document.createElement('img');
+        img.src = p.url?.startsWith('/uploads') ? p.url : `/uploads/${p.url}`;
+        img.alt = '등록된 이미지';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'del';
+        btn.textContent = '삭제';
+        btn.addEventListener('click', () => {
+          if (!deletedPhotoIds.has(String(p.photoId))) {
+            deletedPhotoIds.add(String(p.photoId));
+            div.style.opacity = 0.4;
+            btn.textContent = '취소';
+          } else {
+            deletedPhotoIds.delete(String(p.photoId));
+            div.style.opacity = 1;
+            btn.textContent = '삭제';
+          }
+        });
+
+        div.appendChild(img);
+        div.appendChild(btn);
+        wrap.appendChild(div);
+      });
+    }
+
+    // =============================
+    // 부가속성(Attr) 동적 필드
+    // =============================
+    function addAttributeField(key = '', value = '') {
+      const container = document.getElementById('attributes');
+      const row = document.createElement('div');
+      row.className = 'attr-item';
+      row.innerHTML = `
+        <input type="text" name="attrKey[]" placeholder="속성명 (예: 사이즈)" value="${key}" />
+        <input type="text" name="attrValue[]" placeholder="속성값 (예: XL)" value="${value}" />
+        <button type="button" class="remove-attr">삭제</button>
+      `;
+      row.querySelector('.remove-attr').addEventListener('click', () => row.remove());
+      container.appendChild(row);
+    }
+
+    // =============================
+    // 초기 데이터 로딩 & 프리필
+    // =============================
+    async function init() {
+      try {
+        // 현재 사용자(판매자 본인 확인)
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const me = meRes.ok ? await meRes.json() : null; // {loggedIn, userId}
+
+        // 상품 조회
+        const res = await fetch(`/product/${encodeURIComponent(listingId)}`);
+        if (!res.ok) throw new Error('상품 정보를 불러오는데 실패했습니다.');
+        const product = await res.json();
+
+        // 판매자 본인 외 접근 차단(선택)
+        const rawSellerId = product?.sellerId ?? product?.seller?.userId ?? product?.seller?.id ?? null;
+        const sellerId = rawSellerId != null ? String(rawSellerId) : null;
+        const viewerId = me?.loggedIn && me?.userId != null ? String(me.userId) : null;
+        const isSellerViewing = !!(viewerId && sellerId && viewerId === sellerId);
+        if (!isSellerViewing) {
+          alert('본인만 수정할 수 있습니다.');
+          window.location.replace(`/productDetail.html?id=${listingId}`);
+          return;
+        }
+
+        // 폼 프리필
+        const form = document.getElementById('salesForm');
+        form.elements['title'].value = product.title ?? '';
+        form.elements['price'].value = product.price ?? '';
+        setCheckbox('negotiable', product.negotiable === 'Y' || product.negotiable === true);
+
+        // 상태 라디오
+        if (product.itemCondition) setChecked('itemCondition', product.itemCondition);
+
+        // 설명
+        form.elements['description'].value = product.description ?? '';
+
+        // 거래 방식 라디오
+        if (product.tradeType) setChecked('tradeType', product.tradeType);
+
+        // 지역 (문자 → 숫자 ID는 서버에서 매핑 가능)
+        form.elements['region'].value = product.regionName || product.addressText || '';
+
+        // 안전결제
+        setCheckbox('safePayYn', product.safePayYn === 'Y' || product.safePayYn === true);
+
+        // ===== 카테고리 처리 =====
+        originalCategoryId = product.categoryId ?? null;
+        await loadFlatCategories();
+        await loadCategoryTree();
+        bindCategoryHandlers();
+
+        // 드롭다운은 채워두되, 초기에는 저장값을 Pill로 보여줌
+        fillSelect(document.getElementById('category1'), categoryTree);
+
+        if (originalCategoryId) {
+          renderSelectedCategoryPill(originalCategoryId);
+        } else {
+          document.getElementById('selectedCategoryBox').classList.add('hidden');
+          document.getElementById('categorySelectBox').classList.remove('hidden');
+          const c1 = document.getElementById('category1');
+          c1.disabled = false; c1.required = true;
+        }
+
+        // 기존 사진
+        renderExistingPhotos(product);
+
+        // 부가속성 프리필(권장 구조: product.attributes = [{key, value}])
+        const attrs = Array.isArray(product.attributes) ? product.attributes : [];
+        if (attrs.length === 0) addAttributeField();
+        else attrs.forEach(a => addAttributeField(a.key ?? '', a.value ?? ''));
+
+        // 취소 버튼
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+          history.length > 1 ? history.back() : window.location.replace(`/productDetail.html?id=${listingId}`);
+        });
+
+        // 제출(수정)
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          // FormData를 새로 만들어 백엔드의 write 시그니처와 동일하게 보냄
+          const fd = new FormData();
+
+          // 선택된 카테고리 최종값 보정
+          const c1 = document.getElementById('category1');
+          const c2 = document.getElementById('category2');
+          const c3 = document.getElementById('category3');
+          let finalCat = '';
+          if (usingOriginalCategory && originalCategoryId) {
+            finalCat = String(originalCategoryId);
+          } else {
+            finalCat = c3.value || c2.value || c1.value || '';
+          }
+          if (!finalCat) {
+            alert('카테고리를 선택해주세요.');
+            return;
+          }
+
+          // region 텍스트가 숫자면 regionId로 전달 (아니면 서버에서 매핑)
+          const regionText = form.elements['region'].value?.trim();
+          const regionIdNum = regionText && new RegExp('^\d+$').test(regionText) ? Number(regionText) : null;
+
+          const listingData = {
+            listingId: Number(listingId),
+            title: form.elements['title'].value?.trim(),
+            price: form.elements['price'].value ? Number(form.elements['price'].value) : null,
+            negotiable: form.elements['negotiable'].checked ? 'Y' : 'N',
+            categoryId: finalCat ? Number(finalCat) : null,
+            itemCondition: document.querySelector('input[name="itemCondition"]:checked')?.value || null,
+            description: form.elements['description'].value?.trim(),
+            tradeType: document.querySelector('input[name="tradeType"]:checked')?.value || null,
+            regionId: regionIdNum,
+            safePayYn: form.elements['safePayYn'].checked ? 'Y' : 'N',
+          };
+          fd.append('listingData', JSON.stringify(listingData));
+
+          // 부가 속성(빈 값 제거)
+          const keys = Array.from(form.querySelectorAll('input[name="attrKey[]"]')).map(i => i.value.trim());
+          const vals = Array.from(form.querySelectorAll('input[name="attrValue[]"]')).map(i => i.value.trim());
+          const cleanAttrs = [];
+          for (let i = 0; i < Math.max(keys.length, vals.length); i++) {
+            if (keys[i] || vals[i]) cleanAttrs.push({ attrKey: keys[i] || '', attrValue: vals[i] || '' });
+          }
+          fd.append('attrs', JSON.stringify(cleanAttrs));
+
+          // 삭제 예정 사진
+          if (deletedPhotoIds.size > 0) {
+            fd.append('deletedPhotoIds', JSON.stringify(Array.from(deletedPhotoIds)));
+          }
+
+          // 새 사진 파일들
+          const files = document.getElementById('productPhotos').files;
+          for (const f of files) fd.append('productPhotos', f);
+
+          try {
+            // 권장 엔드포인트: POST /product/{listingId}/edit (write와 동일한 시그니처)
+            const resp = await fetch(`/product/${encodeURIComponent(listingId)}/edit`, {
+              method: 'POST',
+              body: fd,
+              credentials: 'include',
+            });
+            if (!resp.ok) {
+              const msg = await resp.text();
+              throw new Error(msg || '수정 실패');
+            }
+            alert('수정되었습니다.');
+            window.location.replace(`/productDetail.html?id=${listingId}`);
+          } catch (err) {
+            console.error(err);
+            alert('수정 중 오류가 발생했습니다.');
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        alert('페이지 초기화 중 오류가 발생했습니다.');
+        window.location.replace('/');
+      }
+    }
+
+    // 이벤트 바인딩: 속성 항목 추가 버튼
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('addAttrBtn').addEventListener('click', () => addAttributeField());
+      init();
+    });
+</script>
+<script src="/js/header.js"></script>
+</body>
+</html>

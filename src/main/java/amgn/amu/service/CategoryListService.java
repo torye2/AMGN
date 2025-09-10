@@ -4,7 +4,8 @@ import amgn.amu.entity.CategoryList;
 import amgn.amu.repository.CategoryListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.List;
+
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor

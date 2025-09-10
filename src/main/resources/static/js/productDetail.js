@@ -58,11 +58,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 판매자: 해당 상품의 채팅 목록으로
       chatBtn.textContent = '대화중인 채팅';
       chatBtn.addEventListener('click', () => {
-        // 목록 페이지 URL은 프로젝트 경로에 맞춰 사용
         window.location.href = `/productChatList.html?listingId=${listingId}`;
       });
     } else {
-      // 구매자/타 사용자: 채팅방 생성/조회 후 해당 roomId로 이동
+      // 구매자/타 사용자: 채팅방 생성/조회 후 이동
       chatBtn.textContent = '채팅하기';
       chatBtn.addEventListener('click', async () => {
         try {
@@ -78,18 +77,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           const url = `/api/chat/room/open?listingId=${encodeURIComponent(listingId)}&sellerId=${encodeURIComponent(sellerId)}`;
           const res = await fetch(url, { method: 'POST', credentials: 'include' });
-          if (!res.ok) {
-            throw new Error(await res.text() || '채팅방 생성/조회 실패');
-          }
+          if (!res.ok) throw new Error(await res.text() || '채팅방 생성/조회 실패');
+
           const room = await res.json();
           if (!room?.roomId) throw new Error('roomId를 받지 못했습니다.');
-
           window.location.href = `/chatPage.html?roomId=${room.roomId}`;
         } catch (e) {
           console.error(e);
           alert('채팅방 이동 중 오류가 발생했습니다.');
         }
       });
+    }
+  }
+
+  // ---- 버튼 영역(구매 vs 수정/삭제) ----
+  const buttonGroup = document.querySelector('.button-group');
+  const orderButton = document.getElementById('order-button');
+
+  if (buttonGroup) {
+    if (isSellerViewing) {
+      // 판매자가 보면 구매 버튼 제거
+      if (orderButton) orderButton.remove();
+
+      // 수정 버튼
+      const editBtn = document.createElement('button');
+      editBtn.id = 'edit-button';
+      editBtn.className = 'edit-button';
+      editBtn.textContent = '수정하기';
+      editBtn.addEventListener('click', () => {
+        // 프로젝트 경로에 맞추어 수정 페이지로 이동
+        window.location.href = `/edit.html?id=${encodeURIComponent(listingId)}`;
+      });
+
+      // 삭제 버튼
+      const deleteBtn = document.createElement('button');
+      deleteBtn.id = 'delete-button';
+      deleteBtn.className = 'delete-button';
+      deleteBtn.textContent = '삭제하기';
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        try {
+          const res = await fetch(`/product/${encodeURIComponent(listingId)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!res.ok) throw new Error(await res.text() || '삭제 실패');
+          alert('삭제되었습니다.');
+          // 삭제 후 목록/홈 등으로 이동 (경로는 프로젝트에 맞게)
+          window.location.href = '/main.html';
+        } catch (e) {
+          console.error(e);
+          alert('삭제 중 오류가 발생했습니다.');
+        }
+      });
+
+      buttonGroup.append(editBtn, deleteBtn);
+    } else {
+      // 구매자/타 사용자일 때만 주문 버튼 이벤트 부여
+      if (orderButton) {
+        orderButton.addEventListener('click', () => {
+          window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
+        });
+      }
     }
   }
 
@@ -116,7 +165,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       slidesContainer.appendChild(div);
     }
 
-    // Swiper 초기화 (CDN 포함되어 있어야 함)
     if (typeof Swiper !== 'undefined') {
       new Swiper('.swiper', {
         loop: true,
@@ -128,14 +176,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ---- 관련 상품 ----
   loadRelatedProducts(listingId);
-
-  // ---- 주문 버튼 ----
-  const orderButton = document.getElementById('order-button');
-  if (orderButton) {
-    orderButton.addEventListener('click', () => {
-      window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
-    });
-  }
 });
 
 // 관련 상품 로더
