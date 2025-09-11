@@ -25,5 +25,36 @@
         LIMIT 1
     </select>
 
+    <select id="findByProvider" resultType="amgn.amu.entity.OauthIdentity">
+        SELECT *
+        FROM OAUTH_IDENTITES
+        WHERE PROVIDER = #{provider}
+        AND PROVIDER_USER_ID = #{pid}
+        LIMIT 1
+    </select>
 
+    <insert id="insertLink" parameterType="amgn.amu.entity.OauthIdentity"
+            useGeneratedKeys="true" keyProperty="oauthId">
+        INSERT INTO OAUTH_IDENTITIES
+                (USER_ID, PROVIDER, PROVIDER_USER_ID, EMAIL, DISPLAY_NAME, ACCESS_TOKEN,
+                 REFRESH_TOKEN, TOKEN_EXPRIES_AT, CREATED_AT, UPDATED_AT)
+        VALUES
+            (#{userId}, #{provider}, #{providerUserId}, #{email}, #{displayName}, #{accessToken}, #{refreshToken}, #{tokenExpiresAt}, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                                 email=VALUES(email),
+                                 display_name=VALUES(display_name),
+                                 access_token=VALUES(access_token),
+                                 refresh_token=VALUES(refresh_token),
+                                 token_expires_at=VALUES(token_expires_at),
+                                 updated_at=NOW()
+    </insert>
+
+    <update id="updateTokens" parameterType="amgn.amu.entity.OauthIdentity">
+        UPDATE oauth_identities
+        SET access_token = #{accessToken},
+            refresh_token = #{refreshToken},
+            token_expires_at = #{tokenExpiresAt},
+            updated_at = NOW()
+        WHERE provider = #{provider} AND provider_user_id = #{providerUserId}
+    </update>
 </mapper>

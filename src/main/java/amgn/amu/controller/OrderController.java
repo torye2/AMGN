@@ -1,5 +1,6 @@
 package amgn.amu.controller;
 
+import amgn.amu.common.RequireMfa;
 import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.OrderCreateRequest;
 import amgn.amu.dto.OrderDto;
@@ -41,11 +42,13 @@ public class OrderController {
 
 	// 주문 결제
 	@PostMapping("/{orderId}/pay")
+	@RequireMfa(reason = "결제 실행")
 	public OrderDto pay(@PathVariable("orderId") Long orderId, @RequestBody PaymentRequest req,
 	        HttpSession session) {
 	    Long userId = getUserIdFromSession(session);
 	    return orderService.pay(userId, orderId, req);
 	}
+
 	// 직거래 확인
 	@PostMapping("/{orderId}/confirm-meetup")
 	public OrderDto confirmMeetup(@PathVariable("orderId") Long orderId, HttpSession session) {
