@@ -10,5 +10,5 @@ import java.util.List;
 public interface UserMfaBackupCodeMapper {
     int insertBatch(@Param("userId") Long userId, @Param("codes") List<UserMfaBackupCode> codes);
     List<UserMfaBackupCode> listActive(@Param("userId") Long userId);
-    int markUsed(@Param("id") Long id);
+    int markUsed(@Param("backupCodeId") Long id);
 }

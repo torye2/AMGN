@@ -1,0 +1,24 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="amgn.amu.mapper.UserMfaBackupCodeMapper">
+    <insert id="insertBatch">
+        <foreach collection="codes" item="c" separator=";">
+            INSERT INTO USER_MFA_BACKUP_CODES (USER_ID, CODE_HASHM, USED, CREATED_AT)
+            VALUES (#{userId}, #{c.codeHash}, 0, NOW())
+        </foreach>
+    </insert>
+
+    <select id="listActive" resultType="amgn.amu.entity.UserMfaBackupCode">
+        SELECT *
+        FROM USER_MFA_BACKUP_CODES
+        WHERE USER_ID = #{userId}
+        AND USED = 0
+        ORDER BY BACKUP_CODE_ID ASC
+    </select>
+
+    <update id="markUsed">
+        UPDATE USER_MFA_BACKUP_CODES
+        SET USED = 1
+        WHERE BACKUP_CODE_ID = #{backupCodeId}
+    </update>
+</mapper>

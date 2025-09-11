@@ -1,0 +1,31 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="amgn.amu.mapper.UserMfaTotpMapper">
+    <resultMap id="TotpMap" type="amgn.amu.entity.UserMfaTotp">
+        <id property="userId" column="user_id" />
+        <result property="secretEnc" column="secret_enc" />
+        <result property="enabled" column="enabled" />
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <select id="get" resultMap="TotpMap">
+        SELECT * FROM USER_MFA_TOTP WHERE USER_ID = #{userId}
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO USER_MFA_TOTP
+                (USER_ID, SECRET_ENC, ENABLED, CREATED_AT, UPDATED_AT)
+        VALUES (#{userId}, #{secretEnc}, #{enabled}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            SECRET_ENC = VALUES(SECRET_ENC),
+            ENABLED = VALUES(ENABLED),
+            UPDATED_AT = NOW()
+    </insert>
+
+    <update id="setEnabled">
+        UPDATE USER_MFA_TOTP
+        SET ENABLED = #{enabled}, UPDATED_AT = NOW()
+        WHERE USER_ID = #{userId}
+    </update>
+</mapper>

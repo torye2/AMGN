@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class UserMfaBackupCode {
-    private Long id;
+    private Long backupCodeId;
     private Long userId;
     private String codeHash;
     private boolean used;
