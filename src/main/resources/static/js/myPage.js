@@ -987,7 +987,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('[data-tab="shop"]')?.remove();
         $('#tab-shop')?.remove();
     }
-    switchTab('dashboard');
+    const initial = (location.hash === '#favorites') ? 'favorites' : 'dashboard';
+      switchTab(initial);
 });
 document.getElementById('btnCancelEdit')?.addEventListener('click', () => {
     if (!_acctOriginal) return;
