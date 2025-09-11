@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (priceEl)  priceEl.textContent  = product.price != null ? `${Number(product.price).toLocaleString()} 원` : '-';
   if (descEl)   descEl.textContent   = product.description ?? '-';
 
+  // 상점 정보 카드 채우기 (닉네임)
+  const storeNicknameEl = document.getElementById('storeSellerNickname');
+  if (storeNicknameEl) storeNicknameEl.textContent = product.sellerNickname ?? '-';
+
   // ---- 판매자/구매자 분기용 아이디 정리 ----
   const rawSellerId =
     product?.sellerId ??
@@ -50,6 +54,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sellerId = rawSellerId != null ? String(rawSellerId) : null;
   const viewerId = me?.loggedIn && me?.userId != null ? String(me.userId) : null;
   const isSellerViewing = !!(viewerId && sellerId && viewerId === sellerId);
+
+  // 판매자 상품 그리드 로딩
+  if (sellerId) {
+    loadSellerProducts(sellerId);
+  }
 
   // ---- 채팅 버튼 로직 ----
   const chatBtn = document.getElementById('chat-button');
@@ -257,4 +266,70 @@ async function refreshWishUI(wishBtn, listingId, initialCount = 0) {
 function setWishButtonUI(wishBtn, wished, count) {
   wishBtn.dataset.wished = wished ? '1' : '0';
   wishBtn.innerHTML = `${wished ? '💖' : '🤍'} 찜 <span id="wish-count">${count ?? 0}</span>`;
+}
+
+/* ================================
+   판매자 상품 그리드 로더
+================================ */
+function loadSellerProducts(sellerId) {
+  const grid = document.getElementById('storeProductsGrid');
+  const storeCard = document.getElementById('storeInfoCard');
+  if (!grid || !sellerId) return;
+
+  fetch(`/product/seller/${encodeURIComponent(sellerId)}/products`)
+    .then(res => {
+      if (!res.ok) throw new Error('판매자 상품 조회 실패');
+      return res.json();
+    })
+    .then(list => {
+      grid.innerHTML = '';
+      // 기존 더보기 링크 제거
+      if (storeCard) {
+        const oldMore = storeCard.querySelector('.store-more-link');
+        if (oldMore) oldMore.remove();
+      }
+
+      if (!Array.isArray(list) || list.length === 0) {
+        grid.innerHTML = '<p class="store-empty">판매자의 다른 상품이 없습니다.</p>';
+        grid.classList.remove('two-cols');
+        return;
+      }
+
+      const total = list.length;
+      const toRender = list.slice(0, 6); // 최대 6개만 표시
+
+      // 4개 이상이면 2열 바둑판
+      if (total >= 4) grid.classList.add('two-cols');
+      else grid.classList.remove('two-cols');
+
+      toRender.forEach(p => {
+        const raw = Array.isArray(p.photoUrls) && p.photoUrls.length ? p.photoUrls[0] : null;
+        const imgUrl = raw
+          ? (String(raw).startsWith('/uploads') ? String(raw) : `/uploads/${raw}`)
+          : 'https://placehold.co/300x200?text=No+Image';
+
+        const priceText = p.price != null ? `${Number(p.price).toLocaleString()} 원` : '';
+
+        const a = document.createElement('a');
+        a.className = 'store-product-tile';
+        a.href = `/productDetail.html?id=${p.listingId}`;
+        a.innerHTML = `
+          <img src="${imgUrl}" alt="${p.title ?? ''}">
+          <div class="store-price-badge">${priceText}</div>
+        `;
+        grid.appendChild(a);
+      });
+
+      // 6개 초과 시 "상품 더보기" 링크 추가 → shop.html로 이동
+      if (storeCard && total > 6) {
+        const more = document.createElement('a');
+        more.className = 'store-more-link';
+        more.href = `/shop.html?sellerId=${encodeURIComponent(sellerId)}`;
+        more.textContent = `${total}개 상품 더보기 >`;
+        storeCard.appendChild(more);
+      }
+    })
+    .catch(err => {
+      console.error('판매자 상품 불러오기 실패:', err);
+    });
 }

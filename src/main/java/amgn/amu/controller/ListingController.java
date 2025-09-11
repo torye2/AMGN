@@ -115,6 +115,16 @@ public class ListingController {
         }
     }
 
+    // 공개: 특정 판매자의 모든 상품 조회
+    @GetMapping("/seller/{sellerId}/products")
+    public ResponseEntity<List<ListingDto>> getProductsBySeller(@PathVariable("sellerId") Long sellerId) {
+        try {
+            return ResponseEntity.ok(listingService.getListingsBySellerId(sellerId));
+        } catch (Exception e) {
+            log.error("판매자 상품 목록을 불러오는 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping("/{id}/related")
     public ResponseEntity<List<ListingDto>> getRelatedProducts(@PathVariable("id") Long id) {
