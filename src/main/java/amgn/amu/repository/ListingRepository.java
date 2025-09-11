@@ -1,6 +1,7 @@
 package amgn.amu.repository;
 
 import amgn.amu.dto.ListingDto;
+import amgn.amu.dto.ListingSummaryResponse;
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
@@ -28,6 +29,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 
     List<Listing> findByCategoryIdAndListingIdNot(Long categoryId, Long listingId);
 
+
     // ✅ 제목 검색 (ACTIVE + 포함 + 대소문자 무시 + 페이징 + photos 로딩)
     @EntityGraph(attributePaths = {"photos"})
     @Query("""
@@ -37,4 +39,60 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
           AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
         """)
     Page<Listing> searchByTitle(@Param("title") String title, Pageable pageable);
+
+
+
+    /*
+    @Query(
+            value = """
+    SELECT new amgn.amu.dto.ListingSummaryResponse(
+      l.listingId, l.title, l.price, l.currency, l.categoryId, l.regionId,
+      COALESCE(MIN(p.url), NULL),
+      l.createdAt, l.wishCount, l.viewCount
+    )
+    FROM Listing l
+    LEFT JOIN l.photos p
+    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+      AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
+    GROUP BY
+      l.listingId, l.title, l.price, l.currency,
+      l.categoryId, l.regionId, l.createdAt, l.wishCount, l.viewCount
+  """,
+            countQuery = """
+    SELECT COUNT(l)
+    FROM Listing l
+    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+      AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
+  """
+    )
+    Page<ListingSummaryResponse> searchByTitleSummary(@Param("title") String title, Pageable pageable);
+
+     */
+    @Query(
+            value = """
+    SELECT new amgn.amu.dto.ListingSummaryResponse(
+      l.listingId, l.title, l.price, l.currency, l.categoryId, l.regionId,
+      COALESCE(MIN(p.url), NULL),
+      l.createdAt, l.wishCount, l.viewCount
+    )
+    FROM Listing l
+    LEFT JOIN l.photos p
+    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+      AND (:q IS NULL OR LOWER(FUNCTION('REPLACE', l.title, ' ', ''))
+           LIKE LOWER(CONCAT('%', :q, '%')))
+    GROUP BY
+      l.listingId, l.title, l.price, l.currency,
+      l.categoryId, l.regionId, l.createdAt, l.wishCount, l.viewCount
+  """,
+            countQuery = """
+    SELECT COUNT(l)
+    FROM Listing l
+    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+      AND (:q IS NULL OR LOWER(FUNCTION('REPLACE', l.title, ' ', ''))
+           LIKE LOWER(CONCAT('%', :q, '%')))
+  """
+    )
+    Page<ListingSummaryResponse> searchByTitleSummary(@Param("q") String normalizedTitle, Pageable pageable);
+
+
 }
