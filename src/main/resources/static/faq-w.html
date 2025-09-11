@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ 작성페이지</title>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/faq-w.css">
+</head>
+<body>
+    <div id="header"></div>
+
+    <div class="container">
+        <div class="faq-writebox">
+            <h3>FAQ 작성</h3>
+            <form class="faq-form" onsubmit="saveFaq(event)">
+                <label for="question">질문</label>
+                <input type="text" id="question" name="question" placeholder="질문을 입력하세요" required />
+
+                <label for="answer">답변</label>
+                <textarea id="answer" name="answer" placeholder="답변을 입력하세요" required></textarea>
+
+                <div class="btn-box">
+                    <a class="back-btn" href="faq.html">목록</a>
+                    <button type="submit" class="submit-btn hidden">등록</button>
+                </div>
+            </form>
+            <p class="help-text" id="adminHelp" aria-live="polite"></p>
+        </div>
+    </div>
+
+    <script src="js/faq-w.js"></script>
+    <script src="js/header.js"></script>
+    <div>
+        <footer id="footer"></footer>
+    </div>
+    <script src="js/footer.js"></script>
+</body>
+</html>
