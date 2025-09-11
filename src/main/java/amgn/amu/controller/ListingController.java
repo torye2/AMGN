@@ -130,17 +130,6 @@ public class ListingController {
         return ResponseEntity.ok(relatedProducts);
     }
 
-
-    @GetMapping("/search")
-    public ResponseEntity<List<ListingDto>> searchByTitle(@RequestParam String title) {
-        try {
-            List<ListingDto> results = listingService.findByTitle(title);
-            return ResponseEntity.ok(results);
-        } catch (Exception e) {
-            log.error("title 검색 중 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
  // 카테고리별 상품 조회
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<ListingDto>> getProductsByCategory(@PathVariable("categoryId") Integer categoryId) {

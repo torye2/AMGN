@@ -210,5 +210,25 @@
     </div>
 </div>
 
+
+<script>
+    (function(){
+      const $input = document.getElementById('searchInput');
+      const $btn   = document.getElementById('searchBtn');
+
+      function goSearch(){
+        const title = ($input?.value || '').trim();
+        const qs = new URLSearchParams();
+        if (title) qs.set('title', title);
+        // 필요하면 지역/카테고리도 함께 전달 가능
+        // const regionId = localStorage.getItem('selectedRegion'); if (regionId) qs.set('regionId', regionId);
+        location.href = '/searchPage.html?' + qs.toString();
+      }
+
+      $btn?.addEventListener('click', goSearch);
+      $input?.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') goSearch(); });
+    })();
+</script>
+
 </body>
 </html>

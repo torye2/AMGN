@@ -5,6 +5,7 @@ import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
 //import org.apache.ibatis.annotations.Param;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
@@ -27,5 +28,13 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 
     List<Listing> findByCategoryIdAndListingIdNot(Long categoryId, Long listingId);
 
-    List<Listing> findByTitle(String title);
+    // ✅ 제목 검색 (ACTIVE + 포함 + 대소문자 무시 + 페이징 + photos 로딩)
+    @EntityGraph(attributePaths = {"photos"})
+    @Query("""
+        SELECT l
+        FROM Listing l
+        WHERE l.status = 'ACTIVE'
+          AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
+        """)
+    Page<Listing> searchByTitle(@Param("title") String title, Pageable pageable);
 }

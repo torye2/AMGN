@@ -82,37 +82,6 @@ public class ListingService {
 
 
 
-
-
-	@Transactional(readOnly = true)
-	public List<ListingDto> findByTitle(String title) {
-		List<Listing> entities = listingRepository.findByTitle(title);
-		// 예: toDto(entity) 또는 ListingDto.from(entity)
-		return entities.stream()
-				.map(this::toDto)
-				.toList();
-	}
-
-	private ListingDto toDto(Listing e) {
-		ListingDto dto = new ListingDto();
-		dto.setListingId(e.getListingId());
-		dto.setSellerId(e.getSellerId());
-		dto.setTitle(e.getTitle());
-		dto.setPrice(e.getPrice());
-		dto.setNegotiable(e.getNegotiable());
-		dto.setCategoryId(e.getCategoryId());
-		dto.setItemCondition(e.getItemCondition());
-		dto.setDescription(e.getDescription());
-		dto.setTradeType(e.getTradeType());
-		dto.setRegionId(e.getRegionId());
-		dto.setSafePayYn(e.getSafePayYn());
-		// dto.setPhotoUrls(...);
-		// dto.setSellerNickname(...);
-		return dto;
-	}
-
-
-
 	public List<ListingDto> getListingsByCategoryExceptCurrent(Long categoryId, Long listingId) {
 		List<Listing> listings = listingRepository.findByCategoryIdAndListingIdNot(categoryId, listingId);
 		return listings.stream()
