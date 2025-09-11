@@ -66,5 +66,4 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     )
     Page<ListingSummaryResponse> searchByTitleSummary(@Param("q") String normalizedTitle, Pageable pageable);
 
-
 }
