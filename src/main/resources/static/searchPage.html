@@ -72,18 +72,14 @@
         }
       }
 
-      function formatPrice(value, currency = 'KRW') {
-        if (value == null) return '';
-        const num = typeof value === 'number' ? value : Number(value);
-        if (Number.isFinite(num)) {
-          try {
-            return new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(num);
-          } catch {
-            return num.toLocaleString() + (currency ? ' ' + currency : ' 원');
-          }
-        }
-        return String(value);
+      function formatPrice(value) {
+        if (value == null || value === '') return '';
+        const num = Number(value);
+        if (!Number.isFinite(num)) return String(value);
+        // 쉼표 포함 + '원' (소수점 제거)
+        return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(num) + ' 원';
       }
+
 
       function getThumb(item) {
         const placeholder = 'https://placehold.co/300x200?text=No+Image';

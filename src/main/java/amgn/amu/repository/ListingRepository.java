@@ -40,9 +40,6 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
         """)
     Page<Listing> searchByTitle(@Param("title") String title, Pageable pageable);
 
-
-
-    /*
     @Query(
             value = """
     SELECT new amgn.amu.dto.ListingSummaryResponse(
@@ -52,32 +49,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     )
     FROM Listing l
     LEFT JOIN l.photos p
-    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
-      AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
-    GROUP BY
-      l.listingId, l.title, l.price, l.currency,
-      l.categoryId, l.regionId, l.createdAt, l.wishCount, l.viewCount
-  """,
-            countQuery = """
-    SELECT COUNT(l)
-    FROM Listing l
-    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
-      AND (:title IS NULL OR LOWER(l.title) LIKE LOWER(CONCAT('%', :title, '%')))
-  """
-    )
-    Page<ListingSummaryResponse> searchByTitleSummary(@Param("title") String title, Pageable pageable);
-
-     */
-    @Query(
-            value = """
-    SELECT new amgn.amu.dto.ListingSummaryResponse(
-      l.listingId, l.title, l.price, l.currency, l.categoryId, l.regionId,
-      COALESCE(MIN(p.url), NULL),
-      l.createdAt, l.wishCount, l.viewCount
-    )
-    FROM Listing l
-    LEFT JOIN l.photos p
-    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+    WHERE UPPER(TRIM(l.status)) = 'ACTIVE'
       AND (:q IS NULL OR LOWER(FUNCTION('REPLACE', l.title, ' ', ''))
            LIKE LOWER(CONCAT('%', :q, '%')))
     GROUP BY
@@ -87,7 +59,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
             countQuery = """
     SELECT COUNT(l)
     FROM Listing l
-    WHERE COALESCE(UPPER(l.status),'ACTIVE')='ACTIVE'
+    WHERE UPPER(TRIM(l.status)) = 'ACTIVE'
       AND (:q IS NULL OR LOWER(FUNCTION('REPLACE', l.title, ' ', ''))
            LIKE LOWER(CONCAT('%', :q, '%')))
   """
