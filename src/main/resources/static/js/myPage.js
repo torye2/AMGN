@@ -427,9 +427,19 @@ async function loadDashboard() {
         $('#statRating').textContent = '-'; // 받은후기 평균 API없음
 
         if (me?.nickname) {
-            $('#shopName').textContent = `상점명: ${me.nickname}`;
-            $('#shopMeta').textContent = `팔로워 0 · 찜 0 · 가입일 ${me.createdAt}`;
+           $('#shopName').textContent = `상점명: ${me.nickname}`;
+           const meta = document.getElementById('shopMeta');
+           if (meta) {
+             const joinEl = meta.querySelector('#metaJoin');
+             if (joinEl) joinEl.textContent = me.createdAt ?? '-';
+           }
         }
+        try {
+              const r = await fetch('/product/wish/my/count', { credentials:'include' });
+              const { count } = r.ok ? await r.json() : { count: 0 };
+              document.getElementById('metaWish').textContent = String(count ?? 0);
+            } catch { document.getElementById('metaWish').textContent = '0'; }
+
     } catch (err) {
         console.warn(err);
     }
