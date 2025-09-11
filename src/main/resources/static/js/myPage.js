@@ -435,10 +435,14 @@ async function loadDashboard() {
            }
         }
         try {
-              const r = await fetch('/product/wish/my/count', { credentials:'include' });
-              const { count } = r.ok ? await r.json() : { count: 0 };
-              document.getElementById('metaWish').textContent = String(count ?? 0);
-            } catch { document.getElementById('metaWish').textContent = '0'; }
+          const r = await fetch('/product/wish/my/count', { credentials:'include' });
+          const { count } = r.ok ? await r.json() : { count: 0 };
+          const w = document.getElementById('metaWish');
+          if (w) w.textContent = String(count ?? 0);
+        } catch {
+          const w = document.getElementById('metaWish');
+          if (w) w.textContent = '0';
+        }
 
     } catch (err) {
         console.warn(err);
