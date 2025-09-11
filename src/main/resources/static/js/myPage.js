@@ -1122,3 +1122,124 @@ async function loadOrders() {
 
 
 loadOrders();
+
+
+/*찜한 상품*/
+document.addEventListener('DOMContentLoaded', () => {
+  const favTabLink = document.querySelector('.mp-link[data-tab="favorites"]');
+  if (favTabLink) {
+    favTabLink.addEventListener('click', () => loadFavorites()); // 탭 클릭 시 로드
+  }
+
+  // URL에 #favorites로 진입한 경우 자동 로드
+  if (location.hash === '#favorites') loadFavorites();
+});
+
+async function loadFavorites() {
+  const section = document.getElementById('tab-favorites');
+  if (!section || section.dataset.loaded === '1') return; // 중복 로드 방지
+  section.dataset.loaded = '1';
+
+  const grid = document.getElementById('favGrid');
+  const empty = document.getElementById('favEmpty');
+  grid.innerHTML = '<div class="loading">불러오는 중…</div>';
+  empty.style.display = 'none';
+
+  try {
+    // 1) 내 찜 ID 목록
+    const res = await fetch('/product/wish/my', { credentials: 'include' });
+    if (res.status === 401) {
+      grid.innerHTML = '<p>로그인 후 확인할 수 있습니다.</p>';
+      return;
+    }
+    if (!res.ok) throw new Error('찜 목록 조회 실패');
+    const data = await res.json();
+    const ids = Array.isArray(data.listingIds) ? data.listingIds : [];
+
+    if (ids.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    // 2) 각 상품 상세 병렬 조회
+    const products = (await Promise.all(
+      ids.map(id =>
+        fetch(`/product/${encodeURIComponent(id)}`)
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null)
+      )
+    )).filter(Boolean);
+
+    // 3) 렌더
+    grid.innerHTML = '';
+    products.forEach(p => grid.appendChild(renderFavCard(p)));
+
+    // 전부 실패하면 빈 상태 표시
+    if (!grid.children.length) empty.style.display = 'block';
+  } catch (e) {
+    console.error(e);
+    grid.innerHTML = '<p>불러오지 못했습니다. 새로고침 해주세요.</p>';
+  }
+}
+
+function renderFavCard(p) {
+  const tpl = document.getElementById('tplProduct');
+  const node = tpl.content.firstElementChild.cloneNode(true);
+
+  const a = node.querySelector('a');
+  const img = node.querySelector('img');
+  const title = node.querySelector('.title');
+  const price = node.querySelector('.price');
+  const meta = node.querySelector('.meta');
+
+  a.href = `/productDetail.html?id=${p.listingId}`;
+
+  const imgUrl =
+    (p.photoUrls && p.photoUrls.length > 0)
+      ? (p.photoUrls[0].startsWith('/uploads') ? p.photoUrls[0] : `/uploads/${p.photoUrls[0]}`)
+      : 'https://placehold.co/300x200?text=No+Image';
+  img.src = imgUrl;
+  img.alt = p.title || '상품';
+
+  title.textContent = p.title || '';
+  price.textContent = (p.price != null) ? `${Number(p.price).toLocaleString()} 원` : '';
+  meta.textContent = ''; // 필요 없으면 비워둠 (원하면 `찜 ${p.wishCount ?? 0}` 등 표시)
+
+  // (옵션) 찜 해제 버튼
+  const unwishBtn = document.createElement('button');
+  unwishBtn.type = 'button';
+  unwishBtn.className = 'unwish-btn';
+  unwishBtn.textContent = '♡ 해제';
+  unwishBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const r = await fetch(`/product/${encodeURIComponent(p.listingId)}/wish`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!r.ok) throw new Error('해제 실패');
+      node.remove();
+      if (!document.querySelector('#favGrid .item')) {
+        document.getElementById('favEmpty').style.display = 'block';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('찜 해제에 실패했습니다.');
+    }
+  });
+
+  node.style.position = 'relative';
+  unwishBtn.style.position = 'absolute';
+  unwishBtn.style.top = '8px';
+  unwishBtn.style.right = '8px';
+  unwishBtn.style.background = 'rgba(0,0,0,.55)';
+  unwishBtn.style.color = '#fff';
+  unwishBtn.style.border = '0';
+  unwishBtn.style.borderRadius = '12px';
+  unwishBtn.style.fontSize = '12px';
+  unwishBtn.style.padding = '2px 8px';
+  node.appendChild(unwishBtn);
+
+  return node;
+}

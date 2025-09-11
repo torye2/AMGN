@@ -459,3 +459,56 @@ body{
     background: white;
     top: -1px; 
 }
+
+
+/*찜 css*/
+/* ===== 고정 최근 찜 사이드바: 컨테이너 왼쪽 여백에 작게 표시 ===== */
+:root{
+  --wish-w: 160px;     /* 사이드바 너비 (필요 시 140~180px로 더 줄여도 OK) */
+  --wish-gap: 12px;    /* 컨테이너와의 간격 */
+  --wish-extra: 200px;   /* ← 더 왼쪽으로 밀고 싶을 때 키우기 */
+}
+
+/* 컨테이너 폭이 990px이므로 절반은 495px */
+#wishFixedSidebar.wish-fixed{
+  position: fixed;
+  top: 180px; /* 헤더 높이에 맞게 조정 (너는 body padding-top:170px 쓰니 170~190 사이 권장) */
+  left: calc(50% - 495px - var(--wish-w) - var(--wish-gap) - var(--wish-extra));
+  width: var(--wish-w);
+  max-height: calc(100vh - 200px);
+  overflow: auto;
+
+  z-index: 1030;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+/* 리스트: 아주 컴팩트하게 세로 나열 */
+.wish-list .wish-item{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f1f5f9;
+  text-decoration: none;
+}
+.wish-list .wish-item:last-child{ border-bottom: 0; }
+
+.wish-list .wish-item img{
+  width: 44px; height: 44px; object-fit: cover;
+  border-radius: 6px; border: 1px solid #e5e7eb;
+}
+
+.wish-list .wish-item .title{
+  font-size: 12px; line-height: 1.3; color: #111;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.wish-list .wish-item:hover .title{ text-decoration: underline; }
+
+/* 화면이 좁으면 사이드바 숨김 (컨테이너+사이드바가 겹치지 않도록) */
+@media (max-width: 1280px){
+  #wishFixedSidebar{ display:none; }
+}

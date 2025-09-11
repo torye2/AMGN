@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ---- 버튼 영역(구매 vs 수정/삭제) ----
+  // ---- 버튼 영역(구매 vs 수정/삭제/찜) ----
   const buttonGroup = document.querySelector('.button-group');
   const orderButton = document.getElementById('order-button');
 
@@ -105,7 +105,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       editBtn.className = 'edit-button';
       editBtn.textContent = '수정하기';
       editBtn.addEventListener('click', () => {
-        // 프로젝트 경로에 맞추어 수정 페이지로 이동
         window.location.href = `/edit.html?id=${encodeURIComponent(listingId)}`;
       });
 
@@ -123,7 +122,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           });
           if (!res.ok) throw new Error(await res.text() || '삭제 실패');
           alert('삭제되었습니다.');
-          // 삭제 후 목록/홈 등으로 이동 (경로는 프로젝트에 맞게)
           window.location.href = '/main.html';
         } catch (e) {
           console.error(e);
@@ -133,6 +131,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       buttonGroup.append(editBtn, deleteBtn);
     } else {
+      // ★ 찜 버튼
+      const wishBtn = document.createElement('button');
+      wishBtn.id = 'wish-button';
+      wishBtn.className = 'wish-button';
+      wishBtn.type = 'button';
+      wishBtn.innerHTML = '🤍 찜 <span id="wish-count">0</span>';
+      buttonGroup.prepend(wishBtn); // 맨 앞에 배치 (뒤에 두려면 append)
+
+      // 초기 상태 불러오기
+      await refreshWishUI(wishBtn, listingId, typeof product?.wishCount === 'number' ? product.wishCount : 0);
+
+      // 클릭 토글
+      wishBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          if (!me?.loggedIn) { alert('로그인이 필요합니다.'); location.href = '/login.html'; return; }
+          const res = await fetch(`/product/${encodeURIComponent(listingId)}/wish`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(txt || '찜 처리 실패');
+          }
+          const data = await res.json();
+          setWishButtonUI(wishBtn, data.wished, data.count);
+        } catch (err) {
+          console.error(err);
+          alert('찜 처리 중 오류가 발생했습니다.');
+        }
+      });
+
       // 구매자/타 사용자일 때만 주문 버튼 이벤트 부여
       if (orderButton) {
         orderButton.addEventListener('click', () => {
@@ -206,4 +236,25 @@ function loadRelatedProducts(productId) {
       });
     })
     .catch(err => console.error('관련 상품 불러오기 실패:', err));
+}
+
+/* ================================
+   찜(위시) 보조 함수
+================================ */
+async function refreshWishUI(wishBtn, listingId, initialCount = 0) {
+  try {
+    const res = await fetch(`/product/${encodeURIComponent(listingId)}/wish`, { credentials: 'include' });
+    if (!res.ok) throw new Error('찜 상태 조회 실패');
+    const data = await res.json();
+    setWishButtonUI(wishBtn, data.wished, data.count);
+  } catch (e) {
+    console.error('찜 상태 조회 실패:', e);
+    // 조회 실패 시 초기값으로 세팅
+    setWishButtonUI(wishBtn, false, initialCount);
+  }
+}
+
+function setWishButtonUI(wishBtn, wished, count) {
+  wishBtn.dataset.wished = wished ? '1' : '0';
+  wishBtn.innerHTML = `${wished ? '💖' : '🤍'} 찜 <span id="wish-count">${count ?? 0}</span>`;
 }

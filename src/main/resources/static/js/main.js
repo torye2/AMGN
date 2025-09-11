@@ -25,3 +25,79 @@ function loadNotices() {
 }
 
 window.onload = loadNotices;
+
+
+/*찜 js*/
+document.addEventListener('DOMContentLoaded', () => {
+  const productsAllDiv = document.getElementById('productsAll');
+
+  // ... 기존 /product/all 로딩 코드 그대로 ...
+
+  // 최근 찜 사이드바 로드
+  loadRecentWishes(6); // 6개 정도만 표시
+});
+
+    async function loadRecentWishes(limit = 6) {
+  const box   = document.getElementById('wishSidebar');
+  const empty = document.getElementById('wishSidebarEmpty');
+  const guest = document.getElementById('wishSidebarGuest');
+  if (!box) return;
+
+  box.innerHTML = '<div class="text-muted small">불러오는 중...</div>';
+  if (empty) empty.style.display = 'none';
+  if (guest) guest.style.display = 'none';
+
+  try {
+    // 내 찜 목록 ID들 가져오기 (앞서 만든 ListingWishController의 /product/wish/my)
+    const res = await fetch('/product/wish/my', { credentials: 'include' });
+    if (res.status === 401) {
+      // 비로그인: 안내 문구
+      box.innerHTML = '';
+      if (guest) guest.style.display = 'block';
+      return;
+    }
+    if (!res.ok) throw new Error('찜 목록을 불러오지 못했습니다.');
+    const data = await res.json();
+    const ids = Array.isArray(data.listingIds) ? data.listingIds.slice(0, limit) : [];
+
+    if (ids.length === 0) {
+      box.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+
+    // 각 상품 상세 병렬 로드
+    const itemPromises = ids.map(id =>
+      fetch(`/product/${encodeURIComponent(id)}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    );
+    const items = (await Promise.all(itemPromises)).filter(Boolean);
+
+    // 렌더
+    box.innerHTML = '';
+    items.forEach(p => {
+      const imgUrl =
+        (p.photoUrls && p.photoUrls.length > 0)
+          ? (p.photoUrls[0].startsWith('/uploads') ? p.photoUrls[0] : `/uploads/${p.photoUrls[0]}`)
+          : 'https://placehold.co/64x64?text=No+Image';
+
+      const a = document.createElement('a');
+      a.href = `/productDetail.html?id=${p.listingId}`;
+      a.className = 'wish-item';
+      a.innerHTML = `
+        <img src="${imgUrl}" alt="${(p.title ?? '').replace(/"/g, '&quot;')}" />
+        <div class="title">${escapeHtml(p.title ?? '')}</div>
+      `;
+      box.appendChild(a);
+    });
+  } catch (e) {
+    console.error('최근 찜 불러오기 실패:', e);
+    box.innerHTML = '<div class="text-muted small">최근 찜을 불러오지 못했습니다.</div>';
+  }
+}
+
+// 간단한 XSS 방지용
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
