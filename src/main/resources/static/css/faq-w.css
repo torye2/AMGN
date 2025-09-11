@@ -1,0 +1,93 @@
+.container {
+    max-width: 960px;
+    margin: 24px auto;
+    padding: 0 16px;
+}
+
+.faq-writebox {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    padding: 16px;
+}
+
+.faq-writebox > h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 4px 0 12px;
+}
+
+.faq-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.faq-form label {
+    font-weight: 600;
+    color: #111827;
+}
+
+.faq-form input[type="text"],
+.faq-form textarea {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.faq-form textarea {
+    min-height: 220px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.btn-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    gap: 8px;
+}
+
+.back-btn,
+.submit-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.back-btn {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.back-btn:hover {
+    background: #e5e7eb;
+}
+
+.submit-btn {
+    background: #2563eb;
+    color: #fff;
+}
+
+.submit-btn:hover {
+    background: #1d4ed8;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.help-text {
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
