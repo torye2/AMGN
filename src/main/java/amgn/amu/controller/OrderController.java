@@ -42,7 +42,6 @@ public class OrderController {
 
 	// 주문 결제
 	@PostMapping("/{orderId}/pay")
-	@RequireMfa(reason = "결제 실행")
 	public OrderDto pay(@PathVariable("orderId") Long orderId, @RequestBody PaymentRequest req,
 	        HttpSession session) {
 	    Long userId = getUserIdFromSession(session);

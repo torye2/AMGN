@@ -10,7 +10,6 @@ import amgn.amu.dto.oauth_totp.OauthProfileDto;
 import amgn.amu.entity.OauthIdentity;
 import amgn.amu.mapper.OauthIdentityMapper;
 import amgn.amu.mapper.UserMapper;
-import amgn.amu.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
