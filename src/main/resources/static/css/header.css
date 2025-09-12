@@ -1,0 +1,147 @@
+
+/* Dropdown menu normalization */
+#header .header-icon .menu {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    padding: 6px 10px;
+}
+
+#header .header-icon .menu .submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 160px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    overflow: visible;
+    z-index: 1000;
+}
+
+#header .header-icon .menu:hover .submenu {
+    display: block;
+}
+
+/* Uniform item look */
+#header .header-icon .menu .submenu > div {
+    padding: 10px 14px;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+    position: relative;
+}
+
+#header .header-icon .menu .submenu > div:hover {
+    background: #f5f7fa;
+}
+
+/* Make links look like other submenu items */
+#header .header-icon .menu .submenu a {
+    display: block;          /* make full row clickable */
+    color: inherit;          /* inherit color from parent */
+    text-decoration: none;   /* remove underline */
+    width: 100%;
+    height: 100%;
+}
+
+#header .header-icon .menu .submenu a:hover {
+    text-decoration: none;   /* keep underline removed on hover */
+}
+
+/* Auth links (로그인/회원가입) */
+#header #auth-links a {
+    color: inherit;          /* remove default blue and use header color */
+    text-decoration: none;   /* remove underline */
+    margin-left: 10px;       /* spacing between links */
+}
+#header #auth-links a:hover {
+    text-decoration: none;   /* keep underline removed on hover */
+    color: inherit;
+}
+
+/* Search bar alignment */
+#header .search {
+    display: flex;
+    align-items: stretch;
+    height: 40px; /* 원하는 높이 */
+}
+
+#header .search input[type="text"] {
+    flex: none;               /* 가변 너비 해제 */
+    width: 240px;             /* 더 짧은 고정 너비 */
+    height: 100%;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+#header .search input[type="text"]:focus {
+    border-color: #000;                     /* 블랙 톤으로 */
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.08); /* 은은한 포커스 */
+}
+
+#header .search button {
+    height: 100%;
+    padding: 0 14px;
+    border: 1px solid #e5e7eb;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    background-color: #000;  /* 검은색 버튼 */
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#header .search button:hover {
+    background-color: #111;  /* 살짝 밝은 블랙 */
+}
+
+#header .search button:active {
+    background-color: #000;  /* 눌림 상태 유지 */
+}
+
+/* 지역 선택 버튼 */
+#header .search .region-btn {
+    height: 100%;
+    margin-right: 6px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 20px;
+    background: #111;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+#header .search .region-btn:hover {
+    background: #000;
+}
+/* 지역 버튼 오른쪽에 오는 입력창 보더/라운드 보정 */
+#header .search .region-btn + input[type="text"] {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-left: 1px solid #e5e7eb;
+}
+
+/* 고정 헤더: 스크롤 시에도 항상 상단에 표시 */
+#header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100;           /* 드롭다운 메뉴 위에 표시되도록 충분히 크게 */
+    background: #fff;         /* 내용과 겹칠 때 투명 배경 방지 */
+    width: 100%;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06); /* 선택: 상단 분리 효과 */
+}

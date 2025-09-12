@@ -1258,3 +1258,249 @@ function renderFavCard(p) {
 
   return node;
 }
+(function(){
+    const box = document.querySelector('#tab-support .empty');
+    const btnRow = document.querySelector('#tab-support .flex-head .btn-row');
+    if (!box) return;
+
+    function renderList(items, isAdmin) {
+        if (!items || items.length === 0) {
+            box.textContent = '접수한 신고/문의가 없습니다.';
+            return;
+        }
+        const ul = document.createElement('ul');
+        ul.style.listStyle = 'disc';
+        ul.style.paddingLeft = '1.25rem';
+        items.forEach(it => {
+            const li = document.createElement('li');
+            li.style.margin = '12px 0';
+
+            const status = typeof it.status === 'string' ? it.status.trim().toUpperCase() : '';
+            const isAnswered = status === 'ANSWERED';
+
+            // 제목 + 상태 배지 래퍼
+            const head = document.createElement('div');
+            head.style.display = 'flex';
+            head.style.alignItems = 'center';
+            head.style.gap = '8px';
+
+            const title = document.createElement('a');
+            title.textContent = it.title || '(제목 없음)';
+            title.style.display = 'block';
+            title.href = '#';
+            title.style.cursor = 'pointer';
+
+            head.appendChild(title);
+
+            if (isAnswered) {
+                const badge = document.createElement('span');
+                badge.textContent = '답변 완료';
+                badge.style.display = 'inline-block';
+                badge.style.padding = '2px 6px';
+                badge.style.borderRadius = '10px';
+                badge.style.backgroundColor = '#e6f6ea';
+                badge.style.color = '#15803d';
+                badge.style.fontSize = '0.8em';
+                badge.style.border = '1px solid #86efac';
+                head.appendChild(badge);
+            }
+
+            li.appendChild(head);
+
+            const p = document.createElement('p');
+            p.textContent = it.content || '';
+            p.style.margin = '4px 0 0';
+            p.style.color = '#555';
+            p.style.fontSize = '0.95em';
+            p.style.textAlign = 'left';
+            p.style.display = 'none';
+            li.appendChild(p);
+
+            const replyBox = document.createElement('div');
+            replyBox.style.display = 'none';
+            replyBox.style.marginTop = '8px';
+            replyBox.style.textAlign = 'left';
+            li.appendChild(replyBox);
+
+            if (isAdmin) {
+                // 관리자: 답변 입력 폼 또는 상태 표시
+                if (isAnswered) {
+                    const done = document.createElement('div');
+                    done.textContent = '답변 완료된 문의입니다.';
+                    done.style.color = '#15803d';
+                    done.style.fontSize = '0.9em';
+                    replyBox.appendChild(done);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.rows = 3;
+                    ta.placeholder = '답변을 입력하세요';
+                    ta.style.width = '100%';
+                    ta.maxLength = 2000;
+
+                    const btnWrap = document.createElement('div');
+                    btnWrap.className = 'btn-row';
+                    btnWrap.style.marginTop = '6px';
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-primary';
+                    btn.textContent = '답변하기';
+
+                    btn.addEventListener('click', async () => {
+                        const content = (ta.value || '').trim();
+                        if (!content) {
+                            alert('답변 내용을 입력하세요.');
+                            ta.focus();
+                            return;
+                        }
+                        try {
+                            btn.disabled = true;
+                            const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ content })
+                            });
+                            if (!res.ok) {
+                                const msg = await res.text().catch(() => '');
+                                throw new Error(msg || '저장에 실패했습니다.');
+                            }
+                            alert('답변이 등록되었습니다.');
+                            ta.value = '';
+                            // UI 반영: 상태를 ANSWERED로 표시하고 배지 추가, 입력 폼을 상태 안내로 교체
+                            it.status = 'ANSWERED';
+                            const badge = document.createElement('span');
+                            badge.textContent = '답변 완료';
+                            badge.style.display = 'inline-block';
+                            badge.style.padding = '2px 6px';
+                            badge.style.borderRadius = '10px';
+                            badge.style.backgroundColor = '#e6f6ea';
+                            badge.style.color = '#15803d';
+                            badge.style.fontSize = '0.8em';
+                            badge.style.border = '1px solid #86efac';
+                            if (title.parentElement) {
+                                title.parentElement.appendChild(badge);
+                            }
+                            replyBox.innerHTML = '';
+                            const done = document.createElement('div');
+                            done.textContent = '답변 완료된 문의입니다.';
+                            done.style.color = '#15803d';
+                            done.style.fontSize = '0.9em';
+                            replyBox.appendChild(done);
+                        } catch (err) {
+                            console.error(err);
+                            alert('답변 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
+
+                    btnWrap.appendChild(btn);
+                    replyBox.appendChild(ta);
+                    replyBox.appendChild(btnWrap);
+                }
+
+                const toggle = (e) => {
+                    e.preventDefault();
+                    const willShow = replyBox.style.display === 'none';
+                    replyBox.style.display = willShow ? 'block' : 'none';
+                    p.style.display = willShow ? 'block' : 'none';
+                };
+                title.addEventListener('click', toggle);
+                p.addEventListener('click', toggle);
+            } else {
+                // 일반 사용자: 답변 목록 로드/토글
+                let loaded = false;
+                const listWrap = document.createElement('div');
+                replyBox.appendChild(listWrap);
+
+                async function loadReplies() {
+                    listWrap.textContent = '답변을 불러오는 중...';
+                    try {
+                        const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, { credentials: 'same-origin' });
+                        if (res.status === 401) {
+                            listWrap.textContent = '로그인이 필요합니다.';
+                            return;
+                        }
+                        if (res.status === 403) {
+                            listWrap.textContent = '접근 권한이 없습니다.';
+                            return;
+                        }
+                        if (res.status === 404) {
+                            listWrap.textContent = '문의가 존재하지 않습니다.';
+                            return;
+                        }
+                        if (!res.ok) throw new Error('failed');
+                        const replies = await res.json();
+                        if (!replies || replies.length === 0) {
+                            listWrap.textContent = '등록된 답변이 없습니다.';
+                            return;
+                        }
+                        const ul2 = document.createElement('ul');
+                        ul2.style.listStyle = 'circle';
+                        ul2.style.paddingLeft = '1.25rem';
+                        replies.forEach(r => {
+                            const li2 = document.createElement('li');
+                            li2.textContent = r.content || '';
+                            ul2.appendChild(li2);
+                        });
+                        listWrap.innerHTML = '';
+                        listWrap.appendChild(ul2);
+                    } catch (e) {
+                        console.error(e);
+                        listWrap.textContent = '답변을 불러오지 못했습니다.';
+                    }
+                }
+
+                const toggle = (e) => {
+                    e.preventDefault();
+                    const willShow = replyBox.style.display === 'none';
+                    replyBox.style.display = willShow ? 'block' : 'none';
+                    p.style.display = willShow ? 'block' : 'none';
+                    if (willShow && !loaded) {
+                        loaded = true;
+                        loadReplies();
+                    }
+                };
+                title.addEventListener('click', toggle);
+                p.addEventListener('click', toggle);
+            }
+
+            ul.appendChild(li);
+        });
+        box.innerHTML = '';
+        box.appendChild(ul);
+    }
+
+    // 사용자 상태 확인 후 관리자면 버튼 숨기고 전체 문의, 아니면 내 문의만
+    fetch('/api/user/status', { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(info => {
+            const isAdmin = info && info.username === '관리자';
+            if (isAdmin && btnRow) {
+                btnRow.style.display = 'none';
+            }
+            const url = isAdmin ? '/api/inquiries' : '/api/inquiries/my';
+            return Promise.all([Promise.resolve(isAdmin), fetch(url, { credentials: 'same-origin' })]);
+        })
+        .then(([isAdmin, res]) => {
+            if (res.status === 401) {
+                box.textContent = '로그인 후 신고/문의 내역을 확인할 수 있습니다.';
+                return null;
+            }
+            if (res.status === 403) {
+                box.textContent = '접근 권한이 없습니다.';
+                return null;
+            }
+            if (!res.ok) throw new Error('failed');
+            return Promise.all([Promise.resolve(isAdmin), res.json()]);
+        })
+        .then(pair => {
+            if (!pair) return;
+            const [isAdmin, data] = pair;
+            if (data) renderList(data, isAdmin);
+        })
+        .catch(() => {
+            box.textContent = '내역을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+        });
+})();
