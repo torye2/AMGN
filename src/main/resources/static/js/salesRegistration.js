@@ -265,3 +265,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("salesForm");
+    const fileInput = form.querySelector("input[name='productPhotos']");
+    const messageBox = document.getElementById("message");
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 개별 파일 10MB
+    const MAX_TOTAL_SIZE = 300 * 1024 * 1024; // 전체 파일 합계 30MB
+
+    const checkFiles = (files) => {
+        const oversizedFiles = [];
+        let totalSize = 0;
+
+        for (const file of files) {
+            totalSize += file.size;
+            if (file.size > MAX_FILE_SIZE) {
+                oversizedFiles.push(`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            }
+        }
+
+        if (oversizedFiles.length > 0) {
+            return `❌ 파일 용량이 너무 큽니다 (각 파일 최대 10MB, 전체 파일 최대 300MB):\n- ${oversizedFiles.join("\n- ")}`;
+        }
+
+        if (totalSize > MAX_TOTAL_SIZE) {
+            return `❌ 전체 파일 용량이 너무 큽니다 (각 파일 최대 10MB, 전체 파일 최대 300MB). 현재 총 ${(totalSize / 1024 / 1024).toFixed(2)}MB`;
+        }
+
+        return ""; // 문제 없음
+    };
+
+    // 파일 선택 시 즉시 체크
+    fileInput.addEventListener("change", (e) => {
+        messageBox.textContent = "";
+        const errorMsg = checkFiles(e.target.files);
+        if (errorMsg) {
+            messageBox.textContent = errorMsg;
+            messageBox.style.color = "red";
+            e.target.value = ""; // 선택 초기화
+        }
+    });
+
+    // 제출 시에도 체크 (보안용)
+    form.addEventListener("submit", (e) => {
+        const errorMsg = checkFiles(fileInput.files);
+        if (errorMsg) {
+            e.preventDefault();
+            messageBox.textContent = errorMsg;
+            messageBox.style.color = "red";
+        }
+    });
+});
