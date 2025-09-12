@@ -18,7 +18,7 @@ public class UserCheckController {
     private final CheckService checkService;
 
     @GetMapping("/exist")
-    public ResponseEntity<Map<String, Boolean>> checkId(@RequestParam String id) {
+    public ResponseEntity<Map<String, Boolean>> checkId(@RequestParam("id") String id) {
         boolean exist = checkService.extistById(id);
         return ResponseEntity.ok(Map.of("exist", exist));
     }
