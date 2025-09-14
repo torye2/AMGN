@@ -6,15 +6,57 @@
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/shop.css">
 </head>
 <body>
 <header id="header"></header>
 <script src="js/header.js"></script>
 
+<main>
+    <div id="cont_nav">
+        <div class="container">
+            <div id="profile">
+                <section class="profile-card">
+                    <div class="profile-left">
+                        <div class="avatar">
+                            <div class="store-icon"></div>
+                        </div>
+                        <div class="shop-nickname">username</div>
+                        <div class="mini-stats">상품 52 | 팔로워 27</div>
+                        <button class="follow-btn" type="button" aria-label="팔로우">
+                            <span>👤</span> 팔로우
+                        </button>
+                    </div>
+
+                    <div class="profile-right">
+                        <div class="top-row">
+                            <h1 class="shop-title">상점이름</h1>
+                        </div>
+                        <div>
+                            <div class="meta">
+                                <span class="meta-item"><span class="dot"></span> 상점오픈 838일 전</span>
+                                <span class="meta-item"><span class="dot"></span> 상점방문수 1,800명</span>
+                                <span class="meta-item"><span class="dot"></span> 상품판매 114회</span>
+                            </div>
+                            <p class="shop-desc">intro</p>
+                        </div>
+                        <div class="report-btn">
+                            <a href="/reportForm">신고하기</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <div id="productsAll" class="container">
+
+    </div>
+</main>
 
 <div>
     <footer id="footer"></footer>
 </div>
 <script src="js/footer.js"></script>
+<script src="js/shop.js"></script>
 </body>
 </html>

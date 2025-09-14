@@ -320,8 +320,8 @@ function loadSellerProducts(sellerId) {
         grid.appendChild(a);
       });
 
-      // 6개 초과 시 "상품 더보기" 링크 추가 → shop.html로 이동
-      if (storeCard && total > 6) {
+      // 판매자 상점으로 이동하는 "상품 더보기" 링크 추가 → 항상 노출
+      if (storeCard) {
         const more = document.createElement('a');
         more.className = 'store-more-link';
         more.href = `/shop.html?sellerId=${encodeURIComponent(sellerId)}`;
