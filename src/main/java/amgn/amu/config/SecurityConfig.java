@@ -26,6 +26,7 @@ public class SecurityConfig {
                         .successHandler(success)
                         .failureHandler(failure)
                 )
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/logout"))
                 .logout(l -> l.logoutUrl("/logout").logoutSuccessUrl("/main"));
         return http.build();
     }
