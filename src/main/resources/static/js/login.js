@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (errorMsg) {
         const formError = document.getElementById('formError');
         if (formError) {
-            formError.textContent = decodeURIComponent(msg);
+            formError.textContent = decodeURIComponent(errorMsg);
             formError.style.display = 'block';
         }
     }

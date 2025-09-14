@@ -7,18 +7,26 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
     @Bean @Order(1)
-    SecurityFilterChain oauth(HttpSecurity http, AuthenticationSuccessHandler success) throws Exception {
+    SecurityFilterChain oauth(HttpSecurity http,
+                              AuthenticationSuccessHandler success,
+                              AuthenticationFailureHandler failure) throws Exception {
         http
-                .securityMatcher("/oauth/**", "/login/oauth2/**")
+                .securityMatcher("/oauth2/**", "/login/oauth2/**", "/api/oauth/**", "/logout")
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll())
-                .oauth2Login(o -> o.successHandler(success))
-                .csrf(c -> c.disable());
+                .oauth2Login(o -> o
+                        .loginPage("/login")
+                        .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
+                        .successHandler(success)
+                        .failureHandler(failure)
+                )
+                .logout(l -> l.logoutUrl("/logout").logoutSuccessUrl("/main"));
         return http.build();
     }
 
@@ -35,7 +43,16 @@ public class SecurityConfig {
     AuthenticationSuccessHandler successHandler(OauthBridgeService bridge) {
         return (req, res, auth) -> {
             bridge.upsertAndLogin(req, auth);
-            res.sendRedirect("/");
+            res.sendRedirect("/main");
+        };
+    }
+
+    @Bean
+    AuthenticationFailureHandler failureHandler() {
+        return (req, res, ex) -> {
+            String msg = java.net.URLEncoder.encode("소셜 로그인 실패: " + ex.getMessage(),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            res.sendRedirect("/login?error=" + msg);
         };
     }
 }

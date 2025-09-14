@@ -253,3 +253,34 @@
   outline: none;
   box-shadow: 0 0 0 3px rgba(211,47,47,.15);
 }
+
+/* Social auth & common form helpers */
+.form-alert {
+  display:none;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ffecec;
+  color: #a30000;
+  font-size: 14px;
+  border: 1px solid #ffcdcd;
+}
+
+.sep-hr {
+  border: 0;
+  height: 1px;
+  background: #eee;
+  margin: 16px 0;
+}
+
+.social-login, .social-signup { text-align:center; margin-top: 16px; }
+.social-buttons { display:flex; flex-direction:column; gap:8px; }
+.btn-social {
+  display:block; width:100%;
+  padding:12px 14px; border-radius:8px; font-weight:700;
+  border:1px solid #e6e6e6; background:#fff; color:#222; text-decoration:none;
+}
+.btn-social:hover { filter: brightness(0.98); }
+.btn-social.kakao  { background:#FEE500; border-color:#F2D300; }
+.btn-social.naver  { background:#03C75A; color:#fff; border-color:#04b352; }
+.btn-social.google { background:#fff; color:#222; border-color:#dadce0; }

@@ -19,6 +19,16 @@
     <section class="signup-section">
         <form action="/signup" method="POST" class="signup-box" autocomplete="on">
             <h1>회원가입</h1>
+            <div class="social-signup">
+                <p>소셜 계정으로 간편 회원가입</p>
+                <div class="social-buttons">
+                    <a class="btn-social kakao"  href="/oauth2/authorization/kakao">카카오로 시작</a>
+                    <a class="btn-social naver"  href="/oauth2/authorization/naver">네이버로 시작</a>
+                    <a class="btn-social google" href="/oauth2/authorization/google">Google로 시작</a>
+                </div>
+                <div class="muted">최초 로그인 후 약관 동의/추가정보 입력 절차가 있을 수 있습니다.</div>
+            </div>
+
             <!-- 폼 상단 공통 에러 -->
             <div id="formError" class="form-alert" aria-live="polite"></div>
             <fieldset>

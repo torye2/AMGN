@@ -27,7 +27,7 @@
 
     <select id="findByProvider" resultType="amgn.amu.entity.OauthIdentity">
         SELECT *
-        FROM OAUTH_IDENTITES
+        FROM OAUTH_IDENTITIES
         WHERE PROVIDER = #{provider}
         AND PROVIDER_USER_ID = #{pid}
         LIMIT 1
@@ -37,15 +37,16 @@
             useGeneratedKeys="true" keyProperty="oauthId">
         INSERT INTO OAUTH_IDENTITIES
                 (USER_ID, PROVIDER, PROVIDER_USER_ID, EMAIL, DISPLAY_NAME, ACCESS_TOKEN,
-                 REFRESH_TOKEN, TOKEN_EXPRIES_AT, CREATED_AT, UPDATED_AT)
+                 REFRESH_TOKEN, TOKEN_EXPIRES_AT, CREATED_AT, UPDATED_AT)
         VALUES
             (#{userId}, #{provider}, #{providerUserId}, #{email}, #{displayName}, #{accessToken}, #{refreshToken}, #{tokenExpiresAt}, NOW(), NOW())
+            AS new
             ON DUPLICATE KEY UPDATE
-                                 email=VALUES(email),
-                                 display_name=VALUES(display_name),
-                                 access_token=VALUES(access_token),
-                                 refresh_token=VALUES(refresh_token),
-                                 token_expires_at=VALUES(token_expires_at),
+                                 email=COALESCE(new.email, OAUTH_IDENTITIES.email),
+                                 display_name=COALESCE(new.display_name, OAUTH_IDENTITIES.display_name),
+                                 access_token=new.access_token,
+                                 refresh_token=new.refresh_token,
+                                 token_expires_at=new.token_expires_at,
                                  updated_at=NOW()
     </insert>
 
@@ -57,4 +58,15 @@
             updated_at = NOW()
         WHERE provider = #{provider} AND provider_user_id = #{providerUserId}
     </update>
+
+    <select id="findProvidersByUserId" resultType="string">
+        SELECT PROVIDER
+        FROM OAUTH_IDENTITIES
+        WHERE USER_ID = #{userId}
+    </select>
+
+    <delete id="deleteLinkByUserAndProvider">
+        DELETE FROM OAUTH_IDENTITIES
+        WHERE USER_ID = #{userId} AND PROVIDER = #{provider}
+    </delete>
 </mapper>
