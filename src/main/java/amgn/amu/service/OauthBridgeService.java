@@ -67,11 +67,6 @@ public class OauthBridgeService {
             }
         }
 
-        User identityUser = oidMapper.findUserByProvider(profile.getProvider(), profile.getProviderUserId()).orElseThrow();
-        if (identityUser != null) {
-
-        }
-
         // 신규 소셜 사용자 생성, 연결 후 로그인
         User created = createSocialUser(profile);
         linkToUser(created.getUserId(), profile, auth);

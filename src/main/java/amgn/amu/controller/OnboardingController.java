@@ -45,12 +45,19 @@ public class OnboardingController {
         if (e164 == null) {
             return ResponseEntity.badRequest().body(Map.of("message","유효하지 않은 휴대폰 번호입니다."));
         }
+
         User owner = userMapper.findByPhoneE164(e164).orElseThrow();
         if (owner == null || owner.getUserId().equals(uid)) {
             userMapper.completeOnboarding(uid, raw, e164);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.status(409).body(
+                    java.util.Map.of(
+                            "code","PHONE_TAKEN",
+                            "message","해당 번호는 이미 다른 계정에 등록되어 있습니다. 그 계정으로 로그인하거나, 본인 인증 후 연결해 주세요."
+                    )
+            );
         }
 
+        userMapper.completeOnboarding(uid, raw, e164);
         return ResponseEntity.ok().build();
     }
 

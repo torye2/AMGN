@@ -12,7 +12,7 @@
   <p>서비스 이용을 위해 휴대폰 번호를 입력해 주세요.</p>
   <form id="obForm">
     <label>휴대폰 번호
-      <input id="phone" name="phone" placeholder="01012345678" required>
+      <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="010-1234-5678" required>
     </label>
     <button type="submit">완료</button>
   </form>
@@ -22,7 +22,12 @@
   function getCookie(n){return document.cookie.split('; ').find(r=>r.startsWith(n+'='))?.split('=')[1];}
   document.getElementById('obForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const phone = document.getElementById('phone').value.trim();
+    const raw = phoneInput.value ?? '';
+    const phone = raw.replace(/\D/g,'');
+    if (!phone) {
+      showError('휴대폰 번호를 입력해 주세요.');
+      return;
+    }
     const xsrf  = getCookie('XSRF-TOKEN');
     try {
       const r = await fetch('/api/onboarding', {
@@ -31,7 +36,17 @@
         credentials:'same-origin',
         body: JSON.stringify({ phoneNumber: phone })
       });
-      if(!r.ok) throw new Error('서버 오류: '+r.status);
+       if(!r.ok){
+           let body = {};
+           try { body = await r.json(); } catch(e){}
+           if (r.status === 409 && body.code === 'PHONE_TAKEN') {
+               showError('이미 등록된 번호입니다. 그 계정으로 로그인하거나, 문자 인증 후 연결해 주세요.');
+             }
+           if (r.status === 400 && body.code === 'INVALID_PHONE') {
+               showError('휴대폰 번호 형식이 올바르지 않습니다.');
+             }
+           showError(body.message || ('서버 오류: '+r.status));
+         }
       location.href = '/main';
     } catch(err){
       const el = document.getElementById('err');
@@ -39,6 +54,71 @@
       el.style.display = 'block';
     }
   });
+
+  function formatKRPhone(v) {
+    const d = (v || '').replace(/\D/g, ''); // 숫자만
+    if (!d) return '';
+
+    // 특수 대표번호 (1588/1600/1666/1800 등)
+    if (/^(15|16|18)\d{2}/.test(d)) {
+      if (d.length <= 4) return d;
+      return d.slice(0,4) + '-' + d.slice(4,8);
+    }
+
+    // 서울 국번 (02)
+    if (d.startsWith('02')) {
+      if (d.length <= 2) return d;
+      if (d.length <= 5) return d.slice(0,2) + '-' + d.slice(2);
+      if (d.length <= 9)  return d.slice(0,2) + '-' + d.slice(2,5) + '-' + d.slice(5);
+      return d.slice(0,2) + '-' + d.slice(2,6) + '-' + d.slice(6,10);
+    }
+
+    // 050/070/010 등 이동통신/특수번호 3자리 지역코드
+    const ac3 = d.slice(0,3);
+    if (/^(010|070|050|051|052|053|054|055|031|032|033|041|042|043|044|061|062|063|064)$/.test(ac3)) {
+      if (d.length <= 3) return d;
+      if (d.length <= 7) return d.slice(0,3) + '-' + d.slice(3);
+      if (d.length === 10) return d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+      return d.slice(0,3) + '-' + d.slice(3,7) + '-' + d.slice(7,11);
+    }
+
+    // 그 외 일반 번호: 3-3/4-4
+    if (d.length <= 3) return d;
+    if (d.length <= 7) return d.slice(0,3) + '-' + d.slice(3);
+    if (d.length === 10) return d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+    return d.slice(0,3) + '-' + d.slice(3,7) + '-' + d.slice(7,11);
+  }
+
+  // 2) 입력 시 자동 하이픈
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('input', () => {
+      const cur = phoneInput.value;
+      const next = formatKRPhone(cur);
+      if (cur !== next) {
+        const posFromEnd = cur.length - phoneInput.selectionStart;
+        phoneInput.value = next;
+        // caret을 가능하면 끝에서 유지
+        const newPos = Math.max(0, phoneInput.value.length - posFromEnd);
+        phoneInput.setSelectionRange(newPos, newPos);
+      }
+    });
+
+    // 붙여넣기 방어(숫자만 유지)
+    phoneInput.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      const digits = (text || '').replace(/\D/g,'');
+      const formatted = formatKRPhone(digits);
+      phoneInput.value = formatted;
+    });
+  }
+
+  function showError(msg){
+    const el = document.getElementById('errorMsg') || document.querySelector('.error-msg');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+    else { alert(msg); }
+  }
 </script>
 </body>
 </html>
