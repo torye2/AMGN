@@ -1,5 +1,7 @@
 // ----- Endpoints -----
 const ENDPOINTS = {
+    oauthMe: '/api/oauth/me',
+    oauthUnlink: '/api/oauth/unlink',
     myProducts: (status) => `/product/my-products${status ? `?status=${status}` : ''}`,
     favorites: undefined, // 없으면 탭 숨김 권장
     orders: '/orders', // 내 주문 전체(판매/구매 혼합) → 클라이언트에서 역할 추정/분리
@@ -365,7 +367,7 @@ function switchTab(name) {
     if (name === 'reviews') loadReviews();
     if (name === 'alerts') loadAlerts();
     if (name === 'shop') loadShopSettings();
-    if (name === 'account') loadAccount();
+    if (name === 'account') { loadAccount(); loadOauthLinks(); }
     if (name === 'addresses') loadAddresses();
 }
 
@@ -1504,3 +1506,53 @@ function renderFavCard(p) {
             box.textContent = '내역을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
         });
 })();
+
+async function loadOauthLinks() {
+    const wrap = document.getElementById('oauthLinked');
+    if (!wrap) return;
+    wrap.innerHTML = '<li class="empty">불러오는 중...</li>';
+    try {
+        const r = await fetch(ENDPOINTS.oauthMe);
+        noAuthGuard(r);
+        const j = await r.json();
+        const payload = j.data || j; // ApiResult 래핑 호환
+        const links = payload.linkedProviders || [];
+        const canUnlink = !!payload.canUnlink;
+
+        if (!links.length) {
+            wrap.innerHTML = '<li class="empty">연결된 소셜 계정이 없습니다.</li>';
+            return;
+        }
+        wrap.innerHTML = links.map(p => `
+      <li class="provider-item" data-provider="${p}">
+        <span class="provider-name">${p}</span>
+        <span class="provider-actions">
+          ${canUnlink ? '<button class="btn-unlink" type="button">연결 해제</button>' : ''}
+        </span>
+      </li>
+    `).join('');
+    } catch (e) {
+        wrap.innerHTML = `<li class="empty">불러오기 실패: ${e.message}</li>`;
+    }
+}
+
+document.addEventListener('click', async (e) => {
+    const item = e.target.closest('#oauth-links .provider-item');
+    if (!item) return;
+    if (e.target.classList.contains('btn-unlink')) {
+        const provider = item.getAttribute('data-provider');
+        if (!confirm(`${provider} 연결을 해제할까요?`)) return;
+        try {
+            const r = await fetch(ENDPOINTS.oauthUnlink, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ provider })
+            });
+            noAuthGuard(r);
+            await loadOauthLinks();
+            alert('해제되었습니다.');
+        } catch (err) {
+            alert('해제 실패: ' + (err.message || '요청 오류'));
+        }
+    }
+});

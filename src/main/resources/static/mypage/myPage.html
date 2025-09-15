@@ -256,6 +256,18 @@
         <!-- Account management -->
         <div class="tab section" id="tab-account" role="tabpanel">
             <h2>계정 관리</h2>
+            <section class="section" id="oauth-links">
+                <div class="flex-head">
+                    <h2>소셜 계정 연결</h2>
+                    <div class="btn-row">
+                        <a class="btn-social kakao"  href="/oauth2/authorization/kakao">카카오 계정 추가</a>
+                        <a class="btn-social naver"  href="/oauth2/authorization/naver">네이버 계정 추가</a>
+                        <a class="btn-social google" href="/oauth2/authorization/google">Google 계정 추가</a>
+                    </div>
+                </div>
+                <ul id="oauthLinked" style="margin-top:10px;"></ul>
+                <div class="help">최소 1개의 로그인 수단은 유지해야 합니다.</div>
+            </section>
             <form class="form-grid" id="accountForm" novalidate=""><div>
                 <!-- 아이디(로그인 ID) + 중복확인 -->
                 <label>아이디

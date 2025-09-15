@@ -7,6 +7,6 @@ public class OauthProfileDto {
     String provider;        // "GOOGLE"/"KAKAO"/"NAVER"
     String providerUserId;  // 소셜 고유 ID
     String email;
-    String name;
+    String displayName;
 }
 

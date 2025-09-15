@@ -5,6 +5,7 @@ import amgn.amu.entity.OauthIdentity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 @Mapper
@@ -15,4 +16,6 @@ public interface OauthIdentityMapper {
                                            @Param("pid") String providerUserId);
     int insertLink(OauthIdentity link);
     int updateTokens(OauthIdentity link);
+    List<String> findProvidersByUserId(@Param("userId") Long userId);
+    int deleteLinkByUserAndProvider(@Param("userId") Long userId, @Param("provider") String provider);
 }
