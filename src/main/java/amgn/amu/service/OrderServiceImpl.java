@@ -26,13 +26,13 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
-    
+
     @Override
     public boolean isListingInTransaction(Long listingId) {
         // CREATED 또는 IN_TRANSIT 상태인 주문이 있으면 true
         return orderRepository.existsByListingIdAndStatusIn(listingId, List.of(OrderStatus.CREATED, OrderStatus.IN_TRANSIT));
     }
-    
+
     @Override
     public OrderDto create(Long actorUserId, OrderCreateRequest req) {
         // 1. listing 존재 여부 확인
@@ -51,7 +51,7 @@ public class OrderServiceImpl implements OrderService {
         )) {
             throw new RuntimeException("이미 거래 중인 상품입니다.");
         }
-        
+
         // 3-1. 거래가 완료된 주문인지 확인
         else if (orderRepository.existsByListingIdAndStatusIn(
         	    req.listingId(),
@@ -85,6 +85,9 @@ public class OrderServiceImpl implements OrderService {
         // 5. 저장
         orderRepository.save(order);
 
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         // 6. DTO 변환 후 반환
         return toDto(order);
     }
@@ -104,6 +107,9 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -112,6 +118,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setStatus(OrderDto.OrderStatus.MEETUP_CONFIRMED);
         orderRepository.save(order);
+
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -120,6 +130,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setStatus(OrderDto.OrderStatus.IN_TRANSIT);
         orderRepository.save(order);
+
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -128,6 +142,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderByIdAndCheckBuyer(orderId, buyerId);
         order.setStatus(OrderDto.OrderStatus.DELIVERED);
         orderRepository.save(order);
+
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -136,6 +154,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setStatus(OrderDto.OrderStatus.COMPLETED);
         orderRepository.save(order);
+
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -164,6 +186,9 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -172,6 +197,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setStatus(OrderDto.OrderStatus.DISPUTED);
         orderRepository.save(order);
+
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 
@@ -221,7 +250,7 @@ public class OrderServiceImpl implements OrderService {
                 title // 수정
         );
     }
-    
+
     @Override
     @Transactional
     public void deleteOrder(Long userId, Long orderId) {
@@ -232,6 +261,8 @@ public class OrderServiceImpl implements OrderService {
         if (!order.getBuyerId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
+
+        updateListingStatus(order.getListingId(), OrderStatus.CANCELLED);
 
         // 실제 삭제
         orderRepository.delete(order);
@@ -274,7 +305,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
-    
+
     @Override
     public OrderDto revertCancel(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -295,10 +326,24 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // ✅ listing 상태 업데이트
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
+    }
+
+    private void updateListingStatus(Long listingId, OrderDto.OrderStatus orderStatus) {
+        listingRepository.findById(listingId).ifPresent(listing -> {
+            switch (orderStatus) {
+                case CREATED, PAID -> listing.setStatus("RESERVED");
+                case COMPLETED -> listing.setStatus("SOLD");
+                case CANCELLED -> listing.setStatus("ACTIVE");
+                default -> {}
+            }
+            listingRepository.save(listing);
+        });
     }
 
 
 
-    
 }
