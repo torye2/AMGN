@@ -1579,6 +1579,8 @@ async function loadOauthLinks() {
 
 document.addEventListener('click', async (e) => {
     const item = e.target.closest('#oauth-links .provider-item');
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
     if (!item) return;
     if (e.target.classList.contains('btn-unlink')) {
         const provider = item.getAttribute('data-provider');
@@ -1586,7 +1588,10 @@ document.addEventListener('click', async (e) => {
         try {
             const r = await fetch(ENDPOINTS.oauthUnlink, {
                 method: 'POST',
-                headers: {'Content-Type':'application/json'},
+                headers: {
+                    'Content-Type':'application/json',
+                    'X-XSRF-TOKEN': xsrf
+                },
                 body: JSON.stringify({ provider })
             });
             noAuthGuard(r);
@@ -1597,3 +1602,13 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
+
+async function ensureCsrf() {
+    const r = await fetch('/api/csrf', { credentials: 'same-origin' });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}
