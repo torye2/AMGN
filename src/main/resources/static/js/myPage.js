@@ -55,6 +55,24 @@ function initBirthSelects() {
     return {renderDays};
 }
 
+const tradeMethodMap = {
+    MEETUP: '직거래',
+    DELIVERY: '택배'
+};
+
+const orderStatusMap = {
+    CREATED: '주문 등록',
+    PAID: '결제 완료',
+    IN_TRANSIT: '배송 중',
+    DELIVERED: '배송 완료',
+    MEETUP_CONFIRMED: '주문 확정',
+    CANCELLED: '취소됨',
+    DISPUTED: '분쟁',
+    REFUNDED: '환불됨',
+    COMPLETED: '거래 완료'
+};
+
+
 function expandSidoName(sido) {
     const map = {
         '서울': '서울특별시',
@@ -504,23 +522,18 @@ async function loadSales() {
     const body = $('#salesBody');
     body.innerHTML = '';
     try {
-        const [orders, me] = await Promise.all([
-            fetch(ENDPOINTS.orders).then(noAuthGuard).then(r => r.json()),
-            fetchMe()
-        ]);
+        // 판매 내역만 가져오기
+        const orders = await fetch('/orders/sell').then(noAuthGuard).then(r => r.json());
         const rows = [];
         (orders || []).forEach(o => {
-            const role = inferRole(o, me);
-            if (role === 'SELLER' || role === 'UNKNOWN') {
-                rows.push(`<tr>
-          <td>${o.orderId}</td>
-          <td><a href="/productDetail.html?id=${o.listingId}">${o.title ?? '-'}</a></td>
-          <td>${o.buyerName ?? '-'}</td>
-          <td>${toWon(o.price)}</td>
-          <td>${o.status ?? '-'}</td>
-          <td>${o.orderedAt ?? '-'}</td>
-        </tr>`);
-            }
+            rows.push(`<tr>
+                <td>${o.id}</td>
+                <td><a href="/productDetail.html?id=${o.listingId}">${o.listingTitle ?? '-'}</a></td>
+                <td>${tradeMethodMap[o.method] ?? o.method}</td>
+                <td>${orderStatusMap[o.status] ?? o.status}</td>
+                <td>${toWon(o.finalPrice)}</td>
+                <td>${o.createdAt ?? '-'}</td>
+            </tr>`);
         });
         body.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="6" class="empty">판매 내역이 없습니다.</td></tr>`;
     } catch (err) {
@@ -529,32 +542,60 @@ async function loadSales() {
 }
 
 async function loadPurchases() {
-    const body = $('#purchasesBody');
-    body.innerHTML = '';
+    const tbody = document.querySelector('#ordersTable tbody');
+    tbody.innerHTML = ''; // 초기화
+
     try {
         const [orders, me] = await Promise.all([
-            fetch(ENDPOINTS.orders).then(noAuthGuard).then(r => r.json()),
+            fetch('/orders/buy').then(noAuthGuard).then(r => r.json()),
             fetchMe()
         ]);
-        const rows = [];
-        (orders || []).forEach(o => {
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6">구매 내역이 없습니다.</td></tr>`;
+            return;
+        }
+
+        for (const o of orders) {
             const role = inferRole(o, me);
-            if (role === 'BUYER' || role === 'UNKNOWN') {
-                rows.push(`<tr>
-          <td>${o.orderId}</td>
-          <td><a href="/productDetail.html?id=${o.listingId}">${o.title ?? '-'}</a></td>
-          <td>${o.sellerName ?? '-'}</td>
-          <td>${toWon(o.price)}</td>
-          <td>${o.status ?? '-'}</td>
-          <td>${o.orderedAt ?? '-'}</td>
-        </tr>`);
+            if (role !== 'BUYER' && role !== 'UNKNOWN') continue; // 구매 내역만
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${o.id}</td>
+                <td><a href="/productDetail.html?id=${o.listingId}">${o.listingTitle ?? '-'}</a></td>
+                <td>${tradeMethodMap[o.method] ?? o.method}</td>
+                <td>${orderStatusMap[o.status] ?? o.status}</td>
+                <td>${toWon(o.finalPrice)}</td>
+                <td></td>
+            `;
+
+            const actionTd = tr.querySelector('td:last-child');
+
+            // 상태별 버튼/텍스트 처리
+            if (o.status === 'CREATED') {
+                actionTd.appendChild(createButton('결제', () => payOrder(o)));
+                actionTd.appendChild(createButton('취소', () => cancelOrder(o.id, actionTd, o)));
+            } else if (o.status === 'PAID') {
+                actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
+                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(o.id, actionTd, o)));
+            } else if (o.status === 'COMPLETED') {
+                actionTd.textContent = '주문 확정';
+            } else if (o.status === 'CANCELLED') {
+                actionTd.textContent = '취소됨';
             }
-        });
-        body.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="6" class="empty">구매 내역이 없습니다.</td></tr>`;
+
+            tbody.appendChild(tr);
+        }
     } catch (err) {
-        body.innerHTML = `<tr><td colspan="6" class="empty">불러오기 실패: ${err.message}</td></tr>`;
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="6">구매 내역을 불러오는 중 오류가 발생했습니다: ${err.message}</td></tr>`;
     }
 }
+
+// 페이지 로드 시 실행
+document.addEventListener('DOMContentLoaded', loadPurchases);
+
 
 async function loadReviews() {
     const body = $('#reviewsBody');
