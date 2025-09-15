@@ -581,6 +581,11 @@ async function loadPurchases() {
                 actionTd.appendChild(createButton('결제 취소', () => revertToCreated(o.id, actionTd, o)));
             } else if (o.status === 'COMPLETED') {
                 actionTd.textContent = '주문 확정';
+                const reviewBtn = createButton('리뷰 작성', () => {
+                        // 리뷰 작성 페이지로 이동
+                        window.location.href = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}`;
+                    });
+                    actionTd.appendChild(reviewBtn);
             } else if (o.status === 'CANCELLED') {
                 actionTd.textContent = '취소됨';
             }
@@ -1559,6 +1564,7 @@ async function loadOauthLinks() {
         const payload = j.data || j; // ApiResult 래핑 호환
         const links = payload.linkedProviders || [];
         const canUnlink = !!payload.canUnlink;
+        console.log("payload: " + payload);
 
         if (!links.length) {
             wrap.innerHTML = '<li class="empty">연결된 소셜 계정이 없습니다.</li>';

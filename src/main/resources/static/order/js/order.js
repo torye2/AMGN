@@ -1,14 +1,60 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // ----- 상품 정보 불러오기 -----
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get("listingId");
     const listingInput = document.querySelector("input[name='listingId']");
+    const methodSelect = document.getElementById("methodSelect");
+    const meetupFields = document.getElementById("meetupFields");
+    const deliveryFields = document.getElementById("deliveryFields");
+
     if (listingId && listingInput) {
         listingInput.value = listingId;
         listingInput.readOnly = true;
     }
 
+    // ----- 거래 방식 옵션 초기화 -----
+    function initMethodSelect(availableMethods) {
+        methodSelect.innerHTML = '';
+
+        if (availableMethods.length === 0) {
+            // 거래 방식 없음 → 기본 직거래
+            availableMethods = ["MEETUP"];
+        }
+
+        if (availableMethods.length === 1) {
+            // 한 가지 방식만 허용 → select 숨김, 해당 필드만 보이기
+            methodSelect.style.display = 'none';
+            showFieldsByMethod(availableMethods[0]);
+        } else {
+            // 둘 다 가능 → 드롭다운 표시
+            methodSelect.style.display = 'block';
+            availableMethods.forEach(method => {
+                const option = document.createElement('option');
+                option.value = method;
+                option.textContent = method === 'MEETUP' ? '직거래' : '택배 거래';
+                methodSelect.appendChild(option);
+            });
+            methodSelect.value = availableMethods[0];
+            showFieldsByMethod(methodSelect.value);
+        }
+    }
+
+    // ----- 거래 방식 필드 표시 -----
+    function showFieldsByMethod(method) {
+        meetupFields.style.display = method === "MEETUP" ? "block" : "none";
+        deliveryFields.style.display = method === "DELIVERY" ? "block" : "none";
+    }
+
+    methodSelect.addEventListener("change", () => {
+        showFieldsByMethod(methodSelect.value);
+        const selectedCard = document.querySelector('.addr-card.selected');
+        if (selectedCard) {
+            const addrId = selectedCard.dataset.addrId;
+            fillFormWithAddress(addressMap[addrId]);
+        }
+    });
+
+    // ----- 상품 정보 불러오기 -----
     if (listingId) {
         try {
             const res = await fetch(`/product/${listingId}`);
@@ -30,28 +76,33 @@ document.addEventListener("DOMContentLoaded", async () => {
             } else {
                 imagesDiv.textContent = "이미지가 없습니다.";
             }
+
+            // tradeType 기반으로 availableMethods 배열 생성
+            let availableMethods = [];
+            switch (product.tradeType) {
+                case "MEETUP":
+                    availableMethods = ["MEETUP"];
+                    break;
+                case "DELIVERY":
+                    availableMethods = ["DELIVERY"];
+                    break;
+                case "BOTH":
+                    availableMethods = ["MEETUP", "DELIVERY"];
+                    break;
+                default:
+                    availableMethods = ["MEETUP"];
+            }
+
+            initMethodSelect(availableMethods);
+
         } catch (err) {
             console.error(err);
             alert("상품 정보를 불러오는 중 오류가 발생했습니다.");
         }
     }
 
-    // ----- 거래 방식 선택 -----
-    const methodSelect = document.getElementById("methodSelect");
-    const meetupFields = document.getElementById("meetupFields");
-    const deliveryFields = document.getElementById("deliveryFields");
-    methodSelect.addEventListener("change", () => {
-        meetupFields.style.display = methodSelect.value === "MEETUP" ? "block" : "none";
-        deliveryFields.style.display = methodSelect.value === "DELIVERY" ? "block" : "none";
-        const selectedCard = document.querySelector('.addr-card.selected');
-        if (selectedCard) {
-            const addrId = selectedCard.dataset.addrId;
-            fillFormWithAddress(addressMap[addrId]);
-        }
-    });
-
     // ----- 주소 불러오기 -----
-    const addressMap = {}; // addrId -> 주소 객체
+    const addressMap = {};
     async function loadAddresses() {
         const addressCardsDiv = document.getElementById("addressCards");
         addressCardsDiv.innerHTML = '<p>불러오는 중...</p>';
@@ -72,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const card = document.createElement('div');
                 card.classList.add('addr-card');
                 card.dataset.addrId = addr.addressId;
-                card.textContent = addr.addressType; // 집, 회사, 기타
+                card.textContent = addr.addressType;
                 card.addEventListener('click', () => {
                     selectAddressCard(addr.addressId);
                     fillFormWithAddress(addr);
@@ -80,7 +131,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 addressCardsDiv.appendChild(card);
             });
 
-            // 기본 주소 자동 선택
             const defaultAddr = userAddresses.find(a => a.isDefault) || userAddresses[0];
             if (defaultAddr) {
                 selectAddressCard(defaultAddr.addressId);
@@ -99,19 +149,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // ----- 주소 구성 -----
     function buildFullAddress(addr) {
         const parts = [addr.province, addr.city, addr.addressLine1, addr.addressLine2]
             .filter(part => part && part.trim() !== '');
-        const uniqueParts = [...new Set(parts)];
-        return uniqueParts.join(' ');
+        return [...new Set(parts)].join(' ');
     }
 
     function fillFormWithAddress(addr) {
         if (!addr) return;
-        if (methodSelect.value === 'MEETUP') {
+        if (meetupFields.style.display === 'block') {
             document.querySelector("input[name='recvAddr1']").value = '';
-        } else if (methodSelect.value === 'DELIVERY') {
+        } else if (deliveryFields.style.display === 'block') {
             document.querySelector("input[name='recvAddr2']").value = buildFullAddress(addr);
             document.querySelector("input[name='recvZip']").value = addr.postalCode || '';
         }
@@ -125,7 +173,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const formData = new FormData(this);
         const payload = {
             listingId: parseInt(formData.get('listingId')),
-            method: formData.get('method'),
+            method: meetupFields.style.display === 'block' ? 'MEETUP' : 'DELIVERY',
             recvName: formData.get('recvName'),
             recvPhone: formData.get('recvPhone'),
             recvAddr1: formData.get('recvAddr1'),
@@ -142,10 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (!res.ok) throw new Error('주문 등록 실패');
             alert('주문 등록 완료!');
             this.reset();
-            methodSelect.value = "MEETUP";
-            meetupFields.style.display = "block";
-            deliveryFields.style.display = "none";
-            await loadAddresses(); // 기본 주소 재선택
+            await loadAddresses();
             window.location.href = '/main.html';
         } catch (err) {
             console.error(err);
