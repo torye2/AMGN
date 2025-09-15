@@ -41,11 +41,14 @@
            try { body = await r.json(); } catch(e){}
            if (r.status === 409 && body.code === 'PHONE_TAKEN') {
                showError('이미 등록된 번호입니다. 그 계정으로 로그인하거나, 문자 인증 후 연결해 주세요.');
+               return;
              }
            if (r.status === 400 && body.code === 'INVALID_PHONE') {
                showError('휴대폰 번호 형식이 올바르지 않습니다.');
+               return;
              }
            showError(body.message || ('서버 오류: '+r.status));
+           return;
          }
       location.href = '/main';
     } catch(err){
