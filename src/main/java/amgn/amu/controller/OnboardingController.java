@@ -45,7 +45,12 @@ public class OnboardingController {
         if (e164 == null) {
             return ResponseEntity.badRequest().body(Map.of("message","유효하지 않은 휴대폰 번호입니다."));
         }
-        userMapper.completeOnboarding(uid, raw, e164);
+        User owner = userMapper.findByPhoneE164(e164).orElseThrow();
+        if (owner == null || owner.getUserId().equals(uid)) {
+            userMapper.completeOnboarding(uid, raw, e164);
+            return ResponseEntity.ok().build();
+        }
+
         return ResponseEntity.ok().build();
     }
 

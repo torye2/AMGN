@@ -29,4 +29,6 @@ public interface UserMapper {
     boolean existsByEmailNormalized(@Param("emailNormalized") String emailNormalized);
 
     boolean existsByPhoneE164(@Param("phoneE164") String phoneE164);
+
+    Optional<User> findByPhoneE164(@Param("phoneE164") String phoneE164);
 }
