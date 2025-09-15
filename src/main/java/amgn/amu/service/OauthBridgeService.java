@@ -14,6 +14,8 @@ import amgn.amu.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class OauthBridgeService {
     private final OauthIdentityMapper oidMapper;
     private final UserRepository userRepository;
     private final LoginUser loginUser;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
     public OauthLoginResult upsertAndLogin(HttpServletRequest req, Authentication auth) {
@@ -122,9 +125,11 @@ public class OauthBridgeService {
         u.setUserName(p.getDisplayName());
         u.setNickName(p.getDisplayName());
         u.setEmail(p.getEmail());
+        u.setEmailNormalized(normalizeEmail(p.getEmail()));
         u.setPhoneNumber(null);
 
-        u.setPasswordHash(UUID.randomUUID().toString());
+        String random = UUID.randomUUID() + ":" + System.nanoTime();
+        u.setPasswordHash(passwordEncoder.encode(random));
 
         u.setStatus("ACTIVE");
         u.setCreatedAt(LocalDateTime.now());
@@ -203,5 +208,18 @@ public class OauthBridgeService {
         if (delete == 0) {
             throw new AppException(ErrorCode.OAUTH_NOT_FOUND, p);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isOnboardingRequired(Long userId) {
+        User u = userRepository.findByUserId(userId).orElseThrow();
+        if (u.getProfileCompleted() != null && u.getProfileCompleted() == 1) return false;
+        return (u.getPhoneNumber() == null || u.getPhoneNumber().isBlank());
+    }
+
+    private String normalizeEmail(String raw) {
+        if (raw == null) return null;
+        return java.text.Normalizer.normalize(raw.trim(), java.text.Normalizer.Form.NFKC)
+                .toLowerCase(java.util.Locale.ROOT);
     }
 }

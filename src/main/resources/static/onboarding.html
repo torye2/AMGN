@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>추가 정보 입력</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CSRF 쿠키는 서버가 내려줍니다 -->
+</head>
+<body>
+<main class="onboarding">
+  <h1>추가 정보 입력</h1>
+  <p>서비스 이용을 위해 휴대폰 번호를 입력해 주세요.</p>
+  <form id="obForm">
+    <label>휴대폰 번호
+      <input id="phone" name="phone" placeholder="01012345678" required>
+    </label>
+    <button type="submit">완료</button>
+  </form>
+  <p id="err" style="color:#c00; display:none;"></p>
+</main>
+<script>
+  function getCookie(n){return document.cookie.split('; ').find(r=>r.startsWith(n+'='))?.split('=')[1];}
+  document.getElementById('obForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const phone = document.getElementById('phone').value.trim();
+    const xsrf  = getCookie('XSRF-TOKEN');
+    try {
+      const r = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-XSRF-TOKEN': xsrf},
+        credentials:'same-origin',
+        body: JSON.stringify({ phoneNumber: phone })
+      });
+      if(!r.ok) throw new Error('서버 오류: '+r.status);
+      location.href = '/main';
+    } catch(err){
+      const el = document.getElementById('err');
+      el.textContent = err.message || '저장 실패';
+      el.style.display = 'block';
+    }
+  });
+</script>
+</body>
+</html>
