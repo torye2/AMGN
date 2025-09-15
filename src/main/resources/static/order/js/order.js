@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const listingId = urlParams.get("listingId"); 
-    const listingInput = document.querySelector("input[name='listingId']");
 
+    // ----- 상품 정보 불러오기 -----
+    const urlParams = new URLSearchParams(window.location.search);
+    const listingId = urlParams.get("listingId");
+    const listingInput = document.querySelector("input[name='listingId']");
     if (listingId && listingInput) {
         listingInput.value = listingId;
         listingInput.readOnly = true;
@@ -18,12 +19,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("productPrice").textContent = product.price;
             document.getElementById("productSeller").textContent = product.sellerNickname;
 
-            // 대표 사진 한 장만 표시
             const imagesDiv = document.getElementById("productImages");
             imagesDiv.innerHTML = '';
-            if (product.photoUrls && product.photoUrls.length > 0) {
+            if (product.photoUrls?.length > 0) {
                 const img = document.createElement('img');
-                img.src = product.photoUrls[0]; // 첫 번째 사진만 사용
+                img.src = product.photoUrls[0];
                 img.alt = product.title;
                 img.style.width = "200px";
                 imagesDiv.appendChild(img);
@@ -36,16 +36,90 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // 거래 방식 선택 관련
+    // ----- 거래 방식 선택 -----
     const methodSelect = document.getElementById("methodSelect");
     const meetupFields = document.getElementById("meetupFields");
     const deliveryFields = document.getElementById("deliveryFields");
     methodSelect.addEventListener("change", () => {
         meetupFields.style.display = methodSelect.value === "MEETUP" ? "block" : "none";
         deliveryFields.style.display = methodSelect.value === "DELIVERY" ? "block" : "none";
+        const selectedCard = document.querySelector('.addr-card.selected');
+        if (selectedCard) {
+            const addrId = selectedCard.dataset.addrId;
+            fillFormWithAddress(addressMap[addrId]);
+        }
     });
 
-    // 주문 등록
+    // ----- 주소 불러오기 -----
+    const addressMap = {}; // addrId -> 주소 객체
+    async function loadAddresses() {
+        const addressCardsDiv = document.getElementById("addressCards");
+        addressCardsDiv.innerHTML = '<p>불러오는 중...</p>';
+
+        try {
+            const res = await fetch('/api/addresses');
+            if (!res.ok) throw new Error('주소 정보를 가져올 수 없습니다.');
+            const userAddresses = await res.json();
+
+            if (!Array.isArray(userAddresses) || userAddresses.length === 0) {
+                addressCardsDiv.innerHTML = '<p>저장된 주소가 없습니다.</p>';
+                return;
+            }
+
+            addressCardsDiv.innerHTML = '';
+            userAddresses.forEach(addr => {
+                addressMap[addr.addressId] = addr;
+                const card = document.createElement('div');
+                card.classList.add('addr-card');
+                card.dataset.addrId = addr.addressId;
+                card.textContent = addr.addressType; // 집, 회사, 기타
+                card.addEventListener('click', () => {
+                    selectAddressCard(addr.addressId);
+                    fillFormWithAddress(addr);
+                });
+                addressCardsDiv.appendChild(card);
+            });
+
+            // 기본 주소 자동 선택
+            const defaultAddr = userAddresses.find(a => a.isDefault) || userAddresses[0];
+            if (defaultAddr) {
+                selectAddressCard(defaultAddr.addressId);
+                fillFormWithAddress(defaultAddr);
+            }
+
+        } catch (err) {
+            console.error(err);
+            addressCardsDiv.innerHTML = `<p>주소 정보를 가져올 수 없습니다: ${err.message}</p>`;
+        }
+    }
+
+    function selectAddressCard(addrId) {
+        document.querySelectorAll('.addr-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.addrId == addrId);
+        });
+    }
+
+    // ----- 주소 구성 -----
+    function buildFullAddress(addr) {
+        const parts = [addr.province, addr.city, addr.addressLine1, addr.addressLine2]
+            .filter(part => part && part.trim() !== '');
+        const uniqueParts = [...new Set(parts)];
+        return uniqueParts.join(' ');
+    }
+
+    function fillFormWithAddress(addr) {
+        if (!addr) return;
+        if (methodSelect.value === 'MEETUP') {
+            document.querySelector("input[name='recvAddr1']").value = '';
+        } else if (methodSelect.value === 'DELIVERY') {
+            document.querySelector("input[name='recvAddr2']").value = buildFullAddress(addr);
+            document.querySelector("input[name='recvZip']").value = addr.postalCode || '';
+        }
+        document.querySelector("input[name='recvName']").value = addr.recipientName || '';
+        document.querySelector("input[name='recvPhone']").value = addr.recipientPhone || '';
+    }
+
+    // ----- 주문 등록 -----
     document.getElementById('orderForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -58,7 +132,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             recvAddr2: formData.get('recvAddr2'),
             recvZip: formData.get('recvZip')
         };
-        
+
         try {
             const res = await fetch(`/orders`, {
                 method: 'POST',
@@ -68,64 +142,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (!res.ok) throw new Error('주문 등록 실패');
             alert('주문 등록 완료!');
             this.reset();
+            methodSelect.value = "MEETUP";
             meetupFields.style.display = "block";
             deliveryFields.style.display = "none";
+            await loadAddresses(); // 기본 주소 재선택
             window.location.href = '/main.html';
         } catch (err) {
             console.error(err);
-            alert('본인 상품은 주문할 수 없습니다.');
+            alert('주문 등록 중 오류가 발생했습니다.');
         }
     });
-	
-	async function loadOrders() {
-	    const tbody = document.querySelector('#ordersTable tbody');
-	    tbody.innerHTML = '';
 
-	    try {
-	        const res = await fetch('/orders/buy'); // 구매 내역 API 호출
-	        if (!res.ok) throw new Error('주문 내역 불러오기 실패');
-
-	        const orders = await res.json();
-	        if (!orders || orders.length === 0) {
-	            tbody.innerHTML = `<tr><td colspan="8">주문 내역이 없습니다.</td></tr>`;
-	            return;
-	        }
-
-	        for (const order of orders) {
-	            const tr = document.createElement('tr');
-	            tr.innerHTML = `
-	                <td>${order.id}</td>
-	                <td><a href="/productDetail.html?id=${order.listingId}">${order.listingTitle ?? '-'}</a></td>
-	                <td>${order.method ?? '-'}</td>
-	                <td>${order.status ?? '-'}</td>
-	                <td>${order.finalPrice ?? '-'}</td>
-	                <td></td>
-	            `;
-	            const actionTd = tr.querySelector('td:last-child');
-
-	            // 상태별 버튼/텍스트 처리
-	            if (order.status === 'CREATED') {
-	                actionTd.appendChild(createButton('결제', () => payOrder(order)));
-	                actionTd.appendChild(createButton('취소', () => cancelOrder(order.id, actionTd, order)));
-	            } else if (order.status === 'PAID') {
-	                actionTd.appendChild(createButton('주문 확정', () => completeOrder(order.id, actionTd)));
-	                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, order)));
-	            } else if (order.status === 'COMPLETED') {
-	                actionTd.textContent = '주문 확정';
-	            } else if (order.status === 'CANCELLED') {
-	                actionTd.textContent = '취소됨';
-	            }
-
-	            tbody.appendChild(tr);
-	        }
-	    } catch (err) {
-	        console.error(err);
-	        tbody.innerHTML = `<tr><td colspan="8">주문 내역을 불러오는 중 오류가 발생했습니다.</td></tr>`;
-	    }
-	}
-
-
-	loadOrders();
-
+    // 초기 주소 불러오기
+    await loadAddresses();
 
 });
