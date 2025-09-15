@@ -96,7 +96,11 @@ function initHeaderFeatures() {
   // --- 지역 라벨 초기 반영 ---
   const labelEl = document.getElementById('regionBtnLabel');
   if (labelEl) {
-    labelEl.textContent = localStorage.getItem('selectedRegionLabel') || '지역';
+    // 메인에서는 항상 "지역" 표시, 그 외 페이지는 저장값 사용
+    const onMain = location.pathname === '/main.html' || location.pathname.endsWith('/main.html');
+    labelEl.textContent = onMain
+      ? '지역'
+      : (localStorage.getItem('selectedRegionLabel') || '지역');
   }
 }
 
@@ -136,7 +140,7 @@ async function buildCategoryMenu() {
   function getSavedRegionIdSync() {
     const id = localStorage.getItem('selectedRegionId');
     return (id && /^\d+$/.test(id)) ? id : null;
-    }
+  }
 
   function createItem(cat) {
     const itemDiv = document.createElement('div');
@@ -224,6 +228,7 @@ function ensureRegionModal() {
             <div id="regionList" class="list-group" style="max-height: 320px; overflow:auto;"></div>
           </div>
           <div class="modal-footer">
+            <button type="button" class="btn btn-outline-primary" id="useGpsBtn">내 위치로 찾기</button>
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
             <button type="button" class="btn btn-link text-danger" id="resetRegionBtn">초기화</button>
             <button type="button" class="btn btn-primary" id="applyRegionBtn" data-bs-dismiss="modal">적용</button>
@@ -276,7 +281,6 @@ function initRegionUI() {
   async function fetchRegionSuggest(keyword = '') {
     const url = `/api/suggest?q=${encodeURIComponent(keyword)}&limit=50&onlyLeaf=true`;
     const res = await fetch(url, { cache: 'no-store' });
-    // const res = await fetch(`/api/suggest?q=${encodeURIComponent(keyword)}&limit=50`, { cache: 'no-store' });
     if (!res.ok) throw new Error('지역 목록 요청 실패');
 
     // 기대 응답: [{regionId, name, path}, ...]
@@ -372,7 +376,7 @@ function initRegionUI() {
     regionOpenBtn.dataset.bound = 'true';
   }
 
-  // region 모달 UI 초기화 함수 내부
+  // 초기화 버튼: 저장 초기화 후 메인으로 이동(요청사항)
   const resetBtn = document.getElementById('resetRegionBtn');
   if (resetBtn && !resetBtn.dataset.bound) {
     resetBtn.addEventListener('click', () => {
@@ -381,15 +385,96 @@ function initRegionUI() {
       localStorage.removeItem('selectedRegionLabel');
 
       // 2) 헤더 라벨 복구
-      const labelEl = document.getElementById('regionBtnLabel');
-      if (labelEl) labelEl.textContent = '지역';
+      const labelEl2 = document.getElementById('regionBtnLabel');
+      if (labelEl2) labelEl2.textContent = '지역';
 
-      // 3) 현재 URL에서 regionId 파라미터 제거 후 이동
-      const url = new URL(location.href);
-      url.searchParams.delete('regionId');
-      // (선택) page 등 다른 파라미터는 보존됨
-      window.location.href = url.toString();
+      // 3) 메인 페이지로 이동
+      window.location.href = '/main.html';
     });
     resetBtn.dataset.bound = 'true';
+  }
+
+  // GPS 버튼 바인딩
+  const useGpsBtn = document.getElementById('useGpsBtn');
+  if (useGpsBtn && !useGpsBtn.dataset.bound) {
+    useGpsBtn.addEventListener('click', useGpsAndSelectDong);
+    useGpsBtn.dataset.bound = 'true';
+  }
+}
+
+/* ==============================
+ * GPS 사용 → 카카오 역지오코딩 → 지역 매칭 → 선택/이동
+ * - 보안상, 프론트에서 직접 카카오 REST 키를 쓰지 말고
+ *   서버 프록시(/api/geo/coord2regioncode)에서 Authorization 헤더를 붙이세요.
+ * ============================== */
+async function useGpsAndSelectDong() {
+  if (!('geolocation' in navigator)) {
+    alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+    return;
+  }
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
+  if (!isSecure) {
+    alert('위치 사용을 위해 HTTPS에서 접속해주세요.');
+    return;
+  }
+
+  // 1) 현재 위치
+  let coords;
+  try {
+    coords = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(pos.coords),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  } catch (e) {
+    console.error(e);
+    alert('현재 위치를 가져오지 못했습니다.');
+    return;
+  }
+  const { latitude: lat, longitude: lng } = coords;
+
+  // 2) 서버 프록시로 카카오 역지오코딩
+  let pick;
+  try {
+    const r = await fetch(`/api/geo/coord2regioncode?lat=${lat}&lng=${lng}`, { credentials: 'include' });
+    if (!r.ok) throw new Error('역지오코딩 실패');
+    const data = await r.json();
+    const docs = data.documents || data;
+    pick = docs.find(d => d.region_type === 'H') || docs.find(d => d.region_type === 'B');
+    if (!pick) throw new Error('행정동/법정동을 찾지 못함');
+  } catch (e) {
+    console.error(e);
+    alert('동/읍/면 정보를 찾지 못했습니다.');
+    return;
+  }
+
+  const dongLabel = [pick.region_1depth_name, pick.region_2depth_name, pick.region_3depth_name]
+    .filter(Boolean).join(' > ');
+
+  // 3) 여러분 DB 지역 매칭
+  try {
+    const sRes = await fetch(`/api/suggest?q=${encodeURIComponent(dongLabel)}&limit=1`, { cache: 'no-store' });
+    const rows = sRes.ok ? await sRes.json() : [];
+    const hit = rows?.[0];
+    const regionId = hit && (hit.regionId ?? hit.region_id);
+    if (!regionId) {
+      alert(`지역 매칭 실패: ${dongLabel}`);
+      return;
+    }
+
+    // 저장 & 라벨 변경
+    localStorage.setItem('selectedRegionId', String(regionId));
+    localStorage.setItem('selectedRegionLabel', dongLabel);
+
+    const labelEl = document.getElementById('regionBtnLabel');
+    if (labelEl) labelEl.textContent = dongLabel;
+
+    // 목록으로 이동
+    location.href = `/list.html?regionId=${encodeURIComponent(regionId)}`;
+  } catch (e) {
+    console.error(e);
+    alert('지역 매칭 중 오류가 발생했습니다.');
   }
 }
