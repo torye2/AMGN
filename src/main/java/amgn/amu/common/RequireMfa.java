@@ -8,5 +8,6 @@ import java.lang.annotation.*;
 public @interface RequireMfa {
     int maxAgeSeconds() default 1200;
 
-    String reason() default "RequireMfa";
+    String reason() default "";
+    String reasonCode() default "";
 }

@@ -12,6 +12,11 @@
         <result property="nickName" column="NICK_NAME"/>
         <result property="gender" column="GENDER"/>
         <result property="phoneNumber" column="PHONE_NUMBER"/>
+        <result property="emailNormalized" column="EMAIL_NORMALIZED"/>
+        <result property="phoneE164"      column="PHONE_E164"/>
+        <result property="phoneVerified"  column="PHONE_VERIFIED"/>
+        <result property="profileCompleted" column="PROFILE_COMPLETED"/>
+        <result property="profileCompletedAt" column="PROFILE_COMPLETED_AT"/>
         <result property="birthYear" column="BIRTH_YEAR"/>
         <result property="birthMonth" column="BIRTH_MONTH"/>
         <result property="birthDay" column="BIRTH_DAY"/>
@@ -48,11 +53,11 @@
             keyProperty="userId"
             keyColumn="user_id">
         INSERT INTO USERS (
-        LOGIN_ID, PASSWORD_HASH, USER_NAME, EMAIL, NICK_NAME, GENDER, PHONE_NUMBER,
-        BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, STATUS
+                           LOGIN_ID, PASSWORD_HASH, USER_NAME, EMAIL, EMAIL_NORMALIZED, NICK_NAME, GENDER,
+                           PHONE_NUMBER, PHONE_E164, BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, STATUS
         ) VALUES (
-        #{loginId}, #{passwordHash}, #{userName},#{email}, #{nickName}, #{gender}, #{phoneNumber},
-        #{birthYear}, #{birthMonth}, #{birthDay}, 'ACTIVE'
+        #{loginId}, #{passwordHash}, #{userName}, #{email}, #{emailNormalized}, #{nickName}, #{gender},
+                  #{phoneNumber}, #{phoneE164}, #{birthYear}, #{birthMonth}, #{birthDay}, 'ACTIVE'
         )
     </insert>
 
@@ -62,7 +67,32 @@
 
     <insert id="createSocialUser" parameterType="amgn.amu.domain.User"
             useGeneratedKeys="true" keyProperty="userId">
-        INSERT INTO USERS (LOGIN_ID, PASSWORD_HASH, EMAIL, USER_NAME, STATUS, CREATED_AT)
-        VALUES (CONCAT('SOC_', UUID()), NULL, #{email}, #{userName}, 'ACTIVE', NOW())
+        INSERT INTO USERS (LOGIN_ID, PASSWORD_HASH, EMAIL, EMAIL_NORMALIZED,USER_NAME, NICK_NAME, PHONE_NUMBER, STATUS, CREATED_AT)
+        VALUES (#{loginId}, #{passwordHash}, #{email}, #{emailNormalized},#{userName}, #{nickName}, #{phoneNumber}, 'ACTIVE', NOW())
     </insert>
+
+    <update id="completeOnboarding" parameterType="map">
+        UPDATE USERS
+        SET PHONE_NUMBER = #{phoneNumber},
+            PHONE_E164 = #{phoneE164},
+            PHONE_VERIFIED = 0,
+            PROFILE_COMPLETED = 1,
+            UPDATED_AT = NOW()
+        WHERE USER_ID = #{userId}
+    </update>
+
+    <select id="findByEmailNormalized" resultMap="UserMap">
+        SELECT * FROM USERS WHERE EMAIL_NORMALIZED = #{emailNormalized}
+    </select>
+
+    <select id="existsByEmailNormalized" resultType="boolean">
+        SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
+        FROM USERS WHERE EMAIL_NORMALIZED = #{emailNormalized}
+    </select>
+
+    <select id="existsByPhoneE164" resultType="boolean">
+        SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
+        FROM USERS WHERE PHONE_E164 = #{phoneE164}
+    </select>
+
 </mapper>

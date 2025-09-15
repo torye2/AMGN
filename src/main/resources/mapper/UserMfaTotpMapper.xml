@@ -18,8 +18,8 @@
                 (USER_ID, SECRET_ENC, ENABLED, CREATED_AT, UPDATED_AT)
         VALUES (#{userId}, #{secretEnc}, #{enabled}, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
-            SECRET_ENC = VALUES(SECRET_ENC),
-            ENABLED = VALUES(ENABLED),
+            SECRET_ENC = CASE WHEN ENABLED = 0 THEN VALUES(SECRET_ENC) ELSE SECRET_ENC END,
+            ENABLED = GREATEST(ENABLED, VALUES(ENABLED)),
             UPDATED_AT = NOW()
     </insert>
 

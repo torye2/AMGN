@@ -24,6 +24,7 @@ public enum ErrorCode {
     MFA_QR_GENERATION_FAILED(500, "QR 코드를 생성하지 못했습니다."),
     MFA_CODE_INVALID(400, "인증 코드가 올바르지 않습니다."),
     MFA_NOT_ENABLED(409, "2단계 인증이 설정되어 있지 않습니다."),
+    MFA_ENABLED(409, "2단계 인증이 이미 활성화 되어 있습니다."),
     MFA_REQUIRED(401, "추가 인증이 필요합니다."),
     SECURITY_MISSING_ENV(500, "서버 보안 설정이 누락되었습니다."),
     OAUTH_PROVIDER_ERROR(502, "소셜 로그인 제공자와 통신에 실패했습니다."),

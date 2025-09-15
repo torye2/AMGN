@@ -11,4 +11,5 @@ public interface UserMfaBackupCodeMapper {
     int insertBatch(@Param("userId") Long userId, @Param("codes") List<UserMfaBackupCode> codes);
     List<UserMfaBackupCode> listActive(@Param("userId") Long userId);
     int markUsed(@Param("backupCodeId") Long id);
+    int revokeAll(@Param("userId") Long userId);
 }

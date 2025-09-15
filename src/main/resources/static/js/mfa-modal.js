@@ -82,21 +82,44 @@
             if (pendingRetry){ try{ await pendingRetry(); } finally { pendingRetry=null; } }
             window.dispatchEvent(new CustomEvent('mfa:retried',{detail:{ok:true}}));
         }, {once:false});
-        cancel.addEventListener('click', ()=>{ pendingRetry=null; closeModal(); });
+        cancel.addEventListener('click', ()=>{ pendingRetry=null; closeModal(); window.dispatchEvent(new CustomEvent('mfa:cancelled')); });
         document.removeEventListener('click', initOnce);
     });
 
-    async function fetchWithMfa(doRequest){
-        const res = await doRequest();
+    async function fetchWithMfa(requestFn) {
+        if (typeof requestFn !== 'function') {
+            throw new Error('fetchWithMfa: requestFn must be a function');
+        }
+        let res = await requestFn();
         if (res.status !== 401) return res;
 
+        // 1) 헤더 신호
         const need = res.headers.get('X-MFA-Required');
-        if (need && need.toUpperCase()==='TOTP'){
-            pendingRetry = doRequest;
-            openModal();
+        // 2) 바디 신호(보조)
+        let bodyErr = null;
+        try { bodyErr = (await res.clone().json())?.error; } catch {}
 
+        const isMfaRequired = (need && need.toUpperCase() === 'TOTP') || bodyErr === 'MFA_REQUIRED';
+        if (!isMfaRequired) return res;
+
+        // 모달 열고 사용자 입력 대기
+        openModal();
+        const outcome = await new Promise(resolve => {
+            const ok = () => { cleanup(); resolve('ok'); };
+            const cancel = () => { cleanup(); resolve('cancel'); };
+            function cleanup() {
+                window.removeEventListener('mfa:retried', ok);
+                window.removeEventListener('mfa:cancelled', cancel);
+            }
+            window.addEventListener('mfa:retried', ok, {once:true});
+            window.addEventListener('mfa:cancelled', cancel, {once:true});
+        });
+
+        if (outcome === 'cancel') {
+            const e = new Error('MFA_CANCELLED'); e.mfaCancelled = true; throw e;
         }
-        return res;
+        // 인증 성공 → 원요청 재시도
+        return await requestFn();
     }
 
     window.fetchWithMfa = fetchWithMfa;

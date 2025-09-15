@@ -285,8 +285,8 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("권한이 없습니다.");
         }
 
-        // 현재 상태가 CANCELLED가 아니면 복원 불가
-        if (order.getStatus() != OrderStatus.PAID) {
+        // 현재 상태가 CREATED가 아니면 복원 불가
+        if (order.getStatus() != OrderStatus.CREATED) {
             throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
         }
 

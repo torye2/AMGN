@@ -10,7 +10,7 @@ public class CheckService {
 
     private final UserMapper userMapper;
 
-    public boolean extistById(String id) {
+    public boolean existById(String id) {
         return userMapper.existsByLoginId(id);
     }
 }

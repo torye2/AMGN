@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(mfaInterceptor).addPathPatterns("/**");
+        registry.addInterceptor(mfaInterceptor).addPathPatterns("/**")
+                .excludePathPatterns("/api/mfa/**");
     }
 }

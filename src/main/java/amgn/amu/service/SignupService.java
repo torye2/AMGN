@@ -1,9 +1,13 @@
 package amgn.amu.service;
 
+import amgn.amu.common.AppException;
+import amgn.amu.common.ErrorCode;
 import amgn.amu.domain.User;
 import amgn.amu.dto.SignupDto;
 import amgn.amu.mapper.UserMapper;
+import amgn.amu.service.util.ContactNormalizer;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +16,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SignupService {
 
+    //private final ContactNormalizer normalizer = new ContactNormalizer();
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -33,14 +38,27 @@ public class SignupService {
         user.setPasswordHash(passwordEncoder.encode(req(dto.getPasswordHash(), "비밀번호")));
         user.setUserName(req(dto.getUserName(), "이름"));
         user.setEmail(req(dto.getEmail(), "이메일"));
+        user.setEmailNormalized(ContactNormalizer.normalizeEmail(dto.getEmail()));
 
         // 선택값들은 전부 null-safe 가공
         user.setNickName(defaultIfBlank(dto.getNickName(), dto.getUserName())); // 닉네임 없으면 이름으로
         user.setGender(trimToNull(dto.getGender()));            // "", "   " -> null
         user.setPhoneNumber(trimToNull(dto.getPhoneNumber()));
+        String e164 = ContactNormalizer.toE164(dto.getPhoneNumber(), "KR");
+        if (dto.getPhoneNumber() != null && e164 == null) {
+            throw new IllegalArgumentException("유효하지 않은 휴대폰 번호입니다.");
+        }
+        user.setPhoneE164(e164);
+        user.setPhoneVerified(0);
+
         user.setBirthYear(dto.getBirthYear());
         user.setBirthMonth(dto.getBirthMonth());
         user.setBirthDay(dto.getBirthDay());
+
+        if (user.getEmailNormalized()!=null && userMapper.existsByEmailNormalized(user.getEmailNormalized()))
+            throw new AppException(ErrorCode.DUPLICATE_EMAIL);
+        if (user.getPhoneE164()!=null && userMapper.existsByPhoneE164(user.getPhoneE164()))
+            throw new AppException(ErrorCode.DUPLICATE_PHONE);
 
         int row = userMapper.insert(user);
         if (row != 1) {
