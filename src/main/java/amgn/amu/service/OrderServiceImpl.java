@@ -286,7 +286,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 현재 상태가 CREATED가 아니면 복원 불가
-        if (order.getStatus() != OrderStatus.CREATED) {
+        if (order.getStatus() != OrderStatus.PAID) {
             throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
         }
 

@@ -16,7 +16,7 @@
     <div id="header"></div>
 
     <div id="box"></div>
-	
+
     <div class="container">
     	<fieldset class="review-box">
         	<h1>리뷰 관리</h1>
@@ -24,7 +24,7 @@
             	<h2>🗯️상품 품질 리뷰</h2>
             	<p>상품의 품질에 대해 어떻게 생각하시나요?</p>
         	</div>
-    
+
 
     		<!-- 리뷰 작성 폼 -->
         	<form id="review-form">
@@ -32,7 +32,7 @@
 			    <select id="orderSelect" required>
 			        <option value="">-- 주문 선택 --</option>
 			    </select><br>
-				
+
 			    <label id="starRatingfont" for="score">별점 :</label>
 			    <div id="starRating">
 			        <span class="star" data-value="1">⭐</span>
@@ -42,21 +42,21 @@
 			        <span class="star" data-value="5">⭐</span>
 			    </div>
 			    <input type="hidden" id="score" required><br>
-			
+
 			    <label for="rvCommentTextarea">댓글 작성</label>
 				<textarea id="rvCommentTextarea"></textarea>
-			    
-			    <button type="submit">작성</button>	
-				
+
+			    <button type="submit">작성</button>
+
 			</form>
 		</fieldset>
 	</div>
-	<!-- 리뷰 리스트 + 평균 평점 
+	<!-- 리뷰 리스트 + 평균 평점
 	<section>
 	    <h2>리뷰 목록 (평균 평점: <span id="ratingAverage">-</span>)</h2>
 	    <div id="review-list"></div>
 	</section>
-	
+
 	<script>
 	// 페이지 로딩 시 초기화
 	document.addEventListener('DOMContentLoaded', async () => {
@@ -65,15 +65,15 @@
 	        .then(res => res.text())
 	        .then(html => document.getElementById('header').innerHTML = html)
 	        .catch(err => console.error('헤더 불러오기 실패', err));
-	
+
 	    // 2. 주문 불러오기
 	    await fetchOrders();
 	});
-	
+
 	// 로그인한 사용자의 주문 가져오기
 	async function fetchOrders() {
 	    try {
-	        const res = await fetch('/api/orders/mine'); 
+	        const res = await fetch('/api/orders/mine');
 	        if (!res.ok) return;
 	        const orders = await res.json();
 	        const select = document.getElementById('orderSelect');
@@ -87,25 +87,25 @@
 	        console.error('주문 불러오기 실패', err);
 	    }
 	}
-	
+
 	// 리뷰 리스트 + 평균 평점 갱신
 	async function loadReviews(orderId) {
 	    if (!orderId) return;
-	
+
 	    try {
 	        const res = await fetch(`/api/reviews/orders/${orderId}`);
 	        if (!res.ok) return;
-	
+
 	        const reviews = await res.json();
 	        const listDiv = document.getElementById('review-list');
 	        listDiv.innerHTML = "";
-	
+
 	        if (reviews.length === 0) {
 	            listDiv.innerHTML = "<p>리뷰가 없습니다.</p>";
 	            document.getElementById('ratingAverage').textContent = "-";
 	            return;
 	        }
-	
+
 	        let sum = 0;
 	        reviews.forEach(r => {
 	            sum += r.score;
@@ -119,14 +119,14 @@
 	            `;
 	            listDiv.appendChild(div);
 	        });
-	
+
 	        const avg = (sum / reviews.length).toFixed(1);
 	        document.getElementById('ratingAverage').textContent = avg;
 	    } catch(err) {
 	        console.error('리뷰 불러오기 실패', err);
 	    }
 	}
-	
+
 	// 리뷰 작성
 	async function fetchOrders() {
 	    try {
@@ -144,7 +144,7 @@
 	        console.error('주문 불러오기 실패', err);
 	    }
 	}
-	
+
 	async function loadReviews(orderId) {
 	    if (!orderId) return;
 	    try {
@@ -177,7 +177,7 @@
 	        console.error('리뷰 불러오기 실패', err);
 	    }
 	}
-	
+
 	</script>
 	-->
 	<script src="/js/header.js"></script>
