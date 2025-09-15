@@ -10,6 +10,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -252,6 +256,22 @@ public class ListingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "삭제 실패"));
         }
+    }
+
+    @GetMapping("/region/{regionId}")
+    public ResponseEntity<List<ListingDto>> getProductsByRegion(@PathVariable("regionId") Long regionId) {
+        List<ListingDto> products = listingService.getListingsByRegion(regionId);
+        return ResponseEntity.ok(products);
+    }
+
+    // (선택) 페이지네이션 목록 + 지역 필터
+    @GetMapping("/list")
+    public Page<ListingDto> list(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long regionId,
+            @PageableDefault(size = 20, sort = "listingId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return listingService.search(categoryId, regionId, pageable);
     }
 
 }

@@ -1,168 +1,176 @@
-// BFCache(뒤로가기/앞으로가기) 복원 시에도 헤더/카테고리 초기화가 보장되도록 개선
+/* header.js - 헤더/카테고리/지역선택(모달)/검색 연동 (regionId 유지 포함) */
+
+/* ==============================
+ * BFCache 복원까지 고려한 헤더 초기화
+ * ============================== */
 (function () {
   async function ensureHeaderLoaded() {
     const headerContainer = document.getElementById('header');
     if (!headerContainer) return;
 
-    // 헤더가 이미 주입되어 있으면 재주입 생략
+    // 헤더가 이미 페이지에 있으면 재주입 생략
     const alreadyLoaded = !!headerContainer.querySelector('.header-icon');
     if (!alreadyLoaded) {
       try {
+        // 프로젝트가 공용 header.html 을 제공한다면 주입
         const resp = await fetch('/header.html', { cache: 'no-store' });
-        if (!resp.ok) throw new Error('Network response was not ok');
-        const html = await resp.text();
-        headerContainer.innerHTML = html;
-      } catch (err) {
-        console.error('Failed to load header:', err);
-        return;
+        if (resp.ok) {
+          headerContainer.innerHTML = await resp.text();
+        }
+      } catch {
+        // 정적 헤더만 쓰는 페이지라면 조용히 패스
       }
     }
 
-    // 헤더 주입 후 내부 기능 초기화
+    // 헤더 내부 기능 초기화
     initHeaderFeatures();
 
-    // Bootstrap이 없으면 동적 로드 후 지역 모달 보장
+    // Bootstrap 동적 로드 + 지역 모달 주입 + UI 초기화
     await ensureBootstrapLoaded();
     ensureRegionModal();
+    initRegionUI();
   }
 
-  function initHeaderFeatures() {
-    // 검색 이벤트 초기화(중복 바인딩 방지)
-    const searchBtn = document.getElementById("searchBtn");
-    const searchInput = document.getElementById("searchInput");
-    if (searchBtn && searchInput && searchBtn.dataset.bound !== 'true') {
-      searchBtn.addEventListener("click", function () {
-        const query = searchInput.value;
-        window.location.href = `/search?query=${encodeURIComponent(query)}`;
-      });
-
-      searchInput.addEventListener("keypress", function (e) {
-        if (e.key === "Enter") {
-          const query = searchInput.value;
-          window.location.href = `/search?query=${encodeURIComponent(query)}`;
-        }
-      });
-      searchBtn.dataset.bound = 'true';
-    }
-
-    // 로그인 상태 확인(요소 존재 시에만)
-    const authLinksDiv = document.getElementById('auth-links');
-    const reportMenu = document.getElementById('report-menu');
-
-    if (authLinksDiv && authLinksDiv.dataset.loaded !== 'true') {
-      fetch('/api/user/status')
-        .then(response => response.json())
-        .then(data => {
-          if (data.isLoggedIn) {
-            authLinksDiv.innerHTML = `
-                            <p class="welcome-message">${data.nickname}님 환영합니다!</p>
-                            <form action="/logout" method="post" style="display:inline;">
-                                <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;">로그아웃</button>
-                            </form>
-                        `;
-            if (reportMenu) {
-              if (data.username == "관리자") {
-                reportMenu.innerHTML = `
-                            <div><a href="/reportList">신고목록</a></div>
-                            <div><a href="/reportForm">신고하기</a></div>
-                            <div>문의하기</div>
-                        `;
-              } else {
-                reportMenu.innerHTML = `
-                            <div><a href="/reportForm">신고하기</a></div>
-                            <div>문의하기</div>
-                        `;
-              }
-            }
-          } else {
-            authLinksDiv.innerHTML = `
-                            <a href="/login.html">로그인</a>
-                            <a href="/signup.html">회원가입</a>
-                        `;
-          }
-          authLinksDiv.dataset.loaded = 'true';
-        })
-        .catch(error => {
-          console.error('Failed to fetch user status:', error);
-          authLinksDiv.innerHTML = `
-                        <a href="/login.html">로그인</a>
-                        <a href="/signup.html">회원가입</a>
-                    `;
-          authLinksDiv.dataset.loaded = 'true';
-        });
-    }
-
-    // 카테고리 메뉴 보장 로딩
-    buildCategoryMenu();
-  }
-
-  // 최초 로드 + BFCache 복원 모두 처리
   document.addEventListener('DOMContentLoaded', ensureHeaderLoaded);
-  window.addEventListener('pageshow', () => {
-    ensureHeaderLoaded();
-  });
+  window.addEventListener('pageshow', ensureHeaderLoaded);
 })();
 
-async function buildCategoryMenu() {
-    const menuContainer = document.getElementById('category-menu');
-    if (!menuContainer) return;
-    // 이미 채워져 있으면 재로딩 생략
-    if (menuContainer.childElementCount > 0) return;
+/* ==============================
+ * 헤더 내부 기능 초기화
+ * ============================== */
+function initHeaderFeatures() {
+  // --- 검색(현재 지역 유지) ---
+  const searchBtn = document.getElementById('searchBtn');
+  const searchInput = document.getElementById('searchInput');
 
-    let res;
-    try {
-        res = await fetch('/api/categories', { cache: 'no-store' });
-    } catch (e) {
-        console.error('Failed to fetch categories:', e);
-        return;
-    }
-    if (!res.ok) {
-        console.error('Failed to fetch categories:', res.status);
-        return;
-    }
-    const categories = await res.json();
+  if (searchBtn && searchInput && searchBtn.dataset.bound !== 'true') {
+    const goSearch = () => {
+      const q = searchInput.value || '';
+      const rid = localStorage.getItem('selectedRegionId');
+      const regionParam = rid ? `&regionId=${encodeURIComponent(rid)}` : '';
+      location.href = `/search?query=${encodeURIComponent(q)}${regionParam}`;
+    };
 
-    const categoryMap = {};
-    categories.forEach(cat => categoryMap[cat.categoryId] = { ...cat, children: [] });
-    const roots = [];
-
-    categories.forEach(cat => {
-        if (cat.parentId && categoryMap[cat.parentId]) {
-            categoryMap[cat.parentId].children.push(categoryMap[cat.categoryId]);
-        } else {
-            roots.push(categoryMap[cat.categoryId]);
-        }
+    searchBtn.addEventListener('click', goSearch);
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') goSearch();
     });
+    searchBtn.dataset.bound = 'true';
+  }
 
-    function createMenuItem(cat) {
-        const itemDiv = document.createElement('div');
-        itemDiv.classList.add('submenu-item');
+  // --- 로그인 상태 표시 ---
+  const authLinksDiv = document.getElementById('auth-links');
+  const reportMenu = document.getElementById('report-menu');
 
-        const link = document.createElement('a');
-        link.textContent = cat.name;
-        link.href = `/list.html?id=${encodeURIComponent(cat.categoryId)}`;
-        itemDiv.appendChild(link);
-
-        if (cat.children.length > 0) {
-            const subDiv = document.createElement('div');
-            subDiv.classList.add('submenu2');
-            cat.children.forEach(child => subDiv.appendChild(createMenuItem(child)));
-            itemDiv.appendChild(subDiv);
+  if (authLinksDiv && authLinksDiv.dataset.loaded !== 'true') {
+    fetch('/api/user/status', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.isLoggedIn) {
+          authLinksDiv.innerHTML = `
+            <p class="welcome-message">${data.nickname}님 환영합니다!</p>
+            <form action="/logout" method="post" style="display:inline;">
+              <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;">로그아웃</button>
+            </form>
+          `;
+          if (reportMenu) {
+            reportMenu.innerHTML =
+              (data.username === '관리자')
+                ? `<div><a href="/reportList">신고목록</a></div><div><a href="/reportForm">신고하기</a></div><div>문의하기</div>`
+                : `<div><a href="/reportForm">신고하기</a></div><div>문의하기</div>`;
+          }
+        } else {
+          authLinksDiv.innerHTML = `<a href="/login.html">로그인</a><a href="/signup.html">회원가입</a>`;
         }
+        authLinksDiv.dataset.loaded = 'true';
+      })
+      .catch(() => {
+        authLinksDiv.innerHTML = `<a href="/login.html">로그인</a><a href="/signup.html">회원가입</a>`;
+        authLinksDiv.dataset.loaded = 'true';
+      });
+  }
 
-        return itemDiv;
-    }
+  // --- 카테고리 메뉴(현재 지역 유지) ---
+  buildCategoryMenu();
 
-    roots.forEach(root => menuContainer.appendChild(createMenuItem(root)));
+  // --- 지역 라벨 초기 반영 ---
+  const labelEl = document.getElementById('regionBtnLabel');
+  if (labelEl) {
+    labelEl.textContent = localStorage.getItem('selectedRegionLabel') || '지역';
+  }
 }
 
-document.addEventListener("DOMContentLoaded", buildCategoryMenu);
+/* ==============================
+ * 카테고리 메뉴 구성 (/api/categories)
+ * - 카테고리 링크 생성 시 현재 지역(regionId) 유지
+ * ============================== */
+async function buildCategoryMenu() {
+  const menuContainer = document.getElementById('category-menu');
+  if (!menuContainer) return;
+  if (menuContainer.childElementCount > 0) return; // 이미 채워짐
 
-// Bootstrap 로더 (필요 시 동적 로드)
+  let res;
+  try {
+    res = await fetch('/api/categories', { cache: 'no-store' });
+  } catch (e) {
+    console.error('Failed to fetch categories:', e);
+    return;
+  }
+  if (!res.ok) {
+    console.error('Failed to fetch categories:', res.status);
+    return;
+  }
+
+  const categories = await res.json();
+
+  // tree 구성
+  const byId = {};
+  categories.forEach((cat) => (byId[cat.categoryId] = { ...cat, children: [] }));
+  const roots = [];
+  categories.forEach((cat) => {
+    if (cat.parentId && byId[cat.parentId]) byId[cat.parentId].children.push(byId[cat.categoryId]);
+    else roots.push(byId[cat.categoryId]);
+  });
+
+  // 현재 저장된 지역ID (있으면 유지)
+  function getSavedRegionIdSync() {
+    const id = localStorage.getItem('selectedRegionId');
+    return (id && /^\d+$/.test(id)) ? id : null;
+    }
+
+  function createItem(cat) {
+    const itemDiv = document.createElement('div');
+    itemDiv.classList.add('submenu-item');
+
+    const link = document.createElement('a');
+    link.textContent = cat.name;
+
+    const rid = getSavedRegionIdSync();
+    const qs = new URLSearchParams();
+    qs.set('categoryId', String(cat.categoryId)); // id 대신 categoryId 사용
+    if (rid) qs.set('regionId', rid);             // ★ 지역 유지
+
+    link.href = `/list.html?${qs.toString()}`;
+    itemDiv.appendChild(link);
+
+    if (cat.children?.length) {
+      const subDiv = document.createElement('div');
+      subDiv.classList.add('submenu2');
+      cat.children.forEach((child) => subDiv.appendChild(createItem(child)));
+      itemDiv.appendChild(subDiv);
+    }
+    return itemDiv;
+  }
+
+  roots.forEach((root) => menuContainer.appendChild(createItem(root)));
+}
+
+/* ==============================
+ * Bootstrap 로더 (필요 시 동적 로드)
+ * ============================== */
 async function ensureBootstrapLoaded() {
   const needJs = !(window.bootstrap && window.bootstrap.Modal);
   const needCss = !document.querySelector('link[rel="stylesheet"][href*="bootstrap"]');
-
   const tasks = [];
 
   if (needCss) {
@@ -179,10 +187,12 @@ async function ensureBootstrapLoaded() {
     script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
     script.crossOrigin = 'anonymous';
     script.defer = true;
-    tasks.push(new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-    }));
+    tasks.push(
+      new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+      })
+    );
     document.body.appendChild(script);
   }
 
@@ -195,104 +205,191 @@ async function ensureBootstrapLoaded() {
   }
 }
 
-// 지역 모달이 모든 페이지에서 동작하도록 공통 주입
+/* ==============================
+ * 지역 모달 공통 주입
+ * ============================== */
 function ensureRegionModal() {
   if (document.getElementById('regionModal')) return;
 
   const modalHtml = `
-<div class="modal fade" id="regionModal" tabindex="-1" aria-labelledby="regionModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="regionModalLabel">지역 선택</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" class="form-control mb-3" id="regionSearchInput" placeholder="지역 검색 (예: 위례동)">
-        <div id="regionList" class="list-group" style="max-height: 320px; overflow:auto;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
-        <button type="button" class="btn btn-primary" id="applyRegionBtn" data-bs-dismiss="modal">적용</button>
+    <div class="modal fade" id="regionModal" tabindex="-1" aria-labelledby="regionModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="regionModalLabel">지역 선택</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+          </div>
+          <div class="modal-body">
+            <input type="text" class="form-control mb-3" id="regionSearchInput" placeholder="지역 검색 (예: 정자동)">
+            <div id="regionList" class="list-group" style="max-height: 320px; overflow:auto;"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+            <button type="button" class="btn btn-link text-danger" id="resetRegionBtn">초기화</button>
+            <button type="button" class="btn btn-primary" id="applyRegionBtn" data-bs-dismiss="modal">적용</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>`;
+  `;
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-(function(){
-    // 기본 제공 지역 목록 (예시). 백엔드 연동 시 이 배열을 API 응답으로 대체 가능.
-    const regions = [
-        '내 근처','위례동','잠실동','가락동','문정동','판교동','정자동','서현동','야탑동',
-        '강남구','서초구','송파구','분당구','용인시','수원시','광교','일산','부평구','해운대구'
-    ];
+/* ==============================
+ * 지역 모달 UI (DB 자동완성 /api/suggest 연동)
+ * ============================== */
+function initRegionUI() {
+  const LIST_ID  = 'regionList';
+  const INPUT_ID = 'regionSearchInput';
+  const APPLY_ID = 'applyRegionBtn';
 
-    function $(s){ return document.querySelector(s); }
-    function $all(s){ return Array.from(document.querySelectorAll(s)); }
+  const list = document.getElementById(LIST_ID);
+  const input = document.getElementById(INPUT_ID);
+  const applyBtn = document.getElementById(APPLY_ID);
 
-    function initRegionUI(attempts=0){
-        const list = $('#regionList');
-        const search = $('#regionSearchInput');
-        const applyBtn = $('#applyRegionBtn');
+  if (!list || !input || !applyBtn) {
+    // 모달 주입 타이밍 이슈 대비
+    setTimeout(initRegionUI, 100);
+    return;
+  }
 
-        // 모달 DOM이 아직 없으면 재시도 (헤더/모달 비동기 주입 대비)
-        if (!list || !search || !applyBtn) {
-            if (attempts < 20) setTimeout(() => initRegionUI(attempts+1), 100);
-            return;
-        }
+  const $all = (s) => Array.from(document.querySelectorAll(s));
+  const debounce = (fn, wait = 250) => {
+    let t;
+    return (...a) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...a), wait);
+    };
+  };
 
-        let selected = localStorage.getItem('selectedRegion') || '내 근처';
+  // 선택 상태
+  let selected = {
+    id: localStorage.getItem('selectedRegionId') || '',
+    label: localStorage.getItem('selectedRegionLabel') || '지역',
+  };
 
-        function render(filter=''){
-            const q = (filter || '').trim().toLowerCase();
-            list.innerHTML = '';
-            regions
-                .filter(r => !q || r.toLowerCase().includes(q))
-                .forEach(r => {
-                    const item = document.createElement('button');
-                    item.type = 'button';
-                    item.className = 'list-group-item list-group-item-action';
-                    item.textContent = r;
-                    item.setAttribute('data-region', r);
-                    if (r === selected) item.classList.add('active');
-                    item.addEventListener('click', () => {
-                        selected = r;
-                        $all('#regionList .list-group-item').forEach(x => x.classList.remove('active'));
-                        item.classList.add('active');
-                    });
-                    list.appendChild(item);
-                });
-        }
+  // 지역 라벨 반영
+  const labelEl = document.getElementById('regionBtnLabel');
+  if (labelEl) labelEl.textContent = selected.label || '지역';
 
-        render();
+  // 자동완성 API 호출
+  async function fetchRegionSuggest(keyword = '') {
+    const url = `/api/suggest?q=${encodeURIComponent(keyword)}&limit=50&onlyLeaf=true`;
+    const res = await fetch(url, { cache: 'no-store' });
+    // const res = await fetch(`/api/suggest?q=${encodeURIComponent(keyword)}&limit=50`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('지역 목록 요청 실패');
 
-        search.addEventListener('input', () => render(search.value));
+    // 기대 응답: [{regionId, name, path}, ...]
+    const rows = await res.json();
+    return rows.map((r) => ({
+      id: r.regionId ?? r.id ?? r.region_id,
+      label: r.path || r.name || r.label,
+    }));
+  }
 
-        // 적용 버튼: 라벨 반영 + 저장
-        applyBtn.addEventListener('click', () => {
-            localStorage.setItem('selectedRegion', selected);
-            const labelEl = document.getElementById('regionBtnLabel');
-            if (labelEl) labelEl.textContent = selected;
+  function renderList(results) {
+    list.innerHTML = '';
+
+    if (!Array.isArray(results) || results.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'text-muted px-2';
+      empty.textContent = '검색 결과가 없습니다.';
+      list.appendChild(empty);
+      return;
+    }
+
+    results.forEach((r) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'list-group-item list-group-item-action';
+      btn.textContent = r.label;
+      btn.dataset.regionId = r.id;
+      btn.dataset.regionLabel = r.label;
+
+      if (String(r.id) === String(selected.id)) btn.classList.add('active');
+
+      btn.addEventListener('click', () => {
+        selected.id = String(r.id);
+        selected.label = r.label;
+        $all(`#${LIST_ID} .list-group-item`).forEach((x) => x.classList.remove('active'));
+        btn.classList.add('active');
+      });
+
+      list.appendChild(btn);
+    });
+  }
+
+  // 최초 로딩
+  fetchRegionSuggest('')
+    .then(renderList)
+    .catch(() => {
+      list.innerHTML = '<div class="text-danger px-2">지역 목록 로딩 실패</div>';
+    });
+
+  // 입력 디바운스 검색
+  input.addEventListener(
+    'input',
+    debounce(async () => {
+      try {
+        renderList(await fetchRegionSuggest(input.value));
+      } catch (e) {
+        console.error(e);
+      }
+    }, 250)
+  );
+
+  // 적용: 저장 + 라벨 갱신 + 지역 목록 페이지 이동
+  applyBtn.addEventListener('click', () => {
+    if (!selected.id) {
+      localStorage.removeItem('selectedRegionId');
+      localStorage.removeItem('selectedRegionLabel');
+      if (labelEl) labelEl.textContent = '지역';
+      location.href = '/list.html';
+      return;
+    }
+
+    localStorage.setItem('selectedRegionId', selected.id);
+    localStorage.setItem('selectedRegionLabel', selected.label);
+    if (labelEl) labelEl.textContent = selected.label;
+
+    // 지역 유지해서 목록으로
+    location.href = `/list.html?regionId=${encodeURIComponent(selected.id)}`;
+  });
+
+  // 모달 열릴 때마다 초기화
+  const regionOpenBtn = document.getElementById('regionOpenBtn');
+  if (regionOpenBtn && !regionOpenBtn.dataset.bound) {
+    regionOpenBtn.addEventListener('click', () => {
+      const current = localStorage.getItem('selectedRegionLabel') || '지역';
+      if (labelEl) labelEl.textContent = current;
+      input.value = '';
+      fetchRegionSuggest('')
+        .then(renderList)
+        .catch(() => {
+          list.innerHTML = '<div class="text-danger px-2">지역 목록 로딩 실패</div>';
         });
+    });
+    regionOpenBtn.dataset.bound = 'true';
+  }
 
-        // 초기 라벨 세팅 (헤더가 비동기로 주입되었을 수 있어 재시도)
-        function applyInitialLabel(attempts=0){
-            const labelEl = document.getElementById('regionBtnLabel');
-            if (labelEl) {
-                const saved = localStorage.getItem('selectedRegion') || '내 근처';
-                labelEl.textContent = saved;
-                return;
-            }
-            if (attempts < 10) setTimeout(() => applyInitialLabel(attempts+1), 100);
-        }
-        applyInitialLabel();
-    }
+  // region 모달 UI 초기화 함수 내부
+  const resetBtn = document.getElementById('resetRegionBtn');
+  if (resetBtn && !resetBtn.dataset.bound) {
+    resetBtn.addEventListener('click', () => {
+      // 1) 저장 제거
+      localStorage.removeItem('selectedRegionId');
+      localStorage.removeItem('selectedRegionLabel');
 
-    // 헤더/모달 주입 타이밍과 무관하게 재시도하며 초기화
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(initRegionUI, 0));
-    } else {
-        setTimeout(initRegionUI, 0);
-    }
-})();
+      // 2) 헤더 라벨 복구
+      const labelEl = document.getElementById('regionBtnLabel');
+      if (labelEl) labelEl.textContent = '지역';
+
+      // 3) 현재 URL에서 regionId 파라미터 제거 후 이동
+      const url = new URL(location.href);
+      url.searchParams.delete('regionId');
+      // (선택) page 등 다른 파라미터는 보존됨
+      window.location.href = url.toString();
+    });
+    resetBtn.dataset.bound = 'true';
+  }
+}

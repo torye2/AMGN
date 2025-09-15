@@ -5,9 +5,11 @@ import amgn.amu.dto.ListingDto;
 import amgn.amu.entity.Listing;
 import amgn.amu.entity.ListingAttr;
 import amgn.amu.entity.ListingPhoto;
-import amgn.amu.repository.ListingAttrsRepository;
-import amgn.amu.repository.ListingPhotosRepository;
-import amgn.amu.repository.ListingRepository;
+import amgn.amu.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,18 +21,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ListingService {
 
 	private final ListingRepository listingRepository;
 	private final ListingAttrsRepository listingAttrsRepository;
 	private final ListingPhotosRepository listingPhotosRepository;
+	private final CategoryRepository categoryRepository;
+	private final RegionRepository regionRepository;
 
 	public ListingService(ListingRepository listingRepository,
 						  ListingAttrsRepository listingAttrsRepository,
-						  ListingPhotosRepository listingPhotosRepository) {
+						  ListingPhotosRepository listingPhotosRepository,
+						  CategoryRepository categoryRepository,
+						  RegionRepository regionRepository) {
 		this.listingRepository = listingRepository;
 		this.listingAttrsRepository = listingAttrsRepository;
 		this.listingPhotosRepository = listingPhotosRepository;
+		this.categoryRepository = categoryRepository;
+		this.regionRepository = regionRepository;
 	}
 
 	@Transactional
@@ -89,7 +98,7 @@ public class ListingService {
 				.collect(Collectors.toList());
 	}
 
-	// 4 Listing → DTO 변환
+	// Listing → DTO 변환
 	public ListingDto convertToDto(Listing listing) {
 		ListingDto dto = new ListingDto();
 		dto.setListingId(listing.getListingId());
@@ -115,21 +124,21 @@ public class ListingService {
 		return dto;
 	}
 
-	// 5️⃣ 전체 상품 조회
+	// 전체 상품 조회
 	public List<ListingDto> getAllListings() {
 		return listingRepository.findAll().stream()
 				.map(this::convertToDto)
 				.collect(Collectors.toList());
 	}
 
-	// 6️⃣ 판매자별 상품 조회
+	// 판매자별 상품 조회
 	public List<ListingDto> getListingsBySellerId(Long sellerId) {
 		return listingRepository.findBySellerId(sellerId).stream()
 				.map(this::convertToDto)
 				.collect(Collectors.toList());
 	}
 
-	// 7️⃣ ID 기준 상품 조회
+	//  ID 기준 상품 조회
 	public ListingDto getListingById(long listingId) {
 		return listingRepository.findById(listingId)
 				.map(this::convertToDto)
@@ -196,4 +205,80 @@ public class ListingService {
 		// 2) 본문 삭제
 		listingRepository.deleteById(listingId);
 	}
+
+	/** 지역별 상품 (비페이징) */
+	public List<ListingDto> getListingsByRegion(Long regionId) {
+		List<Listing> rows = listingRepository.findByRegionIdOrderByListingIdDesc(regionId);
+		return rows.stream().map(ListingDto::from).toList(); // ListingDto::from 이 있다면 사용
+	}
+
+	/** 지역별 상품 (페이지네이션) - regionId 없으면 전체 */
+	public Page<ListingDto> findByRegionPaged(Long regionId, Pageable pageable) {
+		Page<Listing> page = (regionId == null)
+				? listingRepository.findAll(pageable)
+				: listingRepository.findByRegionId(regionId, pageable);
+		return page.map(ListingDto::from);
+	}
+
+	@Transactional(readOnly = true)
+	public Page<ListingDto> search(Long categoryId, Long regionId, Pageable pageable) {
+		List<Long> catIds = null;
+		if (categoryId != null) {
+			String catPath = categoryRepository.getPathById(categoryId);
+			// path가 없거나 비어있으면 name으로 대체
+			if (catPath == null || catPath.isBlank()) {
+				String catName = categoryRepository.getNameById(categoryId);
+				if (catName != null && !catName.isBlank()) {
+					catPath = catName;
+				}
+			}
+			if (catPath != null && !catPath.isBlank()) {
+				catIds = new ArrayList<>(categoryRepository.findIdsByPathPrefix(catPath));
+				if (catIds.isEmpty()) {
+					catIds = new ArrayList<>();
+				}
+				// 자기 자신도 포함 보장
+				if (!catIds.contains(categoryId)) catIds.add(categoryId);
+			} else {
+				catIds = List.of(categoryId);
+			}
+		}
+
+		List<Long> regIds = null;
+		if (regionId != null) {
+			String regPath = regionRepository.getPathById(regionId);
+			if (regPath == null || regPath.isBlank()) {
+				String regName = regionRepository.getNameById(regionId);
+				if (regName != null && !regName.isBlank()) {
+					regPath = regName;
+				}
+			}
+			if (regPath != null && !regPath.isBlank()) {
+				regIds = new ArrayList<>(regionRepository.findIdsByPathPrefix(regPath));
+				if (regIds.isEmpty()) {
+					regIds = new ArrayList<>();
+				}
+				if (!regIds.contains(regionId)) regIds.add(regionId);
+			} else {
+				regIds = List.of(regionId);
+			}
+		}
+
+		log.info("search() expanded: catIds={}, regIds={}", catIds, regIds);
+
+		Page<Listing> page;
+		if (catIds != null && regIds != null) {
+			page = listingRepository.findByCategoryIdInAndRegionIdIn(catIds, regIds, pageable);
+		} else if (catIds != null) {
+			page = listingRepository.findByCategoryIdIn(catIds, pageable);
+		} else if (regIds != null) {
+			page = listingRepository.findByRegionIdIn(regIds, pageable);
+		} else {
+			page = listingRepository.findAll(pageable);
+		}
+
+		return page.map(this::convertToDto);
+	}
+
+
 }

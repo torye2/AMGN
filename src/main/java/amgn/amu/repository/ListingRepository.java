@@ -28,6 +28,10 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     List<Listing> findByPriceBetween(Long minPrice, Long maxPrice);
 
     List<Listing> findByCategoryIdAndListingIdNot(Long categoryId, Long listingId);
+    Page<Listing> findByCategoryIdIn(List<Long> categoryIds, Pageable pageable);
+    Page<Listing> findByCategoryIdInAndRegionIdIn(List<Long> categoryIds, List<Long> regionIds, Pageable pageable);
+    Page<Listing> findByRegionIdIn(List<Long> regionIds, Pageable pageable);
+
 
 
     // ✅ 제목 검색 (ACTIVE + 포함 + 대소문자 무시 + 페이징 + photos 로딩)
@@ -66,4 +70,31 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     )
     Page<ListingSummaryResponse> searchByTitleSummary(@Param("q") String normalizedTitle, Pageable pageable);
 
+
+    // 비페이징 (목록 정렬)
+    List<Listing> findByRegionIdOrderByListingIdDesc(Long regionId);
+
+    // 페이징
+    Page<Listing> findByRegionId(Long regionId, Pageable pageable);
+
+    Page<Listing> findByCategoryId(Long categoryId, Pageable pageable);
+    Page<Listing> findByCategoryIdAndRegionId(Long categoryId, Long regionId, Pageable pageable);
+
+
+    @Query("""
+        select l from Listing l
+        where (:catPath is null or exists (
+            select 1 from Category c
+            where c.id = l.categoryId
+              and c.path like concat(:catPath, '%')
+        ))
+          and (:regPath is null or exists (
+            select 1 from Region r
+            where r.id = l.regionId
+              and r.path like concat(:regPath, '%')
+        ))
+        """)
+    Page<Listing> searchByPaths(@Param("catPath") String catPath,
+                                @Param("regPath") String regPath,
+                                Pageable pageable);
 }

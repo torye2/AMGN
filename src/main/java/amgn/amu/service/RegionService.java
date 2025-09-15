@@ -17,7 +17,7 @@ public class RegionService {
 	public List<RegionDto>getByParentId(Long parentId){
 		 return regionRepository.findByParentIdOrderByNameAsc(parentId)
 	                .stream()
-	                .map(r -> new RegionDto(r.getId(), r.getName(), r.getParentId(), r.getPath(), r.getLeveNo()))
+				    .map(r -> new RegionDto(r.getId(), r.getName(), r.getLevelNo(), r.getParentId(), r.getPath()))
 	                .toList();
 	}
 }
