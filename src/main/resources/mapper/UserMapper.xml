@@ -95,4 +95,8 @@
         FROM USERS WHERE PHONE_E164 = #{phoneE164}
     </select>
 
+    <select id="findByPhoneE164" resultMap="UserMap">
+        SELECT * FROM USERS WHERE PHONE_E164 = #{phoneE164}
+    </select>
+
 </mapper>
