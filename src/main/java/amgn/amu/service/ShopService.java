@@ -104,13 +104,13 @@ public class ShopService {
                 if (i > -1 && i < orig.length() - 1) ext = orig.substring(i + 1);
                 String fileName = "profile_" + userId + "_" + UUID.randomUUID() + (ext.isBlank() ? "" : "." + ext);
 
-                // UploadPathProvider가 제공하는 디렉터리에 저장
-                Path uploadDir = uploadPathProvider.getUploadsDir();
+                // UploadPathProvider가 제공하는 외부 디렉터리 하위 profiles 폴더에 저장
+                Path uploadDir = uploadPathProvider.getUploadsDir().resolve("profiles");
                 if (!Files.exists(uploadDir)) Files.createDirectories(uploadDir);
                 Path target = uploadDir.resolve(fileName);
                 photo.transferTo(target.toFile());
 
-                savedUrl = "/uploads/" + fileName; // 정적 경로
+                savedUrl = "/uploads/profiles/" + fileName; // 정적 경로
             }
 
             // 존재 여부 확인

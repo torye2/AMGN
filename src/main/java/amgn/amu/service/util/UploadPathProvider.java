@@ -12,7 +12,8 @@ public class UploadPathProvider {
 
     public UploadPathProvider(@Value("${app.uploads.path:}") String configuredPath) {
         if (configuredPath == null || configuredPath.isBlank()) {
-            this.uploadsDir = Path.of(System.getProperty("user.dir"), "uploads")
+            // 기본값을 프로젝트 내부가 아닌 외부 디렉터리(C:/amu/uploads)로 설정
+            this.uploadsDir = Path.of("C:/amu/uploads")
                     .toAbsolutePath()
                     .normalize();
         } else {
