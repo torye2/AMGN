@@ -32,6 +32,7 @@ public class ProfileController {
             HttpServletRequest req) {
         String loginId = loginUser.loginId(req);
         boolean ok = profileService.verifyPassword(loginId, pwreq.password());
+        req.getSession().setAttribute("REAUTH_AT", java.time.Instant.now());
         return ok ? ApiResult.ok(null) : ApiResult.fail("비밀번호가 일치하지 않습니다.");
     }
 

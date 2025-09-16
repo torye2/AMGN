@@ -21,4 +21,14 @@ public interface UserMapper {
     Optional<User> findByEmail(@Param("email") String email);
 
     int createSocialUser(User user);
+
+    int completeOnboarding(@Param("userId") Long userId, @Param("phoneNumber") String phoneNumber, @Param("phoneE164") String phoneE164);
+
+    Optional<User> findByEmailNormalized(@Param("emailNormalized") String emailNormalized);
+
+    boolean existsByEmailNormalized(@Param("emailNormalized") String emailNormalized);
+
+    boolean existsByPhoneE164(@Param("phoneE164") String phoneE164);
+
+    Optional<User> findByPhoneE164(@Param("phoneE164") String phoneE164);
 }

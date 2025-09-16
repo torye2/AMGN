@@ -17,7 +17,7 @@ public class ListingPhoto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long photoId;
 
-     @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", referencedColumnName = "listing_id", nullable = false)
     private Listing listing;
 

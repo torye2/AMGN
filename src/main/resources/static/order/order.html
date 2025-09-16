@@ -11,6 +11,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+    <style>
+        #addressCards {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .addr-card {
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .addr-card:hover {
+            background-color: #f0f0f0;
+        }
+
+        .addr-card.selected {
+            border-color: #007bff;
+            background-color: #e6f0ff;
+            box-shadow: 0 2px 6px rgba(0,123,255,0.3);
+        }
+
+    </style>
 </head>
 <body>
 <div id="wrap">
@@ -20,46 +47,52 @@
 
     <div id="contents">
         <div class="container">
-		
-					<!-- 상품 정보 표시 영역 -->
-			<section id="productInfoSection">
-			    <h2 id="productInfoTitle">상품 정보</h2>
-			    <div id="productImages"></div>
-			    <p><strong>상품명:</strong> <span id="productTitle"></span></p>
-			    <p><strong>가격:</strong> <span id="productPrice"></span></p>
-			    <p><strong>판매자:</strong> <span id="productSeller"></span></p>
-			</section>
-			
+            <!-- 상품 정보 표시 영역 -->
+            <section id="productInfoSection">
+                <h2 id="productInfoTitle">상품 정보</h2>
+                <div id="productImages"></div>
+                <p><strong>상품명:</strong> <span id="productTitle"></span></p>
+                <p><strong>가격:</strong> <span id="productPrice"></span></p>
+                <p><strong>판매자:</strong> <span id="productSeller"></span></p>
+            </section>
+
             <!-- 주문 등록 폼 -->
             <section id="orderFormSection">
                 <h2>주문 등록</h2>
                 <form id="orderForm">
                     <input type="number" name="listingId" placeholder="상품 ID" required readonly />
-                    <select name="method" id="methodSelect">
-                        <option value="MEETUP">직거래</option>
-                        <option value="DELIVERY">배송</option>
+
+                    <!-- 거래 방식: JS에서 동적으로 옵션 생성 -->
+                    <select name="method" id="methodSelect" style="display:none;">
+                        <option value="" disabled selected>거래 방식을 선택하세요</option>
                     </select>
+
                     <input type="text" name="recvName" placeholder="수령인 이름" required />
                     <input type="text" name="recvPhone" placeholder="수령인 전화" required />
 
-                    <!-- 직거래 입력 -->
-                    <div id="meetupFields">
+                    <!-- 직거래 필드 -->
+                    <div id="meetupFields" style="display:none;">
                         <input type="text" name="recvAddr1" placeholder="희망 직거래 장소" />
                     </div>
 
-                    <!-- 배송 입력 -->
+                    <!-- 택배 필드 -->
                     <div id="deliveryFields" style="display:none;">
                         <input type="text" name="recvAddr2" placeholder="택배 주소" />
                         <input type="text" name="recvZip" placeholder="우편번호" />
                     </div>
 
+                    <!-- 주소 카드 영역 -->
+                    <div id="addressCards">
+                        <p>불러오는 중...</p>
+                    </div>
+
                     <button type="submit">주문 등록</button>
                 </form>
+
             </section>
         </div>
     </div>
 </div>
-
 
 <script src="/js/header.js"></script>
 <script src="/order/js/order.js"></script>

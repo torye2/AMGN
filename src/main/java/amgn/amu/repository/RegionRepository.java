@@ -42,4 +42,23 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
         order by r.path asc, r.name asc
     """)
 	List<Region> findLeafSuggest(@Param("kw") String kw, Pageable pageable);
+
+	// RegionRepository
+	@Query("""
+  	select r from Region r
+  	where lower(replace(replace(r.path, '>', ' '), '/', ' '))
+        	like lower(concat('%', :kw, '%'))
+     	or lower(r.name) = lower(:kw)
+  	order by length(r.path) asc
+	""")
+	List<Region> findNormalized(@Param("kw") String kw, Pageable pageable);
+
+	@Query("""
+  	select r from Region r
+  	where lower(r.path) like lower(concat('%', :kw, '%'))
+     	or lower(r.name) like lower(concat('%', :kw, '%'))
+  	order by length(r.path) asc
+	""")
+	List<Region> findLoose(@Param("kw") String kw, Pageable pageable);
+
 }

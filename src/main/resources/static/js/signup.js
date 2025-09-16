@@ -129,16 +129,72 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== 전화번호 포맷 =====
-    if (phone) {
-        phone.addEventListener('blur', () => {
-            const cleaned = phone.value.replace(/[^0-9]/g, '');
-            if (cleaned.length === 10) {
-                phone.value = cleaned.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3');
-            } else if (cleaned.length === 11) {
-                phone.value = cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-            }
-        });
+    function formatKRPhone(v) {
+        const d = (v || '').replace(/\D/g, '');
+        if (!d) return '';
+
+        // 대표번호(1588/1600/1666/1800 등)
+        if (/^(15|16|18)\d{2}/.test(d)) {
+            if (d.length <= 4) return d;
+            return d.slice(0, 4) + '-' + d.slice(4, 8);
+        }
+
+        // 서울(02)
+        if (d.startsWith('02')) {
+            if (d.length <= 2) return d;
+            if (d.length <= 5) return d.slice(0, 2) + '-' + d.slice(2);
+            if (d.length <= 9) return d.slice(0, 2) + '-' + d.slice(2, 5) + '-' + d.slice(5);
+            return d.slice(0, 2) + '-' + d.slice(2, 6) + '-' + d.slice(6, 10);
+        }
+
+        // 010/070/050/지역 국번(3자리)
+        const ac3 = d.slice(0, 3);
+        if (/^(010|070|050|051|052|053|054|055|031|032|033|041|042|043|044|061|062|063|064)$/.test(ac3)) {
+            if (d.length <= 3) return d;
+            if (d.length <= 7) return d.slice(0, 3) + '-' + d.slice(3);
+            if (d.length === 10) return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6);
+            return d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7, 11);
+        }
+
+        // 그 외 일반: 3-3/4-4
+        if (d.length <= 3) return d;
+        if (d.length <= 7) return d.slice(0, 3) + '-' + d.slice(3);
+        if (d.length === 10) return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6);
+        return d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7, 11);
     }
+
+    // 입력 중 자동 포맷 + 캐럿 유지
+    phone.addEventListener('input', () => {
+        const cur = phone.value;
+        const start = phone.selectionStart;
+        const beforeDigits = (cur.slice(0, start) || '').replace(/\D/g, '').length;
+
+        const next = formatKRPhone(cur);
+        if (cur !== next) {
+            phone.value = next;
+
+            // 새 문자열에서 같은 "숫자 인덱스" 위치로 캐럿 복원
+            let seen = 0, pos = 0;
+            while (pos < next.length && seen < beforeDigits) {
+                if (/\d/.test(next[pos])) seen++;
+                pos++;
+            }
+            phone.setSelectionRange(pos, pos);
+        }
+    });
+
+    // 붙여넣기 방어 (숫자만 유지)
+    phone.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+        const digits = text.replace(/\D/g, '');
+        phone.value = formatKRPhone(digits);
+    });
+
+    // blur 시 최종 정리(있어도 무방)
+    phone.addEventListener('blur', () => {
+        phone.value = formatKRPhone(phone.value);
+    });
 
     // ===== 아이디 중복 확인 =====
     if (idCheckBtn && idInput) {
@@ -171,6 +227,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     form.addEventListener('submit', (e) => {
+        const digits = (phone.value || '').replace(/\D/g, '');
+        phone.value = digits;
         const currentId = idInput.value.trim();
         console.log('[DEBUG] idCheckPassed: ' + idCheckPassed);
         console.log('[DEBUG] lastCheckedId: ' + lastCheckedId);

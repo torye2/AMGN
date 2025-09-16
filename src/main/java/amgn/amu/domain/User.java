@@ -39,6 +39,8 @@ public class User {
 
     @Column(nullable = false)
     private String email;
+    @Column(nullable = false)
+    private String emailNormalized;
 
     @Column(length = 40)
     private String nickName;
@@ -48,6 +50,15 @@ public class User {
 
     @Column(nullable = false, length = 40)
     private String phoneNumber;
+    @Column(name = "phone_E164", nullable = false, length = 20)
+    private String phoneE164;
+    @Column(nullable = false, length = 1)
+    private Integer phoneVerified;
+
+    @Column(nullable = false, length = 1)
+    private Integer profileCompleted;
+    @Column(nullable = false)
+    private LocalDateTime profileCompletedAt;
 
     @Column(nullable = false , length = 10)
     private Integer birthYear;  // 생년

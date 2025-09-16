@@ -2,9 +2,11 @@ package amgn.amu.service;
 
 import amgn.amu.common.AppException;
 import amgn.amu.common.ErrorCode;
+import amgn.amu.common.LoginUser;
 import amgn.amu.dto.oauth_totp.BackupCodesResponse;
 import amgn.amu.dto.oauth_totp.TotpSetupResponse;
 import amgn.amu.entity.UserMfaBackupCode;
+import amgn.amu.entity.UserMfaTotp;
 import amgn.amu.mapper.UserMfaBackupCodeMapper;
 import amgn.amu.mapper.UserMfaTotpMapper;
 import amgn.amu.service.util.CryptoUtil;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Base32;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -28,6 +31,8 @@ import java.util.List;
 public class TotpService {
     private final UserMfaTotpMapper totpMapper;
     private final UserMfaBackupCodeMapper backupMapper;
+    private final LoginUser loginUser;
+    private final ProfileService profileService;
 
     private static final Base32 B32 = new Base32();
     private static final TimeBasedOneTimePasswordGenerator TOTP = new TimeBasedOneTimePasswordGenerator();
@@ -94,6 +99,16 @@ public class TotpService {
             }
             return false;
         });
+    }
+
+    @Transactional
+    public void disabled(long userId) {
+        totpMapper.setEnabled(userId, false);
+        backupMapper.revokeAll(userId);
+    }
+
+    public boolean isEnabled(long userId) {
+        return totpMapper.get(userId).map(UserMfaTotp::isEnabled).orElse(false);
     }
 
     private String loadBase32(long userId) {
