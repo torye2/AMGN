@@ -208,3 +208,30 @@
   color:#6b7280; background:#fff; border:1px dashed #e5e7eb; border-radius:10px;
   padding:28px; text-align:center;
 }
+
+/* ========== Owner Actions (상점 수정) ========== */
+.owner-actions{
+  display:flex; align-items:center; gap:8px; margin-top:8px;
+}
+.owner-actions .edit-shop-btn,
+.owner-actions .save-btn,
+.owner-actions .cancel-btn{
+  appearance:none; border:1px solid #e5e7eb; background:#fff; color:#333;
+  padding:8px 12px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer;
+}
+.owner-actions .edit-shop-btn{ background:#111827; color:#fff; border-color:#111827; }
+.owner-actions .save-btn{ background:#2563eb; color:#fff; border-color:#2563eb; }
+.owner-actions .cancel-btn{ background:#f3f4f6; color:#111827; }
+
+.intro-edit{
+  width:100%; min-height:88px; padding:8px;
+  border:1px solid #e5e7eb; border-radius:6px; resize:vertical;
+  font-size:14px; color:#222; box-sizing:border-box; margin-top:8px;
+}
+
+.avatar img.shop-avatar{
+  width:96px; height:96px; object-fit:cover; border-radius:50%; border:1px solid #e6e6e6;
+}
+.avatar input.avatar-input{
+  margin-top:8px; width:100%;
+}
