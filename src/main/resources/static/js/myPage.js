@@ -850,6 +850,25 @@ document.addEventListener('DOMContentLoaded', () => {
     chatBtn.addEventListener('click', () => {
         window.location.href = `/chatPage.html?roomId=1&listingId=1&sellerId=2`;
     });
+    // "상점 정보 수정" 버튼 -> 내 상점 페이지로 이동 (?sellerId=내 ID)
+    document.getElementById('btnShopEdit')?.addEventListener('click', async () => {
+        try {
+            const me = await fetchMe();
+            const sid = (me && (me.user_id ?? me.userId ?? me.id)) ?? null;
+            if (!me || me.isLoggedIn === false) {
+                alert('로그인이 필요합니다.');
+                location.href = '/login';
+                return;
+            }
+            if (sid == null || String(sid).trim() === '') {
+                alert('사용자 식별자를 확인할 수 없습니다.');
+                return;
+            }
+            window.location.href = `/shop.html?sellerId=${encodeURIComponent(String(sid))}`;
+        } catch (e) {
+            alert('사용자 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        }
+    });
     // form submit
     document.getElementById('accountForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();

@@ -22,7 +22,10 @@ public class AuthStatusController {
                 "isLoggedIn", u != null,
                 "username", u != null ? u.getUserName() : null,
                 "nickname",   u != null ? u.getNickName() : null,
-                "userId",     u != null ? u.getLoginId()      : null,
+                // userId는 숫자 PK를 반환
+                "userId",     u != null ? u.getUserId()      : null,
+                // loginId는 별도 제공
+                "loginId",    u != null ? u.getLoginId()     : null,
                 "createdAt", u != null ? u.getCreatedAt().toLocalDate().toString() : null
         );
     }
