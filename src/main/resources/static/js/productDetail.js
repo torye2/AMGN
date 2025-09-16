@@ -60,6 +60,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSellerProducts(sellerId);
   }
 
+  // ---- 더치트 버튼 로직 ----
+  const theCheatBtn = document.getElementById('thecheat-button');
+  if (theCheatBtn) {
+    theCheatBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = 'https://thecheat.co.kr/rb/?mod=_search';
+      window.open(url, '_blank', 'noopener');
+    });
+  }
+
   // ---- 채팅 버튼 로직 ----
   const chatBtn = document.getElementById('chat-button');
   if (chatBtn) {
