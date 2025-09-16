@@ -601,30 +601,66 @@ async function loadPurchases() {
 // 페이지 로드 시 실행
 document.addEventListener('DOMContentLoaded', loadPurchases);
 
+const nicknameCache = {};
 
-async function loadReviews() {
-    const body = $('#reviewsBody');
-    body.innerHTML = '';
-    if (!ENDPOINTS.reviewableOrders) {
-        body.innerHTML = `<tr><td colspan="4" class="empty">리뷰 API가 아직 없습니다.</td></tr>`;
-        return;
-    }
+async function getNickname(userId) {
+    if (nicknameCache[userId]) return nicknameCache[userId];
+
     try {
-        const list = await fetch(ENDPOINTS.reviewableOrders).then(noAuthGuard).then(r => r.json());
-        if (!list.length) {
-            body.innerHTML = `<tr><td colspan="4" class="empty">작성 가능한 리뷰가 없습니다.</td></tr>`;
-            return;
-        }
-        body.innerHTML = list.map(r => `<tr>
-      <td>-</td>
-      <td>주문 #${r.orderId ?? '-'} 리뷰 작성 가능</td>
-      <td>${r.counterpartyName ?? '-'}</td>
-      <td>${r.createdAt ?? '-'}</td>
-    </tr>`).join('');
+        const res = await fetch(`/api/user/nickname/${userId}`);
+        const data = await res.json();
+        nicknameCache[userId] = data.nickname;
+        return data.nickname;
     } catch (err) {
-        body.innerHTML = `<tr><td colspan="4" class="empty">불러오기 실패: ${err.message}</td></tr>`;
+        console.error("닉네임 조회 실패", err);
+        return userId; // fallback
     }
 }
+
+function renderStars(score) {
+    if (!score) return "-";
+    const filled = '★'.repeat(score);
+    const empty = '☆'.repeat(5 - score);
+    return filled + empty;
+}
+
+async function loadReviews() {
+    const tbody = document.getElementById("reviewsBody");
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">로딩 중...</td></tr>`;
+
+    try {
+        const response = await fetch("/api/reviews/received");
+        if (!response.ok) throw new Error("받은 후기 조회 실패");
+
+        const reviews = await response.json();
+
+        if (!reviews.length) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">받은 후기가 없습니다.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        for (const r of reviews) {
+            const nickname = await getNickname(r.raterId); // 여기서 매핑
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${renderStars(r.score)}</td>
+                <td>${r.rvComment || "-"}</td>
+                <td>${nickname}</td>
+                <td>${new Date(r.createdAt).toLocaleString()}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">후기 로딩 중 오류 발생: ${err.message}</td></tr>`;
+    }
+}
+
+
 
 async function loadAlerts() {
     const listEl = $('#alertsList');

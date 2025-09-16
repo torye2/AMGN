@@ -10,6 +10,7 @@ import lombok.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Review {
 
     @Id
@@ -17,22 +18,22 @@ public class Review {
     @Column(name = "review_id")
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @Column(name = "rater_id")
+    @Column(name = "rater_id", nullable = false)
     private Long raterId;
 
-    @Column(name = "ratee_id")
+    @Column(name = "ratee_id", nullable = false)
     private Long rateeId;
 
-    @Column(name = "score")
+    @Column(name = "score", nullable = false)
     private Integer score;
 
     @Column(name = "rv_comment")
     private String rvComment;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

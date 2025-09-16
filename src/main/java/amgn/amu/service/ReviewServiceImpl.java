@@ -75,4 +75,20 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.save(review);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReviewDto> getReviewsBySeller(Long sellerId) {
+        return reviewRepository.findByRateeIdOrderByCreatedAtDesc(sellerId)
+                .stream()
+                .map(r -> new ReviewDto(
+                        r.getId(),
+                        r.getOrder().getId(),
+                        r.getRaterId(),
+                        r.getScore(),
+                        r.getRvComment(),
+                        r.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+    }
+
 }

@@ -13,4 +13,7 @@ public interface ReviewService {
     List<ReviewDto> getReviewsByOrder(Long orderId);
 
     void createReview(Long userId, Map<String, Object> payload);
+
+    // 판매자가 받은 후기 전체 조회
+    List<ReviewDto> getReviewsBySeller(Long sellerId);
 }

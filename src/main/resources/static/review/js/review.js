@@ -181,15 +181,17 @@ async function submitReview(e) {
 function setupStarRating() {
   const stars = document.querySelectorAll('#starRating .star');
   const scoreInput = document.getElementById('score');
+
   stars.forEach(star => {
     const value = parseInt(star.getAttribute('data-value'));
+    // 클릭할 때만 반영
     star.addEventListener('click', () => {
       scoreInput.value = value;
       updateStars(value);
     });
-    star.addEventListener('mouseover', () => updateStars(value));
-    star.addEventListener('mouseout', () => updateStars(Number(scoreInput.value)));
   });
+
+  // 기본 업데이트 함수 (선택된 값만 표시)
   function updateStars(value) {
     stars.forEach(star => {
       const starValue = parseInt(star.getAttribute('data-value'));
@@ -197,3 +199,4 @@ function setupStarRating() {
     });
   }
 }
+

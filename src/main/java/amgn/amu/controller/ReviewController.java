@@ -45,4 +45,12 @@ public class ReviewController {
         reviewService.createReview(userId, payload);
         return ResponseEntity.ok().build();
     }
+
+    // 판매자가 받은 후기 전체 조회
+    @GetMapping("/received")
+    public ResponseEntity<List<ReviewDto>> receivedReviews(HttpSession session) {
+        Long sellerId = getUserId(session);
+        return ResponseEntity.ok(reviewService.getReviewsBySeller(sellerId));
+    }
+
 }
