@@ -1,7 +1,11 @@
 package amgn.amu.config;
 
+import amgn.amu.component.LoginHelper;
+import amgn.amu.domain.User;
+import amgn.amu.dto.oauth_totp.PendingOauth;
 import amgn.amu.repository.UserRepository;
 import amgn.amu.service.OauthBridgeService;
+import amgn.amu.service.util.OAuthProfileResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +15,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -21,6 +28,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Configuration
 @EnableWebSecurity
@@ -30,10 +38,10 @@ public class SecurityConfig {
                               AuthenticationSuccessHandler success,
                               AuthenticationFailureHandler failure) throws Exception {
         http
-                .securityMatcher("/oauth2/**", "/login/oauth2/**", "/api/oauth/**", "/logout", "/onboarding")
+                .securityMatcher("/oauth2/**", "/login/oauth2/**", "/api/oauth/**", "/logout")
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/csrf").permitAll()
-                        .requestMatchers("/api/oauth/unlink", "/onboarding", "/api/onboarding").authenticated()
+                        .requestMatchers("/api/csrf", "/onboarding", "/api/onboarding").permitAll()
+                        .requestMatchers("/api/oauth/unlink").authenticated()
                         .anyRequest().permitAll())
                 .oauth2Login(o -> o
                         .loginPage("/login")
@@ -67,12 +75,40 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationSuccessHandler successHandler(OauthBridgeService bridge, UserRepository userRepository) {
+    AuthenticationSuccessHandler successHandler(OauthBridgeService bridge,
+                                                OAuth2AuthorizedClientService clientService,
+                                                LoginHelper loginHelper) {
         return (req, res, auth) -> {
-            var result = bridge.upsertAndLogin(req, auth);
-            Long uid = result.getLoginUser().getUserId();
-            boolean needs = bridge.isOnboardingRequired(uid);
-            res.sendRedirect(needs ? "/onboarding" : "/main");
+            var oauth = (OAuth2AuthenticationToken) auth;
+            var provider = OAuthProfileResolver.providerOf(oauth);
+            var attrs = oauth.getPrincipal().getAttributes();
+
+            var pid = OAuthProfileResolver.pidOf(provider, attrs);
+            var linked = bridge.findLinkedUserId(provider, pid);
+
+            if (linked.isPresent()) {
+                loginHelper.loginAs(req, res, linked.get(), null, null);
+                res.sendRedirect("/main");
+                return;
+            }
+
+            OAuth2AuthorizedClient client = clientService.loadAuthorizedClient(provider, oauth.getName());
+            String accessToken = client.getAccessToken().getTokenValue();
+            String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
+            var expriresAt = client.getAccessToken().getExpiresAt();
+
+            PendingOauth po = new PendingOauth();
+            po.setProvider(provider);
+            po.setProviderUserId(pid);
+            po.setEmail(OAuthProfileResolver.emailOf(provider, attrs));
+            po.setEmailVerified(OAuthProfileResolver.emailVerifiedOf(provider, attrs));
+            po.setDisplayName(OAuthProfileResolver.displayNameOf(provider, attrs));
+            po.setAccessToken(accessToken);
+            po.setRefreshToken(refreshToken);
+            po.setTokenExpiresAt(expriresAt);
+
+            req.getSession(true).setAttribute("PENDING_OAUTH", po);
+            res.sendRedirect("/onboarding");
         };
     }
 

@@ -22,10 +22,15 @@
   function getCookie(n){return document.cookie.split('; ').find(r=>r.startsWith(n+'='))?.split('=')[1];}
   document.getElementById('obForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const btn = document.querySelector('#obForm button[type=submit]');
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '처리 중...';
     const raw = phoneInput.value ?? '';
     const phone = raw.replace(/\D/g,'');
     if (!phone) {
       showError('휴대폰 번호를 입력해 주세요.');
+      btn.disabled = false; btn.textContent = oldText;
       return;
     }
     const xsrf  = getCookie('XSRF-TOKEN');
@@ -39,6 +44,21 @@
        if(!r.ok){
            let body = {};
            try { body = await r.json(); } catch(e){}
+           if (r.status === 400 && body.code === 'NO_PENDING') {
+               showError('세션이 만료되었습니다. 소셜 로그인을 다시 시도해 주세요.');
+               setTimeout(() => location.href = '/login', 1200);
+               return;
+           }
+           if (r.status === 401) {
+               showError('로그인이 필요합니다. 다시 시도해 주세요.');
+               setTimeout(() => location.href = '/login', 800);
+               return;
+           }
+           if (r.status === 403) {
+               showError('요청이 거부되었습니다. 잠시 후 다시 시도해 주세요.');
+               return;
+           }
+
            if (r.status === 409 && body.code === 'PHONE_TAKEN') {
                showError('이미 등록된 번호입니다. 그 계정으로 로그인하거나, 문자 인증 후 연결해 주세요.');
                return;
@@ -53,8 +73,10 @@
       location.href = '/main';
     } catch(err){
       const el = document.getElementById('err');
-      el.textContent = err.message || '저장 실패';
-      el.style.display = 'block';
+      showError(err.message || '저장 실패');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = oldText;
     }
   });
 
@@ -118,9 +140,12 @@
   }
 
   function showError(msg){
-    const el = document.getElementById('errorMsg') || document.querySelector('.error-msg');
-    if (el) { el.textContent = msg; el.style.display = 'block'; }
-    else { alert(msg); }
+        const el = document.getElementById('err');
+        if (!el) { alert(msg); return; }
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.setAttribute('role','alert');
+        el.setAttribute('aria-live','assertive');
   }
 </script>
 </body>

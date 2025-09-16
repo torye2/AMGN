@@ -69,4 +69,10 @@
         DELETE FROM OAUTH_IDENTITIES
         WHERE USER_ID = #{userId} AND PROVIDER = #{provider}
     </delete>
+
+    <select id="findUserIdByProviderAndPid">
+        SELECT USER_ID
+        FROM OAUTH_IDENTITIES
+        WHERE PROVIDER = #{provider} AND PROVIDER_USER_ID = #{pid}
+    </select>
 </mapper>
