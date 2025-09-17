@@ -32,12 +32,6 @@ public class LoginUserDto {
     @NotBlank
     private Integer birthDay;
     @NotBlank
-    private String province;
-    @NotBlank
-    private String city;
-
-    private String detailAddress;
-    @NotBlank
     private LocalDateTime createdAt;
 
     public static LoginUserDto from(User user) {

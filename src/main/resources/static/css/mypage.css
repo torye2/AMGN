@@ -315,3 +315,6 @@ th{color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.02em; te
 #oauth-links .btn-social.kakao  { background:#FEE500; border-color:#F2D300; color:#111; }
 #oauth-links .btn-social.naver  { background:#03C75A; color:#fff; border-color:#04b352; }
 #oauth-links .btn-social.google { background:#fff; color:#222; border-color:#dadce0; }
+
+#productsGrid.loading .item { opacity: .5; filter: grayscale(1); transition: opacity .18s ease; }
+#productsGrid .item { opacity: 1; transition: opacity .18s ease; }

@@ -39,10 +39,10 @@ function isMainPage() {
   return location.pathname === '/main.html' || location.pathname.endsWith('/main.html');
 }
 
-/* ==============================
+/* ==============================!
  * 헤더 내부 기능 초기화
  * ============================== */
-function initHeaderFeatures() {
+async function initHeaderFeatures() {
   // --- 검색(현재 지역 유지) ---
   const searchBtn = document.getElementById('searchBtn');
   const searchInput = document.getElementById('searchInput');
@@ -69,14 +69,26 @@ function initHeaderFeatures() {
   if (authLinksDiv && authLinksDiv.dataset.loaded !== 'true') {
     fetch('/api/user/status', { credentials: 'include' })
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.isLoggedIn) {
           authLinksDiv.innerHTML = `
             <p class="welcome-message">${data.nickname}님 환영합니다!</p>
-            <form action="/logout" method="post" style="display:inline;">
-              <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;">로그아웃</button>
+            <form id="logoutForm" action="/logout" method="POST" style="display:inline;">
+                <input type="hidden" name="_csrf" id="csrfLogoutField" value="">
+                <button type="submit" style="background:none; border:none; padding:0; cursor:pointer;">로그아웃</button>
             </form>
           `;
+          let token = getCookie('XSRF-TOKEN');
+          if (!token) {
+            try {
+              const info = await ensureCsrf();
+              token = info.token;
+            } catch (e) {
+              console.warn('CSRF 토큰 로딩 실패', e);
+            }
+          }
+          const hidden = document.getElementById('csrfLogoutField');
+          if (hidden && token) hidden.value = token;
           if (reportMenu) {
             reportMenu.innerHTML =
               (data.username === '관리자')
@@ -92,6 +104,16 @@ function initHeaderFeatures() {
         authLinksDiv.innerHTML = `<a href="/login.html">로그인</a><a href="/signup.html">회원가입</a>`;
         authLinksDiv.dataset.loaded = 'true';
       });
+  }
+
+  async function ensureCsrf() {
+    const r = await fetch('/api/csrf', { credentials: 'same-origin' });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+  }
+
+  function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
   }
 
   // --- 카테고리 메뉴(현재 지역 유지) ---

@@ -17,6 +17,9 @@ const ENDPOINTS = {
     addressSetDefault: (id) => `/api/addresses/${id}/default`
 };
 
+const STATUS_MAP = { ON_SALE: 'ACTIVE', ACTIVE: 'ACTIVE', RESERVED: 'RESERVED', SOLD: 'SOLD' };
+const toApiStatus = (s) => STATUS_MAP[s] || s;
+
 // ===== Signup-style birth selectors & postcode helpers =====
 function daysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
@@ -270,7 +273,7 @@ async function saveAddress(e) {
     try {
         const r = await fetch(id ? ENDPOINTS.addressById(id) : ENDPOINTS.addresses, {
             method: id ? 'PUT' : 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: acctHeaders(),
             body: JSON.stringify(payload)
         });
         noAuthGuard(r);
@@ -286,7 +289,10 @@ async function saveAddress(e) {
 
 async function setDefaultAddress(id) {
     try {
-        const r = await fetch(ENDPOINTS.addressSetDefault(id), {method:'PATCH'});
+        const r = await fetch(ENDPOINTS.addressSetDefault(id), {
+            method:'PATCH',
+            headers:acctHeaders()
+        });
         noAuthGuard(r);
         await loadAddresses();
     } catch (e) { alert('대표 지정 실패: ' + e.message); }
@@ -295,7 +301,10 @@ async function setDefaultAddress(id) {
 async function deleteAddress(id) {
     if (!confirm('이 주소를 삭제하시겠어요?')) return;
     try {
-        const r = await fetch(ENDPOINTS.addressById(id), {method:'DELETE'});
+        const r = await fetch(ENDPOINTS.addressById(id), {
+            method:'DELETE',
+            headers:acctHeaders()
+        });
         noAuthGuard(r);
         await loadAddresses();
     } catch (e) { alert('삭제 실패: ' + e.message); }
@@ -378,7 +387,7 @@ function switchTab(name) {
     $$('.mp-link').forEach(n => n.classList.toggle('active', n.dataset.tab === name));
     $$('.tab').forEach(p => p.hidden = p.id !== 'tab-' + name);
     if (name === 'dashboard') loadDashboard();
-    if (name === 'products') loadProducts('ON_SALE');
+    if (name === 'products') loadProducts('ACTIVE');
     if (name === 'favorites') loadFavorites();
     if (name === 'sales') loadSales();
     if (name === 'purchases') loadPurchases();
@@ -399,7 +408,10 @@ document.addEventListener('click', (e) => {
     if (subBtn) {
         $$('#tab-products .subtabs button').forEach(b => b.classList.remove('active'));
         subBtn.classList.add('active');
-        loadProducts(subBtn.dataset.status);
+        const raw = subBtn.getAttribute('data-status'); // dataset 대신 확실히
+        const status = toApiStatus((raw || '').trim().toUpperCase());
+        console.log('[products] click:', raw, '=>', status);
+        loadProducts(status);
     }
 });
 
@@ -425,7 +437,7 @@ function renderProductCard(p) {
 async function loadDashboard() {
     try {
         const [onSale, orders, me, reviewable] = await Promise.all([
-            fetch(ENDPOINTS.myProducts('ON_SALE')).then(noAuthGuard).then(r => r.json()),
+            fetch(ENDPOINTS.myProducts('ACTIVE')).then(noAuthGuard).then(r => r.json()),
             fetch(ENDPOINTS.orders).then(noAuthGuard).then(r => r.json()),
             fetchMe(),
             ENDPOINTS.reviewableOrders ? fetch(ENDPOINTS.reviewableOrders).then(noAuthGuard).then(r => r.json()) : Promise.resolve([])
@@ -486,29 +498,35 @@ async function loadDashboard() {
     }
 }
 
+let _lastLoadReqId = 0;
 async function loadProducts(status) {
     const grid = $('#productsGrid');
     const empty = $('#productsEmpty');
-    grid.innerHTML = '';
+    const reqId = ++_lastLoadReqId;
+
+    grid.classList.add('loading');
     empty.hidden = true;
-    for (let i = 0; i < 6; i++) {
-        const sk = document.createElement('div');
-        sk.className = 'item skeleton';
-        sk.style.height = '236px';
-        grid.appendChild(sk);
-    }
     try {
         const res = await fetch(ENDPOINTS.myProducts(status));
         noAuthGuard(res);
         const list = await res.json();
-        grid.innerHTML = '';
-        if (!list.length) {
+        if (reqId !== _lastLoadReqId) return;
+
+        if (!Array.isArray(list) || list.length === 0) {
+            grid.replaceChildren(); // 비우기
             empty.hidden = false;
             return;
         }
-        list.forEach(p => grid.appendChild(renderProductCard(p)));
+
+        const frag = document.createDocumentFragment();
+        list.forEach(p => frag.appendChild(renderProductCard(p)));
+        grid.replaceChildren(frag);
     } catch (err) {
-        grid.innerHTML = `<div class="empty">불러오기 실패: ${err.message}</div>`;
+        if (reqId !== _lastLoadReqId) return;
+        grid.replaceChildren();
+        grid.insertAdjacentHTML('beforeend', `<div class="empty">불러오기 실패: ${err.message}</div>`);
+    } finally {
+        if (reqId === _lastLoadReqId) grid.classList.remove('loading');
     }
 }
 
@@ -718,11 +736,10 @@ let _acctEditing = false;
 let _acctIdChecked = true;
 
 function acctHeaders() {
-    const t = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
-    const h = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
-    const m = {'Content-Type': 'application/json'};
-    if (t && h) m[h] = t;
-    return m;
+    const token = getCookie('XSRF-TOKEN');
+    const h = { 'Content-Type': 'application/json' };
+    if (token) h['X-XSRF-TOKEN'] = token;
+    return h;
 }
 
 function acctToggle(disabled) {
@@ -940,7 +957,7 @@ document.addEventListener('input', (e) => {
     }
 });
 // Bind buttons on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnCheckId')?.addEventListener('click', accountCheckId);
     document.getElementById('btnStartEdit')?.addEventListener('click', openReauth);
     document.getElementById('btnReauthCancel')?.addEventListener('click', closeReauth);
@@ -949,6 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatBtn.addEventListener('click', () => {
         window.location.href = `/chatPage.html?roomId=1&listingId=1&sellerId=2`;
     });
+    try { await ensureCsrf(); } catch {}
     // "상점 정보 수정" 버튼 -> 내 상점 페이지로 이동 (?sellerId=내 ID)
     document.getElementById('btnShopEdit')?.addEventListener('click', async () => {
         try {
@@ -1149,7 +1167,7 @@ async function payOrder(order) {
         // 실제 결제 구현 없으므로 빈 객체 전송
         const res = await fetch(`/orders/${order.id}/pay`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: acctHeaders(),
             body: JSON.stringify({})
         });
 
@@ -1173,7 +1191,10 @@ async function payOrder(order) {
 // 주문 확정
 async function completeOrder(orderId, td) {
     try {
-        const res = await fetch(`/orders/${orderId}/complete`, {method: 'POST'});
+        const res = await fetch(`/orders/${orderId}/complete`, {
+            method: 'POST',
+            headers: acctHeaders()
+        });
         if (!res.ok) throw new Error('주문 확정 실패');
         td.textContent = '주문 확정';
     } catch (err) {
@@ -1184,7 +1205,10 @@ async function completeOrder(orderId, td) {
 
 // 결제 취소 후 CREATED 상태로 복원
 function revertToCreated(orderId, td, order) {
-    fetch(`/orders/${orderId}/revert`, {method: 'POST'})
+    fetch(`/orders/${orderId}/revert`, {
+        method: 'POST',
+        headers: acctHeaders()
+    })
         .then(res => {
             if (!res.ok) throw new Error('취소 복원 실패');
             td.innerHTML = '';
@@ -1196,7 +1220,10 @@ function revertToCreated(orderId, td, order) {
 
 // 주문 취소
 function cancelOrder(orderId, td, order) {
-    fetch(`/orders/${orderId}/cancel`, {method: 'DELETE'})
+    fetch(`/orders/${orderId}/cancel`, {
+        method: 'DELETE',
+        headers: acctHeaders()
+    })
         .then(res => {
             if (!res.ok) throw new Error('취소 실패');
             alert('주문이 취소되었습니다.');
@@ -1477,7 +1504,7 @@ function renderFavCard(p) {
                             btn.disabled = true;
                             const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: acctHeaders(),
                                 credentials: 'same-origin',
                                 body: JSON.stringify({ content })
                             });
@@ -1625,42 +1652,80 @@ function renderFavCard(p) {
         });
 })();
 
+const ALL_PROVIDERS = ['kakao','naver','google'];
+const CONNECT_URL = (p) => `/api/oauth/connect/${p}`;
+
 async function loadOauthLinks() {
     const wrap = document.getElementById('oauthLinked');
     if (!wrap) return;
     wrap.innerHTML = '<li class="empty">불러오는 중...</li>';
     try {
-        const r = await fetch(ENDPOINTS.oauthMe);
-        noAuthGuard(r);
+        const r = await fetch(ENDPOINTS.oauthMe, { credentials: 'same-origin' });
+        if (r.status === 401) {
+            wrap.innerHTML = '<li class="empty">로그인 후 이용해 주세요.</li>';
+            return;
+        }
+        if (!r.ok) throw new Error('상태 조회 실패');
+
         const j = await r.json();
-        const payload = j.data || j; // ApiResult 래핑 호환
+        const payload = j.data || j;
         const links = payload.linkedProviders || [];
         const canUnlink = !!payload.canUnlink;
+        const linkedSet = new Set(links);
+        const missing = ALL_PROVIDERS.filter(p => !linkedSet.has(p));
         console.log("payload: " + payload);
 
         if (!links.length) {
-            wrap.innerHTML = '<li class="empty">연결된 소셜 계정이 없습니다.</li>';
+            wrap.innerHTML = [
+                '<li class="empty">연결된 소셜 계정이 없습니다.</li>',
+                ...missing.map(p => `
+          <li class="provider-item dim" data-provider="${p}">
+            <span class="provider-name">${p}</span>
+            <span class="provider-actions">
+              <button class="btn-link" type="button">연결하기</button>
+            </span>
+          </li>
+        `)
+            ].join('');
             return;
         }
-        wrap.innerHTML = links.map(p => `
-      <li class="provider-item" data-provider="${p}">
-        <span class="provider-name">${p}</span>
-        <span class="provider-actions">
-          ${canUnlink ? '<button class="btn-unlink" type="button">연결 해제</button>' : ''}
-        </span>
-      </li>
-    `).join('');
+
+        wrap.innerHTML = [
+            ...links.map(p => `
+        <li class="provider-item" data-provider="${p}">
+          <span class="provider-name">${p}</span>
+          <span class="provider-actions">
+            ${canUnlink ? '<button class="btn-unlink" type="button">연결 해제</button>' : ''}
+          </span>
+        </li>
+      `),
+            ...missing.map(p => `
+        <li class="provider-item dim" data-provider="${p}">
+          <span class="provider-name">${p}</span>
+          <span class="provider-actions">
+            <button class="btn-link" type="button">연결하기</button>
+          </span>
+        </li>
+      `)
+        ].join('');
     } catch (e) {
         wrap.innerHTML = `<li class="empty">불러오기 실패: ${e.message}</li>`;
     }
 }
 
 document.addEventListener('click', async (e) => {
-    const item = e.target.closest('#oauth-links .provider-item');
-    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
-    const xsrf = getCookie('XSRF-TOKEN');
+    const item = e.target.closest('#oauth-links .provider-item, #oauthLinked .provider-item');
     if (!item) return;
+
+    if (e.target.classList.contains('btn-link')) {
+        const provider = item.getAttribute('data-provider');
+        window.location.href = CONNECT_URL(provider);
+        return;
+    }
+
     if (e.target.classList.contains('btn-unlink')) {
+        if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+        const xsrf = getCookie('XSRF-TOKEN');
         const provider = item.getAttribute('data-provider');
         if (!confirm(`${provider} 연결을 해제할까요?`)) return;
         try {

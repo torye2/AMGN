@@ -107,12 +107,30 @@ public class ListingController {
     }
 
     @GetMapping("/my-products")
-    public ResponseEntity<List<ListingDto>> getMyProducts(HttpSession session) {
+    public ResponseEntity<List<ListingDto>> getMyProducts(HttpSession session,
+                                                          @RequestParam(name = "status", required = false) String status) {
         try {
             LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
             if (loginUser == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-            return ResponseEntity.ok(listingService.getListingsBySellerId(loginUser.getUserId()));
+            if (status != null && !status.isBlank()) {
+                String st;
+                try {
+                    st = status.trim().toUpperCase();
+                } catch (IllegalArgumentException ex) {
+                    // 잘못된 값이면 400
+                    return ResponseEntity.badRequest().body(List.of());
+                }
+                return ResponseEntity.ok(
+                        listingService.getListingsBySellerIdAndStatus(loginUser.getUserId(), st)
+                );
+            }
+
+            // 파라미터 없으면 전체
+            return ResponseEntity.ok(
+                    listingService.getListingsBySellerId(loginUser.getUserId())
+            );
+
         } catch (Exception e) {
             log.error("내 상품 목록을 불러오는 중 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>추가 정보 입력</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CSRF 쿠키는 서버가 내려줍니다 -->
 </head>
 <body>
 <main class="onboarding">
@@ -16,69 +15,14 @@
     </label>
     <button type="submit">완료</button>
   </form>
+  <div id="loginLinkBox" style="display:none;">
+    <p>기존 계정으로 로그인하면 연결됩니다.</p>
+    <a id="loginToLinkCta" class="btn">로그인하러 가기</a>
+  </div>
   <p id="err" style="color:#c00; display:none;"></p>
 </main>
 <script>
   function getCookie(n){return document.cookie.split('; ').find(r=>r.startsWith(n+'='))?.split('=')[1];}
-  document.getElementById('obForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const btn = document.querySelector('#obForm button[type=submit]');
-    btn.disabled = true;
-    const oldText = btn.textContent;
-    btn.textContent = '처리 중...';
-    const raw = phoneInput.value ?? '';
-    const phone = raw.replace(/\D/g,'');
-    if (!phone) {
-      showError('휴대폰 번호를 입력해 주세요.');
-      btn.disabled = false; btn.textContent = oldText;
-      return;
-    }
-    const xsrf  = getCookie('XSRF-TOKEN');
-    try {
-      const r = await fetch('/api/onboarding', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','X-XSRF-TOKEN': xsrf},
-        credentials:'same-origin',
-        body: JSON.stringify({ phoneNumber: phone })
-      });
-       if(!r.ok){
-           let body = {};
-           try { body = await r.json(); } catch(e){}
-           if (r.status === 400 && body.code === 'NO_PENDING') {
-               showError('세션이 만료되었습니다. 소셜 로그인을 다시 시도해 주세요.');
-               setTimeout(() => location.href = '/login', 1200);
-               return;
-           }
-           if (r.status === 401) {
-               showError('로그인이 필요합니다. 다시 시도해 주세요.');
-               setTimeout(() => location.href = '/login', 800);
-               return;
-           }
-           if (r.status === 403) {
-               showError('요청이 거부되었습니다. 잠시 후 다시 시도해 주세요.');
-               return;
-           }
-
-           if (r.status === 409 && body.code === 'PHONE_TAKEN') {
-               showError('이미 등록된 번호입니다. 그 계정으로 로그인하거나, 문자 인증 후 연결해 주세요.');
-               return;
-             }
-           if (r.status === 400 && body.code === 'INVALID_PHONE') {
-               showError('휴대폰 번호 형식이 올바르지 않습니다.');
-               return;
-             }
-           showError(body.message || ('서버 오류: '+r.status));
-           return;
-         }
-      location.href = '/main';
-    } catch(err){
-      const el = document.getElementById('err');
-      showError(err.message || '저장 실패');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = oldText;
-    }
-  });
 
   function formatKRPhone(v) {
     const d = (v || '').replace(/\D/g, ''); // 숫자만
@@ -114,7 +58,7 @@
     return d.slice(0,3) + '-' + d.slice(3,7) + '-' + d.slice(7,11);
   }
 
-  // 2) 입력 시 자동 하이픈
+  // 입력 시 자동 하이픈
   const phoneInput = document.getElementById('phone');
   if (phoneInput) {
     phoneInput.addEventListener('input', () => {
@@ -147,6 +91,72 @@
         el.setAttribute('role','alert');
         el.setAttribute('aria-live','assertive');
   }
+  function showInfo(msg){
+    showError(msg);
+  }
+
+  document.getElementById('obForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+
+    const btn = document.querySelector('#obForm button[type=submit]');
+    btn.disabled = true; const oldText = btn.textContent; btn.textContent = '처리 중.';
+
+    const raw = (phoneInput?.value ?? '');
+    const phone = raw.replace(/\D/g,'');
+    if (!phone) { showError('휴대폰 번호를 입력해 주세요.'); btn.disabled=false; btn.textContent=oldText; return; }
+
+    const xsrf = getCookie('XSRF-TOKEN');
+
+    try {
+      const r = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'X-XSRF-TOKEN': xsrf },
+        credentials:'same-origin',
+        body: JSON.stringify({ phoneNumber: phone })
+      });
+
+      // 성공(신규 생성 & 자동 로그인)
+      if (r.ok) { location.href = '/main'; return; }
+
+      // 실패/유도 케이스 공통 파싱
+      let body = {};
+      try { body = await r.json(); } catch(e){}
+
+      // 세션 없음
+      if (r.status === 400 && body.code === 'NO_PENDING') {
+        showError('세션이 만료되었습니다. 소셜 로그인을 다시 시도해 주세요.');
+        setTimeout(()=> location.href='/login', 1200);
+        return;
+      }
+
+      // 권한/CSRF
+      if (r.status === 401) { showError('로그인이 필요합니다. 다시 시도해 주세요.'); return; }
+      if (r.status === 403) { showError('요청이 거부되었습니다. 잠시 후 다시 시도해 주세요.'); return; }
+
+      // 전화번호 형식
+      if (r.status === 400 && body.code === 'INVALID_PHONE') {
+        showError('휴대폰 번호 형식이 올바르지 않습니다.');
+        return;
+      }
+
+      // 여기! 기존 계정 존재 → 로그인 유도(연결)
+      if (r.status === 202 && body.code === 'LOGIN_TO_LINK') {
+        showInfo('기존 계정이 있어요. 로그인하면 연결됩니다.');
+        const cta = document.getElementById('loginToLinkCta');
+        cta.href = (body.nextUrl || '/login?next=/api/oauth/link/confirm'); // /api prefix 제거
+        document.getElementById('obForm').style.display = 'none';
+        document.getElementById('loginLinkBox').style.display = 'block';
+        return;
+      }
+
+      // 그 외
+      showError(body.message || ('서버 오류: ' + r.status));
+    } catch (err) {
+      showError(err.message || '저장 실패');
+    } finally {
+      btn.disabled = false; btn.textContent = oldText;
+    }
+  });
 </script>
 </body>
 </html>

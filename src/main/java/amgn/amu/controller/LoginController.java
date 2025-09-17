@@ -26,39 +26,7 @@ public class LoginController {
 
     @GetMapping("/login")
     public String showLogin(RedirectAttributes ra) {
-        ra.addFlashAttribute("loginUser", new LoginRequest());
         return "redirect:/login.html";
-    }
-
-    @PostMapping("/loginAction")
-    public String login(@Valid LoginRequest req
-            , BindingResult br
-            , RedirectAttributes ra
-            , HttpSession session) {
-        if (br.hasErrors()) {
-            return "redirect:/login.html";
-        }
-
-        try {
-            LoginUserDto loginUser = loginService.login(req);
-            session.setAttribute("loginUser", loginUser);
-            return "redirect:/main.html";
-        } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("loginError", e.getMessage());
-            return "redirect:/login.html";
-        }
-    }
-
-    @GetMapping("/logout")
-    public String logoutGet(HttpSession session) {
-        session.invalidate();
-        return "redirect:/login.html?logout";
-    }
-
-    @PostMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
-        return "redirect:/login.html?logout";
     }
 
     @GetMapping("/debug/session") @ResponseBody

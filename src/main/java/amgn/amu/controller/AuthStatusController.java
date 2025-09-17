@@ -18,16 +18,19 @@ public class AuthStatusController {
         res.setHeader("Pragma", "no-cache");
 
         LoginUserDto u = (LoginUserDto) session.getAttribute("loginUser");
-        return Map.of(
-                "isLoggedIn", u != null,
-                "username", u != null ? u.getUserName() : null,
-                "nickname",   u != null ? u.getNickName() : null,
-                // userId는 숫자 PK를 반환
-                "userId",     u != null ? u.getUserId()      : null,
-                // loginId는 별도 제공
-                "loginId",    u != null ? u.getLoginId()     : null,
-                "createdAt", u != null ? u.getCreatedAt().toLocalDate().toString() : null
-        );
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("isLoggedIn", u != null);
+
+        if (u != null) {
+            result.put("username",  u.getUserName());
+            result.put("nickname",  u.getNickName());
+            result.put("userId",    u.getUserId());
+            result.put("loginId",   u.getLoginId());
+            result.put("createdAt", u.getCreatedAt() != null
+                    ? u.getCreatedAt().toLocalDate().toString()
+                    : null);
+        }
+        return result;
     }
 }
 
