@@ -18,4 +18,5 @@ public interface OauthIdentityMapper {
     int updateTokens(OauthIdentity link);
     List<String> findProvidersByUserId(@Param("userId") Long userId);
     int deleteLinkByUserAndProvider(@Param("userId") Long userId, @Param("provider") String provider);
+    Long findUserIdByProviderAndPid(@Param("provider") String provider, @Param("pid") String pid);
 }

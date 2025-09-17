@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -18,7 +19,7 @@ public class OauthIdentity {
     private String displayName;
     private String accessToken;
     private String refreshToken;
-    private LocalDateTime tokenExpiresAt;
+    private Instant tokenExpiresAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
