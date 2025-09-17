@@ -463,6 +463,23 @@ async function loadDashboard() {
           const w = document.getElementById('metaWish');
           if (w) w.textContent = '0';
         }
+        // DB 기준 팔로워 수 표시 (상점 주인 = 현재 로그인 사용자)
+        try {
+          const sid = me && (me.userId ?? me.user_id ?? me.id);
+          if (sid != null) {
+            const r2 = await fetch(`/api/follows/${encodeURIComponent(sid)}/count`, { credentials: 'include' });
+            const j2 = r2.ok ? await r2.json() : { count: 0 };
+            const followers = (j2 && (j2.count ?? j2.data?.count)) ?? 0;
+            const f = document.getElementById('metaFollowers');
+            if (f) f.textContent = String(followers);
+          } else {
+            const f = document.getElementById('metaFollowers');
+            if (f) f.textContent = '0';
+          }
+        } catch {
+          const f = document.getElementById('metaFollowers');
+          if (f) f.textContent = '0';
+        }
 
     } catch (err) {
         console.warn(err);

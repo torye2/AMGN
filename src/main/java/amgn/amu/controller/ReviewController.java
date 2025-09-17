@@ -46,10 +46,16 @@ public class ReviewController {
         return ResponseEntity.ok().build();
     }
 
-    // 판매자가 받은 후기 전체 조회
+    // 판매자가 받은 후기 전체 조회 (로그인한 본인)
     @GetMapping("/received")
     public ResponseEntity<List<ReviewDto>> receivedReviews(HttpSession session) {
         Long sellerId = getUserId(session);
+        return ResponseEntity.ok(reviewService.getReviewsBySeller(sellerId));
+    }
+
+    // 특정 sellerId의 상점후기 조회 (상점 페이지 용)
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<ReviewDto>> getSellerReviews(@PathVariable Long sellerId) {
         return ResponseEntity.ok(reviewService.getReviewsBySeller(sellerId));
     }
 

@@ -48,7 +48,8 @@ public class ReviewServiceImpl implements ReviewService {
                         r.getRaterId(),
                         r.getScore(),
                         r.getRvComment(),
-                        r.getCreatedAt()
+                        r.getCreatedAt(),
+                        r.getOrder().getListing().getTitle()
                 ))
                 .collect(Collectors.toList());
     }
@@ -86,7 +87,8 @@ public class ReviewServiceImpl implements ReviewService {
                         r.getRaterId(),
                         r.getScore(),
                         r.getRvComment(),
-                        r.getCreatedAt()
+                        r.getCreatedAt(),
+                        r.getOrder().getListing().getTitle()
                 ))
                 .collect(Collectors.toList());
     }

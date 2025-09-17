@@ -47,9 +47,35 @@
             </div>
         </div>
     </div>
+
+    <!-- 상품 패널 (헤더 옆에 탭이 렌더링됨) -->
     <div id="productsAll" class="container">
 
     </div>
+
+    <!-- 상점후기 패널 -->
+    <section id="reviewsPanel" class="container shop-panel store-empty" hidden>
+        <div class="reviews-summary">
+            <h2 style="margin:12px 4px 10px; font-size:16px; font-weight:800;">상점후기 <span id="reviewsTitleCount">0</span></h2>
+            <ul class="reviews-list empty">
+                <li>상점 후기가 없습니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 팔로잉 패널 -->
+    <section id="followingPanel" class="container shop-panel store-empty" hidden>
+        <h2 style="margin:12px 4px 10px; font-size:16px; font-weight:800;">팔로잉 <span id="followingTitleCount">0</span></h2>
+        <div id="followingGrid" class="following-grid"></div>
+        <div id="followingEmpty" class="empty" style="display:none;">팔로잉 목록이 없습니다.</div>
+    </section>
+
+    <!-- 팔로워 패널 -->
+    <section id="followersPanel" class="container shop-panel store-empty" hidden>
+        <h2 style="margin:12px 4px 10px; font-size:16px; font-weight:800;">팔로워 <span id="followersTitleCount">0</span></h2>
+        <div id="followersGrid" class="followers-grid"></div>
+        <div id="followersEmpty" class="empty" style="display:none;">팔로워 목록이 없습니다.</div>
+    </section>
 </main>
 
 <div>

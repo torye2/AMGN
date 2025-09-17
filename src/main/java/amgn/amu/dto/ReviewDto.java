@@ -8,6 +8,7 @@ public record ReviewDto(
         Long raterId,
         Integer score,
         String rvComment,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String listingTitle
 ) {}
 

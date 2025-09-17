@@ -39,8 +39,11 @@
       const miniStatsEl = document.querySelector('.mini-stats');
       if (miniStatsEl) {
         const productCount = typeof data.productCount === 'number' ? data.productCount : 0;
-        // 팔로워는 요구사항에 명시되지 않아 일단 표시만 유지(0으로 표기)
-        miniStatsEl.textContent = `상품 ${productCount} | 팔로워 0`;
+        // 기존 팔로워 표시값을 보존하여, 이후 DB 기준 갱신(fetchFollowerCount)과 충돌하지 않도록 함
+        const existingText = miniStatsEl.textContent || '';
+        const followerMatch = existingText.match(/팔로워\s*(\d+)/);
+        const followerCount = followerMatch ? followerMatch[1] : '0';
+        miniStatsEl.textContent = `상품 ${productCount} | 팔로워 ${followerCount}`;
       }
 
       // 상점오픈 N일 전
@@ -340,11 +343,24 @@
   const productsAll = document.getElementById('productsAll');
   if (!productsAll) return;
 
-  // 초기 마크업 구성
+  // 초기 마크업 구성 (탭 아래에 정렬 바 배치)
   productsAll.innerHTML = `
-    <div class="products-header">
-      <span class="products-title">상품</span>
-      <div class="products-sorts">
+    <div class="products-header" style="display:block;">
+      <nav id="shopTopTabs" class="shop-tabs" role="tablist" aria-label="상점 섹션">
+        <button class="tab-item active" role="tab" aria-selected="true" data-tab="products">
+          상품 <span class="count" id="tabCountProducts">0</span>
+        </button>
+        <button class="tab-item" role="tab" aria-selected="false" data-tab="reviews">
+          상점후기 <span class="count" id="tabCountReviews">0</span>
+        </button>
+        <button class="tab-item" role="tab" aria-selected="false" data-tab="following">
+          팔로잉 <span class="count" id="tabCountFollowing">0</span>
+        </button>
+        <button class="tab-item" role="tab" aria-selected="false" data-tab="followers">
+          팔로워 <span class="count" id="tabCountFollowers">0</span>
+        </button>
+      </nav>
+      <div id="productsSortBar" class="products-sorts" style="margin-top:10px;">
         <button type="button" data-sort="latest" class="sort-btn active">최신순</button>
         <button type="button" data-sort="low">저가순</button>
         <button type="button" data-sort="high">고가순</button>
@@ -431,10 +447,453 @@
     })
     .then((list) => {
       originalList = Array.isArray(list) ? list : [];
+      // 실제 목록 개수로 탭/미니 통계 갱신
+      const cnt = originalList.length;
+      const pc = document.getElementById('tabCountProducts');
+      if (pc) pc.textContent = String(cnt);
+      const mini = document.querySelector('.mini-stats');
+      if (mini) {
+        const txt = mini.textContent || '';
+        const fm = txt.match(/팔로워\s*(\d+)/);
+        const followerCount = fm ? fm[1] : '0';
+        mini.textContent = `상품 ${cnt} | 팔로워 ${followerCount}`;
+      }
       applySort('latest');
     })
     .catch((err) => {
       console.error('판매자 상품 불러오기 실패:', err);
       grid.innerHTML = '<p class="store-empty">상품을 불러오는 중 오류가 발생했습니다.</p>';
     });
+})();
+(function () {
+    const qs = new URLSearchParams(location.search);
+    const sellerId =
+        qs.get('seller_Id') ||
+        qs.get('sellerId') ||
+        qs.get('seller_id');
+    if (!sellerId) return;
+
+    const btn = document.querySelector('.follow-btn');
+
+    // 미니 통계의 팔로워 수 갱신 (상품 개수는 보존) + 탭 카운트 동기화
+    function updateFollowerCountUI(count) {
+        const mini = document.querySelector('.mini-stats');
+        if (mini) {
+            const text = mini.textContent || '';
+            const m = text.match(/상품\s*(\d+)/);
+            const productCount = m ? m[1] : '0';
+            mini.textContent = `상품 ${productCount} | 팔로워 ${count}`;
+        }
+        const fc = document.getElementById('tabCountFollowers');
+        if (fc) fc.textContent = String(count ?? 0);
+    }
+
+    // DB에서 팔로워 수 재조회 (following_id = sellerId)
+    async function fetchFollowerCount() {
+        try {
+            const r = await fetch(`/api/follows/${encodeURIComponent(sellerId)}/count`, { credentials: 'include' });
+            if (!r.ok) return;
+            const j = await r.json();
+            const cnt = (j && (j.count ?? j.data?.count)) ?? 0;
+            updateFollowerCountUI(cnt);
+        } catch {
+            /* 실패 시 표시 유지 */
+        }
+    }
+
+    // DB에서 팔로잉 수 재조회 (follower_id = sellerId)
+    async function fetchFollowingCount() {
+        try {
+            const r = await fetch(`/api/follows/${encodeURIComponent(sellerId)}/following/count`, { credentials: 'include' });
+            if (!r.ok) return;
+            const j = await r.json();
+            const cnt = (j && (j.count ?? j.data?.count)) ?? 0;
+            const el = document.getElementById('tabCountFollowing');
+            if (el) el.textContent = String(cnt);
+        } catch {
+            /* 실패 시 표시 유지 */
+        }
+    }
+
+    // 초기 카운트 로드 (DB 기준)
+    fetchFollowerCount();
+    fetchFollowingCount();
+    // 리뷰 카운트 선반영 (탭 클릭 전에도 표시)
+    fetch(`/api/reviews/seller/${encodeURIComponent(sellerId)}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.resolve([]))
+      .then(list => {
+        const n = Array.isArray(list) ? list.length
+                : (Array.isArray(list?.data) ? list.data.length : 0);
+        const rc = document.getElementById('tabCountReviews');
+        if (rc) rc.textContent = String(n);
+        const rtc = document.getElementById('reviewsTitleCount');
+        if (rtc) rtc.textContent = String(n);
+      })
+      .catch(() => {});
+
+    // 탭 전환 로직
+    // 팔로워 탭 로딩
+    let _followersLoaded = false;
+    async function loadFollowers() {
+        const grid = document.getElementById('followersGrid');
+        const empty = document.getElementById('followersEmpty');
+        const titleCnt = document.getElementById('followersTitleCount');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        empty.style.display = 'none';
+
+        try {
+            const r = await fetch(`/api/follows/${encodeURIComponent(sellerId)}/followers`, { credentials: 'include' });
+            if (!r.ok) throw new Error('팔로워 조회 실패');
+            const j = await r.json();
+            const ids = Array.isArray(j.ids) ? j.ids : (Array.isArray(j.data?.ids) ? j.data.ids : []);
+            titleCnt && (titleCnt.textContent = String(ids.length ?? 0));
+
+            if (!ids.length) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            // 각 팔로워의 프로필/카운트 조회
+            const cards = await Promise.all(ids.map(async (uid) => {
+                // 사용자 기본 정보 (닉네임/상점명/상품수/아바타)
+                let userName = String(uid);
+                let productCount = 0;
+                let avatarUrl = null;
+
+                try {
+                    const s = await fetch(`/api/shop/${encodeURIComponent(uid)}`, { credentials: 'include' });
+                    if (s.ok) {
+                        const info = await s.json();
+                        userName = info.userName || info.username || userName;
+                        productCount = typeof info.productCount === 'number' ? info.productCount : 0;
+
+                        const raw =
+                          info.profileImg || info.profile_img ||
+                          info.user_profile?.profile_img || info.photoUrl ||
+                          info.avatarUrl || info.storeImageUrl ||
+                          info.profileImage || info.profile_image;
+                        if (raw) {
+                            const rr = String(raw);
+                            avatarUrl = rr.startsWith('http') ? rr : (rr.startsWith('/uploads') ? rr : `/uploads/${rr}`);
+                        }
+                    }
+                } catch {}
+
+                // 해당 유저의 팔로워 수
+                let followers = 0;
+                try {
+                    const f = await fetch(`/api/follows/${encodeURIComponent(uid)}/count`, { credentials: 'include' });
+                    if (f.ok) {
+                        const jj = await f.json();
+                        followers = (jj && (jj.count ?? jj.data?.count)) ?? 0;
+                    }
+                } catch {}
+
+                // 카드 DOM (클릭 시 상점 페이지로 이동)
+                const a = document.createElement('a');
+                a.className = 'follower-card';
+                a.href = `/shop.html?sellerId=${encodeURIComponent(uid)}`;
+                a.innerHTML = `
+                    <div class="follower-avatar">
+                        <img alt="avatar" src="${avatarUrl || 'https://placehold.co/64x64?text=%20'}">
+                    </div>
+                    <div class="follower-body">
+                        <div class="follower-name">${userName ?? '-'}</div>
+                        <div class="follower-stars">★★★★★</div>
+                        <div class="follower-meta">상품${productCount}  |  팔로워${followers}</div>
+                    </div>
+                `;
+                return a;
+            }));
+
+            // 렌더
+            grid.innerHTML = '';
+            cards.forEach(c => grid.appendChild(c));
+        } catch (e) {
+            grid.innerHTML = `<div class="store-empty">조회 실패: ${e.message}</div>`;
+        }
+    }
+
+    // 팔로잉 탭 로딩
+    let _followingLoaded = false;
+    async function loadFollowing() {
+        const grid = document.getElementById('followingGrid');
+        const empty = document.getElementById('followingEmpty');
+        const titleCnt = document.getElementById('followingTitleCount');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        empty.style.display = 'none';
+
+        try {
+            // sellerId가 팔로우하는 대상 목록
+            const r = await fetch(`/api/follows/${encodeURIComponent(sellerId)}/following`, { credentials: 'include' });
+            if (!r.ok) throw new Error('팔로잉 조회 실패');
+            const j = await r.json();
+            const ids = Array.isArray(j.ids) ? j.ids : (Array.isArray(j.data?.ids) ? j.data.ids : []);
+            titleCnt && (titleCnt.textContent = String(ids.length ?? 0));
+
+            if (!ids.length) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            const cards = await Promise.all(ids.map(async (uid) => {
+                let userName = String(uid);
+                let productCount = 0;
+                let followers = 0;
+                let avatarUrl = null;
+
+                try {
+                    const s = await fetch(`/api/shop/${encodeURIComponent(uid)}`, { credentials: 'include' });
+                    if (s.ok) {
+                        const info = await s.json();
+                        userName = info.userName || info.username || userName;
+                        productCount = typeof info.productCount === 'number' ? info.productCount : 0;
+
+                        const raw =
+                          info.profileImg || info.profile_img ||
+                          info.user_profile?.profile_img || info.photoUrl ||
+                          info.avatarUrl || info.storeImageUrl ||
+                          info.profileImage || info.profile_image;
+                        if (raw) {
+                            const rr = String(raw);
+                            avatarUrl = rr.startsWith('http') ? rr : (rr.startsWith('/uploads') ? rr : `/uploads/${rr}`);
+                        }
+                    }
+                } catch {}
+
+                try {
+                    const f = await fetch(`/api/follows/${encodeURIComponent(uid)}/count`, { credentials: 'include' });
+                    if (f.ok) {
+                        const jj = await f.json();
+                        followers = (jj && (jj.count ?? jj.data?.count)) ?? 0;
+                    }
+                } catch {}
+
+                const a = document.createElement('a');
+                a.className = 'follower-card';
+                a.href = `/shop.html?sellerId=${encodeURIComponent(uid)}`;
+                a.innerHTML = `
+                    <div class="follower-avatar">
+                        <img alt="avatar" src="${avatarUrl || 'https://placehold.co/64x64?text=%20'}">
+                    </div>
+                    <div class="follower-body">
+                        <div class="follower-name">${userName ?? '-'}</div>
+                        <div class="follower-stars">★★★★★</div>
+                        <div class="follower-meta">상품${productCount}  |  팔로워${followers}</div>
+                    </div>
+                `;
+                return a;
+            }));
+
+            grid.innerHTML = '';
+            cards.forEach(c => grid.appendChild(c));
+        } catch (e) {
+            grid.innerHTML = `<div class="store-empty">조회 실패: ${e.message}</div>`;
+        }
+    }
+
+    // 상점후기 탭 로딩
+    let _reviewsLoaded = false;
+    function timeAgo(isoOrDate) {
+        const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+        const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60) return `${diff}초 전`;
+        const m = Math.floor(diff / 60);
+        if (m < 60) return `${m}분 전`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}시간 전`;
+        const days = Math.floor(h / 24);
+        return `${days}일 전`;
+    }
+    function renderStars(n) {
+        const s = Math.max(0, Math.min(5, Number(n||0)));
+        return '★'.repeat(s) + '☆'.repeat(5 - s);
+    }
+    async function loadShopReviews() {
+        const panel = document.getElementById('reviewsPanel');
+        if (!panel) return;
+        const list = panel.querySelector('.reviews-list');
+        if (!list) return;
+
+        list.innerHTML = '';
+        list.classList.remove('empty');
+
+        try {
+            const r = await fetch(`/api/reviews/seller/${encodeURIComponent(sellerId)}`, { credentials: 'include' });
+            if (!r.ok) throw new Error('후기 조회 실패');
+            const reviews = await r.json();
+
+            if (!Array.isArray(reviews) || reviews.length === 0) {
+                list.classList.add('empty');
+                list.innerHTML = '<li>상점 후기가 없습니다.</li>';
+                return;
+            }
+
+            const items = await Promise.all(reviews.map(async rev => {
+                // 후기 작성자(팔로워/구매자) 프로필/닉네임/아바타
+                let raterName = String(rev.raterId);
+                let avatarUrl = null;
+                try {
+                    const s = await fetch(`/api/shop/${encodeURIComponent(rev.raterId)}`);
+                    if (s.ok) {
+                        const info = await s.json();
+                        raterName = info.userName || info.username || raterName;
+                        const raw =
+                          info.profileImg || info.profile_img ||
+                          info.user_profile?.profile_img || info.photoUrl ||
+                          info.avatarUrl || info.storeImageUrl ||
+                          info.profileImage || info.profile_image;
+                        if (raw) {
+                            const rr = String(raw);
+                            avatarUrl = rr.startsWith('http') ? rr : (rr.startsWith('/uploads') ? rr : `/uploads/${rr}`);
+                        }
+                    }
+                } catch {}
+
+                const li = document.createElement('li');
+                li.className = 'review-item';
+                li.innerHTML = `
+                  <div class="review-left">
+                    <img alt="avatar" src="${avatarUrl || 'https://placehold.co/48x48?text=%20'}">
+                  </div>
+                  <div class="review-body">
+                    <div class="review-head">
+                      <div>
+                        <div class="review-user">${raterName}</div>
+                        <div class="review-stars">${renderStars(rev.score)}</div>
+                      </div>
+                      <div class="review-time">${rev.createdAt ? timeAgo(rev.createdAt) : ''}</div>
+                    </div>
+                    ${rev.listingTitle ? `<div class="review-product">${rev.listingTitle}</div>` : ''}
+                    <div class="review-text">${(rev.rvComment || '').replace(/\n/g,'<br>')}</div>
+                  </div>
+                `;
+                return li;
+            }));
+
+            items.forEach(el => list.appendChild(el));
+
+            // 카운트 업데이트 (탭/패널 타이틀 모두)
+            const n = items.length;
+            const rc = document.getElementById('tabCountReviews');
+            if (rc) rc.textContent = String(n);
+            const rtc = document.getElementById('reviewsTitleCount');
+            if (rtc) rtc.textContent = String(n);
+        } catch (e) {
+            list.classList.add('empty');
+            list.innerHTML = `<li style="color:#ef4444;">조회 실패: ${e.message}</li>`;
+        }
+    }
+
+    function switchShopTab(name) {
+        document.querySelectorAll('.shop-tabs .tab-item').forEach(b => {
+            const on = b.dataset.tab === name;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+
+        // 탭 바는 항상 보이게 하고, 콘텐츠만 토글
+        const sortBar = document.getElementById('productsSortBar');
+        const prodGrid = document.getElementById('sellerProductsGrid');
+        const rv = document.getElementById('reviewsPanel');
+        const fg = document.getElementById('followingPanel');
+        const fr = document.getElementById('followersPanel');
+
+        if (sortBar) sortBar.hidden = (name !== 'products');
+        if (prodGrid) prodGrid.hidden = (name !== 'products');
+        if (rv) rv.hidden = (name !== 'reviews');
+        if (fg) fg.hidden = (name !== 'following');
+        if (fr) fr.hidden = (name !== 'followers');
+
+        // 필요 시 데이터 로드
+        if (name === 'followers' && !_followersLoaded) {
+            _followersLoaded = true;
+            loadFollowers();
+        }
+        if (name === 'following' && !_followingLoaded) {
+            _followingLoaded = true;
+            loadFollowing();
+        }
+        if (name === 'reviews' && !_reviewsLoaded) {
+            _reviewsLoaded = true;
+            loadShopReviews();
+        }
+    }
+    document.addEventListener('click', (e) => {
+        const tabBtn = e.target.closest('.shop-tabs .tab-item[data-tab]');
+        if (!tabBtn) return;
+        switchShopTab(tabBtn.dataset.tab);
+    });
+    // 초기 탭: 상품
+    switchShopTab('products');
+
+    // 내 상점이면 버튼 숨김, 아니면 토글 바인딩
+    fetch('/api/user/status', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(async (me) => {
+            const myId = me && (me.userId ?? me.user_id ?? me.id);
+            if (myId != null && String(myId) === String(sellerId)) {
+                if (btn) btn.style.display = 'none';
+                return;
+            }
+            if (!btn) return;
+
+            // 나의 팔로우 상태 조회
+            let isFollowing = false;
+            try {
+                const r = await fetch(`/api/follows/${encodeURIComponent(sellerId)}/me`, { credentials: 'include' });
+                if (r.ok) {
+                    const s = await r.json();
+                    isFollowing = !!(s && (s.following ?? s.data?.following));
+                }
+            } catch { /* 무시 */ }
+
+            function renderButton() {
+                btn.textContent = isFollowing ? '언팔로우' : '팔로우';
+                btn.setAttribute('aria-label', isFollowing ? '언팔로우' : '팔로우');
+                btn.classList.toggle('is-following', isFollowing);
+            }
+            renderButton();
+
+            btn.addEventListener('click', async () => {
+                try {
+                    btn.disabled = true;
+                    let res;
+                    if (isFollowing) {
+                        // 언팔로우
+                        res = await fetch(`/api/follows/${encodeURIComponent(sellerId)}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                    } else {
+                        // 팔로우
+                        res = await fetch(`/api/follows/${encodeURIComponent(sellerId)}`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                    }
+                    if (res.status === 401) {
+                        alert('로그인이 필요합니다.');
+                        location.href = '/login';
+                        return;
+                    }
+                    if (!res.ok) throw new Error('요청 실패');
+
+                    // 항상 DB 기준 최신값 재조회
+                    await fetchFollowerCount();
+
+                    isFollowing = !isFollowing; // 토글
+                    renderButton();
+                } catch (e) {
+                    alert(e?.message || '요청 실패');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        })
+        .catch(() => { /* 상태 조회 실패 시 무시 */ });
 })();
