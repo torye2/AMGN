@@ -154,12 +154,13 @@ public class SecurityConfig {
                             }
                         })
                         .accessDeniedHandler((req, res, e) -> {
+                            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             if (isApi(req)) {
-                                res.setStatus(HttpServletResponse.SC_FORBIDDEN);
                                 res.setContentType("application/json;charset=UTF-8");
                                 res.getWriter().write("{\"error\":\"forbidden\"}");
                             } else {
-                                res.sendRedirect("/myPage.html");
+                                res.setContentType("text/plain;charset=UTF-8");
+                                res.getWriter().write("Forbidden");
                             }
                         })
                 )
@@ -217,12 +218,13 @@ public class SecurityConfig {
                     session.removeAttribute("LINK_USER_ID");
                     session.removeAttribute("LINKING_PROVIDER");
                     session.setAttribute("FLASH_MSG", "이미 다른 계정에 연결된 소셜 계정입니다.");
-                    res.sendRedirect("/myPage.html");
+                    res.sendRedirect("/myPage.html#account");
                     return;
                 }
 
                 if (linked.isEmpty()) {
                     bridge.linkIdentity(linkingUserId, po);
+                    session.setAttribute("FLASH_MSG", "소셜 계정 연동에 성공했습니다.");
                 }
 
                 loginHelper.loginAs(req, res, linkingUserId, null, null);
@@ -236,7 +238,7 @@ public class SecurityConfig {
                 session.removeAttribute("LINK_USER_ID");
                 session.removeAttribute("LINKING_PROVIDER");
                 String back = (String) (session.getAttribute("LINK_RETURN") != null
-                        ? session.getAttribute("LINK_RETURN") : "/myPage.html");
+                        ? session.getAttribute("LINK_RETURN") : "/myPage.html#account");
                 session.removeAttribute("LINK_RETURN");
                 res.sendRedirect(back);
                 return;
@@ -245,6 +247,12 @@ public class SecurityConfig {
             var linked = bridge.findLinkedUserId(provider, pid);
             if (linked.isPresent()) {
                 loginHelper.loginAs(req, res, linked.get(), null, null);
+                var dto = (LoginUserDto) req.getSession(true).getAttribute("loginUser");
+
+                if (dto == null) {
+                    dto = LoginUserDto.from(userRepository.findByUserId(linked.get()).get());
+                    req.getSession(true).setAttribute("loginUser", dto);
+                }
                 res.sendRedirect("/main.html");
                 return;
             }
@@ -264,6 +272,14 @@ public class SecurityConfig {
     @Bean
     AuthenticationFailureHandler failureHandler() {
         return (req, res, ex) -> {
+            var session = req.getSession(false);
+            String back = (session != null) ? (String) session.getAttribute("LINK_RETURN") : null;
+            if (back != null) {
+                session.setAttribute("FLASH_MSG", "소셜 계정 연결 실패: " + ex.getMessage());
+                session.removeAttribute("LINK_RETURN");
+                res.sendRedirect(back);
+                return;
+            }
             String msg = java.net.URLEncoder.encode("소셜 로그인 실패: " + ex.getMessage(),
                     java.nio.charset.StandardCharsets.UTF_8);
             res.sendRedirect("/login.html?error=" + msg);
@@ -341,8 +357,12 @@ public class SecurityConfig {
         String uri = req.getRequestURI();
         String accept = req.getHeader("Accept");
         String xr = req.getHeader("X-Requested-With");
-        return uri.startsWith("/api/") ||
-                (accept != null && accept.contains("application/json")) ||
-                "XMLHttpRequest".equalsIgnoreCase(xr);
+        return uri.startsWith("/api/")
+                || uri.startsWith("/orders")
+                || uri.startsWith("/product")
+                || uri.startsWith("/listing")
+                || uri.startsWith("/review")
+                || (accept != null && accept.contains("application/json"))
+                || "XMLHttpRequest".equalsIgnoreCase(xr);
     }
 }

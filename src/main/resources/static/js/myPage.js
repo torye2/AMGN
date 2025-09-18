@@ -209,7 +209,10 @@ async function loadAddresses() {
     if (!body) return;
     body.innerHTML = '<tr><td colspan="5" class="empty">불러오는 중...</td></tr>';
     try {
-        const res = await fetch(ENDPOINTS.addresses);
+        const res = await fetch(ENDPOINTS.addresses, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         noAuthGuard(res);
         const list = await res.json();
         if (!Array.isArray(list) || list.length === 0) {
@@ -325,7 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('btn-addr-edit')) {
             // 단건 조회 후 편집 열기
             try {
-                const r = await fetch(ENDPOINTS.addressById(id));
+                const r = await fetch(ENDPOINTS.addressById(id), {
+                    headers: { 'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'}
+                });
                 noAuthGuard(r);
                 const a = await r.json();
                 openAddrForm(a);
@@ -360,7 +366,10 @@ function noAuthGuard(res) {
 
 // 로그인 상태/유저 식별자 가져오기
 async function fetchMe() {
-    const res = await fetch(ENDPOINTS.meStatus);
+    const res = await fetch(ENDPOINTS.meStatus, {
+        headers: { 'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'}
+    });
     noAuthGuard(res);
     // { isLoggedIn, nickname, userId(로그인ID 문자열) }
     return res.json();
@@ -394,7 +403,7 @@ function switchTab(name) {
     if (name === 'reviews') loadReviews();
     if (name === 'alerts') loadAlerts();
     if (name === 'shop') loadShopSettings();
-    if (name === 'account') { loadAccount(); loadOauthLinks(); }
+    if (name === 'account') { loadAccount(); loadOauthLinks(); popFlash(); }
     if (name === 'addresses') loadAddresses();
 }
 
@@ -402,6 +411,7 @@ document.addEventListener('click', (e) => {
     const tabBtn = e.target.closest('.mp-link[data-tab]');
     if (tabBtn) {
         switchTab(tabBtn.dataset.tab);
+        history.replaceState(null, '', '#'+tabBtn.dataset.tab);
     }
 
     const subBtn = e.target.closest('#tab-products .subtabs button');
@@ -437,10 +447,19 @@ function renderProductCard(p) {
 async function loadDashboard() {
     try {
         const [onSale, orders, me, reviewable] = await Promise.all([
-            fetch(ENDPOINTS.myProducts('ACTIVE')).then(noAuthGuard).then(r => r.json()),
-            fetch(ENDPOINTS.orders).then(noAuthGuard).then(r => r.json()),
+            fetch(ENDPOINTS.myProducts('ACTIVE', {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'}
+            })).then(noAuthGuard).then(r => r.json()),
+            fetch(ENDPOINTS.orders, {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'}
+            }).then(noAuthGuard).then(r => r.json()),
             fetchMe(),
-            ENDPOINTS.reviewableOrders ? fetch(ENDPOINTS.reviewableOrders).then(noAuthGuard).then(r => r.json()) : Promise.resolve([])
+            ENDPOINTS.reviewableOrders ? fetch(ENDPOINTS.reviewableOrders, {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'},
+            }).then(noAuthGuard).then(r => r.json()) : Promise.resolve([])
         ]);
 
         // 판매/구매 분리 시도(필드가 없으면 전체 카운트 표시)
@@ -467,7 +486,11 @@ async function loadDashboard() {
            }
         }
         try {
-          const r = await fetch('/product/wish/my/count', { credentials:'include' });
+          const r = await fetch('/product/wish/my/count', {
+              headers: { 'Accept': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest'},
+              credentials:'include'
+          });
           const { count } = r.ok ? await r.json() : { count: 0 };
           const w = document.getElementById('metaWish');
           if (w) w.textContent = String(count ?? 0);
@@ -479,7 +502,11 @@ async function loadDashboard() {
         try {
           const sid = me && (me.userId ?? me.user_id ?? me.id);
           if (sid != null) {
-            const r2 = await fetch(`/api/follows/${encodeURIComponent(sid)}/count`, { credentials: 'include' });
+            const r2 = await fetch(`/api/follows/${encodeURIComponent(sid)}/count`, {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'},
+                credentials: 'include'
+            });
             const j2 = r2.ok ? await r2.json() : { count: 0 };
             const followers = (j2 && (j2.count ?? j2.data?.count)) ?? 0;
             const f = document.getElementById('metaFollowers');
@@ -507,7 +534,10 @@ async function loadProducts(status) {
     grid.classList.add('loading');
     empty.hidden = true;
     try {
-        const res = await fetch(ENDPOINTS.myProducts(status));
+        const res = await fetch(ENDPOINTS.myProducts(status), {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         noAuthGuard(res);
         const list = await res.json();
         if (reqId !== _lastLoadReqId) return;
@@ -540,7 +570,10 @@ async function loadFavorites() {
         return;
     }
     try {
-        const res = await fetch(ENDPOINTS.favorites);
+        const res = await fetch(ENDPOINTS.favorites, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         noAuthGuard(res);
         const list = await res.json();
         if (!list.length) {
@@ -558,7 +591,10 @@ async function loadSales() {
     body.innerHTML = '';
     try {
         // 판매 내역만 가져오기
-        const orders = await fetch('/orders/sell').then(noAuthGuard).then(r => r.json());
+        const orders = await fetch('/orders/sell', {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        }).then(noAuthGuard).then(r => r.json());
         const rows = [];
         (orders || []).forEach(o => {
             rows.push(`<tr>
@@ -577,12 +613,18 @@ async function loadSales() {
 }
 
 async function loadPurchases() {
+    console.log('loadPurchases 호출됨');
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = ''; // 초기화
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
 
     try {
         const [orders, me] = await Promise.all([
-            fetch('/orders/buy').then(noAuthGuard).then(r => r.json()),
+            fetch('/orders/buy', {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'}
+            }).then(noAuthGuard).then(r => r.json()),
             fetchMe()
         ]);
 
@@ -637,7 +679,10 @@ async function loadPurchases() {
                     const deleteBtn = createButton('리뷰 삭제', async () => {
                         if (!confirm('정말 리뷰를 삭제하시겠습니까?')) return;
                         try {
-                            const res = await fetch(`/api/reviews/${review.id}`, { method: 'DELETE' });
+                            const res = await fetch(`/api/reviews/${review.id}`, {
+                                method: 'DELETE',
+                                headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
+                            });
                             if (!res.ok) throw new Error('리뷰 삭제 실패');
                             await loadPurchases(); // 테이블 새로고침
                         } catch (err) {
@@ -671,8 +716,7 @@ async function loadPurchases() {
 
 
 
-// 페이지 로드 시 실행
-document.addEventListener('DOMContentLoaded', loadPurchases);
+
 
 const nicknameCache = {};
 
@@ -680,7 +724,10 @@ async function getNickname(userId) {
     if (nicknameCache[userId]) return nicknameCache[userId];
 
     try {
-        const res = await fetch(`/api/user/nickname/${userId}`);
+        const res = await fetch(`/api/user/nickname/${userId}`, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         const data = await res.json();
         nicknameCache[userId] = data.nickname;
         return data.nickname;
@@ -702,7 +749,10 @@ async function loadReviews() {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">로딩 중...</td></tr>`;
 
     try {
-        const response = await fetch("/api/reviews/received");
+        const response = await fetch("/api/reviews/received", {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         if (!response.ok) throw new Error("받은 후기 조회 실패");
 
         const reviews = await response.json();
@@ -743,7 +793,10 @@ async function loadAlerts() {
         return;
     }
     try {
-        const res = await fetch(ENDPOINTS.notifications);
+        const res = await fetch(ENDPOINTS.notifications, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         noAuthGuard(res);
         const list = await res.json();
         if (!list.length) {
@@ -829,7 +882,10 @@ function acctSetEditMode() {
 
 async function loadAccount() {
     try {
-        const res = await fetch(ENDPOINTS.userProfile);
+        const res = await fetch(ENDPOINTS.userProfile, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         const {ok, data, message} = await res.json();
         if (!ok) {
             alert(message || '프로필 조회 실패', data);
@@ -960,7 +1016,10 @@ async function accountCheckId() {
         return;
     }
     try {
-        const r = await fetch(ENDPOINTS.idAvailable(candidate));
+        const r = await fetch(ENDPOINTS.idAvailable(candidate), {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        });
         const j = await r.json();
         if (j.exist === false) {
             idHelp.textContent = '사용 가능한 아이디입니다.';
@@ -1163,8 +1222,20 @@ document.addEventListener('DOMContentLoaded', () => {
         $('[data-tab="shop"]')?.remove();
         $('#tab-shop')?.remove();
     }
-    const initial = (location.hash === '#favorites') ? 'favorites' : 'dashboard';
-      switchTab(initial);
+    const VALID_TABS = new Set([
+        'dashboard','products','favorites','sales','purchases',
+        'reviews','alerts','shop','account','addresses','support'
+    ]);
+
+    let initial = (location.hash || '').replace('#','').trim();
+
+    if (!initial) {
+        const usp = new URLSearchParams(location.search);
+        initial = (usp.get('tab') || '').trim();
+    }
+    if (!VALID_TABS.has(initial)) initial = 'dashboard';
+
+    switchTab(initial);
 });
 document.getElementById('btnCancelEdit')?.addEventListener('click', () => {
     if (!_acctOriginal) return;
@@ -1278,7 +1349,10 @@ async function loadOrders() {
     tbody.innerHTML = '';
 
     try {
-        const res = await fetch('/orders/buy'); // 구매 내역 API 호출
+        const res = await fetch('/orders/buy', {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        }); // 구매 내역 API 호출
         if (!res.ok) throw new Error('주문 내역 불러오기 실패');
 
         const orders = await res.json();
@@ -1321,7 +1395,7 @@ async function loadOrders() {
 }
 
 
-loadOrders();
+
 
 
 /*찜한 상품*/
@@ -1347,7 +1421,11 @@ async function loadFavorites() {
 
   try {
     // 1) 내 찜 ID 목록
-    const res = await fetch('/product/wish/my', { credentials: 'include' });
+    const res = await fetch('/product/wish/my', {
+        headers: { 'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'},
+        credentials: 'include'
+    });
     if (res.status === 401) {
       grid.innerHTML = '<p>로그인 후 확인할 수 있습니다.</p>';
       return;
@@ -1365,7 +1443,10 @@ async function loadFavorites() {
     // 2) 각 상품 상세 병렬 조회
     const products = (await Promise.all(
       ids.map(id =>
-        fetch(`/product/${encodeURIComponent(id)}`)
+        fetch(`/product/${encodeURIComponent(id)}`, {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'}
+        })
           .then(r => (r.ok ? r.json() : null))
           .catch(() => null)
       )
@@ -1415,8 +1496,10 @@ function renderFavCard(p) {
     e.preventDefault();
     try {
       const r = await fetch(`/product/${encodeURIComponent(p.listingId)}/wish`, {
-        method: 'DELETE',
-        credentials: 'include'
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'},
+          credentials: 'include'
       });
       if (!r.ok) throw new Error('해제 실패');
       node.remove();
@@ -1602,7 +1685,11 @@ function renderFavCard(p) {
                 async function loadReplies() {
                     listWrap.textContent = '답변을 불러오는 중...';
                     try {
-                        const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, { credentials: 'same-origin' });
+                        const res = await fetch(`/api/inquiries/${it.inquiryId}/replies`, {
+                            headers: { 'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'},
+                            credentials: 'same-origin'
+                        });
                         if (res.status === 401) {
                             listWrap.textContent = '로그인이 필요합니다.';
                             return;
@@ -1658,7 +1745,11 @@ function renderFavCard(p) {
     }
 
     // 사용자 상태 확인 후 관리자면 버튼 숨기고 전체 문의, 아니면 내 문의만
-    fetch('/api/user/status', { credentials: 'same-origin' })
+    fetch('/api/user/status', {
+        headers: { 'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'},
+        credentials: 'same-origin'
+    })
         .then(res => res.ok ? res.json() : Promise.reject())
         .then(info => {
             const isAdmin = info && info.username === '관리자';
@@ -1666,7 +1757,11 @@ function renderFavCard(p) {
                 btnRow.style.display = 'none';
             }
             const url = isAdmin ? '/api/inquiries' : '/api/inquiries/my';
-            return Promise.all([Promise.resolve(isAdmin), fetch(url, { credentials: 'same-origin' })]);
+            return Promise.all([Promise.resolve(isAdmin), fetch(url, {
+                headers: { 'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'},
+                credentials: 'same-origin'
+            })]);
         })
         .then(([isAdmin, res]) => {
             if (res.status === 401) {
@@ -1698,7 +1793,13 @@ async function loadOauthLinks() {
     if (!wrap) return;
     wrap.innerHTML = '<li class="empty">불러오는 중...</li>';
     try {
-        const r = await fetch(ENDPOINTS.oauthMe, { credentials: 'same-origin' });
+        const r = await fetch(ENDPOINTS.oauthMe, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
         if (r.status === 401) {
             wrap.innerHTML = '<li class="empty">로그인 후 이용해 주세요.</li>';
             return;
@@ -1785,11 +1886,28 @@ document.addEventListener('click', async (e) => {
 });
 
 async function ensureCsrf() {
-    const r = await fetch('/api/csrf', { credentials: 'same-origin' });
+    const r = await fetch('/api/csrf', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
     const j = await r.json(); // { headerName, token }
     return j; // 필요 시 헤더명도 동적으로 사용
 }
 
 function getCookie(name) {
     return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}
+
+async function popFlash() {
+    try {
+        const r = await fetch('/api/flash', {
+           headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+           credentials: 'same-origin'
+        });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j && j.message) {
+            alert(j.message);
+        }
+    } catch (_) {}
 }

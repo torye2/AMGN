@@ -80,6 +80,8 @@ async function submitReview(e, orderId) {
     const score = Number(document.getElementById('score').value);
     const rvComment = document.getElementById('rvCommentTextarea').value;
     const reviewId = document.getElementById('reviewIdHidden')?.value;
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
 
     if (!score) { alert('별점을 선택해주세요'); return; }
 
@@ -88,13 +90,19 @@ async function submitReview(e, orderId) {
         if (reviewId) {
             res = await fetch(`/api/reviews/${reviewId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': xsrf
+                },
                 body: JSON.stringify({ score, rvComment })
             });
         } else {
             res = await fetch(`/api/reviews`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': xsrf
+                },
                 body: JSON.stringify({ orderId: Number(orderId), score, rvComment })
             });
         }
@@ -102,7 +110,7 @@ async function submitReview(e, orderId) {
         if (!res.ok) throw new Error('리뷰 처리 실패');
 
         // 완료 후 마이페이지 구매내역으로 이동
-        window.location.href = '/mypage/mypage.html?tab=purchases';
+        window.location.href = '/myPage.html#purchases';
 
     } catch (err) {
         console.error(err);
@@ -129,4 +137,17 @@ function updateStars(value) {
     stars.forEach(star => {
         star.textContent = parseInt(star.getAttribute('data-value')) <= value ? '⭐' : '☆';
     });
+}
+
+async function ensureCsrf() {
+    const r = await fetch('/api/csrf', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
 }

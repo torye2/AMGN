@@ -14,7 +14,7 @@ public class InquiryController {
         if (session != null) {
             Object attr = session.getAttribute("loginUser");
             if (attr instanceof LoginUserDto u && "관리자".equals(u.getUserName())) {
-                return "redirect:/mypage/myPage.html#support";
+                return "redirect:/myPage.html#support";
             }
         }
         return "redirect:/inquiries.html";
