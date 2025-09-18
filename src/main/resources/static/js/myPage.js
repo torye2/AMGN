@@ -446,21 +446,24 @@ function renderProductCard(p) {
 // ----- Loaders -----
 async function loadDashboard() {
     try {
-        const [onSale, orders, me, reviewable] = await Promise.all([
-            fetch(ENDPOINTS.myProducts('ACTIVE', {
-                headers: { 'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'}
-            })).then(noAuthGuard).then(r => r.json()),
-            fetch(ENDPOINTS.orders, {
-                headers: { 'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'}
+        const [onSale, orders, me, receivedReviews] = await Promise.all([
+            fetch(ENDPOINTS.myProducts('ACTIVE'), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             }).then(noAuthGuard).then(r => r.json()),
+
+            fetch(ENDPOINTS.orders, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(noAuthGuard).then(r => r.json()),
+
             fetchMe(),
-            ENDPOINTS.reviewableOrders ? fetch(ENDPOINTS.reviewableOrders, {
-                headers: { 'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'},
-            }).then(noAuthGuard).then(r => r.json()) : Promise.resolve([])
+
+            ENDPOINTS.receivedReviews
+                ? fetch(ENDPOINTS.receivedReviews, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                }).then(noAuthGuard).then(r => r.json())
+                : Promise.resolve([])
         ]);
+
 
         // 판매/구매 분리 시도(필드가 없으면 전체 카운트 표시)
         let soldByMe = [], boughtByMe = [];
@@ -474,7 +477,7 @@ async function loadDashboard() {
 
         $('#statOnSale').textContent = onSale?.length ?? 0;
         $('#statSold').textContent = soldByMe.length || (orders?.length ?? 0); // 최소한 전체표시
-        $('#statReviews').textContent = reviewable?.length ?? 0; // "작성가능 리뷰" 개수로 임시 표시
+        $('#statReviews').textContent = receivedReviews?.length ?? 0; // 수정
         $('#statRating').textContent = '-'; // 받은후기 평균 API없음
 
         if (me?.nickname) {
