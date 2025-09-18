@@ -589,20 +589,54 @@ async function loadPurchases() {
 
             const actionTd = tr.querySelector('td:last-child');
 
-            // 상태별 버튼/텍스트 처리
-            if (o.status === 'CREATED') {
+            if (o.status === 'COMPLETED') {
+                // 주문 확정 텍스트
+                const statusText = document.createElement('span');
+                statusText.textContent = '주문 확정';
+                statusText.style.marginRight = '10px';
+                actionTd.appendChild(statusText);
+
+                // 리뷰 상태 확인
+                const reviewsRes = await fetch(`/api/reviews/orders/${o.id}`);
+                const reviews = await reviewsRes.json();
+
+                if (!reviews || reviews.length === 0) {
+                    // 리뷰 작성 버튼
+                    const reviewBtn = createButton('리뷰 작성', () => {
+                        window.location.href = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}`;
+                    });
+                    actionTd.appendChild(reviewBtn);
+                } else {
+                    const review = reviews[0]; // 첫 리뷰
+
+                    // 리뷰 수정 버튼
+                    const editBtn = createButton('리뷰 수정', () => {
+                        const url = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}&reviewId=${review.id}&score=${review.score}&rvComment=${encodeURIComponent(review.rvComment)}`;
+                        window.location.href = url;
+                    });
+
+                    // 리뷰 삭제 버튼
+                    const deleteBtn = createButton('리뷰 삭제', async () => {
+                        if (!confirm('정말 리뷰를 삭제하시겠습니까?')) return;
+                        try {
+                            const res = await fetch(`/api/reviews/${review.id}`, { method: 'DELETE' });
+                            if (!res.ok) throw new Error('리뷰 삭제 실패');
+                            await loadPurchases(); // 테이블 새로고침
+                        } catch (err) {
+                            console.error(err);
+                            alert(err.message);
+                        }
+                    });
+
+                    actionTd.appendChild(editBtn);
+                    actionTd.appendChild(deleteBtn);
+                }
+            } else if (o.status === 'CREATED') {
                 actionTd.appendChild(createButton('결제', () => payOrder(o)));
                 actionTd.appendChild(createButton('취소', () => cancelOrder(o.id, actionTd, o)));
             } else if (o.status === 'PAID') {
                 actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
                 actionTd.appendChild(createButton('결제 취소', () => revertToCreated(o.id, actionTd, o)));
-            } else if (o.status === 'COMPLETED') {
-                actionTd.textContent = '주문 확정';
-                const reviewBtn = createButton('리뷰 작성', () => {
-                        // 리뷰 작성 페이지로 이동
-                        window.location.href = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}`;
-                    });
-                    actionTd.appendChild(reviewBtn);
             } else if (o.status === 'CANCELLED') {
                 actionTd.textContent = '취소됨';
             }
@@ -614,6 +648,10 @@ async function loadPurchases() {
         tbody.innerHTML = `<tr><td colspan="6">구매 내역을 불러오는 중 오류가 발생했습니다: ${err.message}</td></tr>`;
     }
 }
+
+
+
+
 
 // 페이지 로드 시 실행
 document.addEventListener('DOMContentLoaded', loadPurchases);

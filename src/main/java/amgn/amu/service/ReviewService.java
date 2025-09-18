@@ -16,4 +16,10 @@ public interface ReviewService {
 
     // 판매자가 받은 후기 전체 조회
     List<ReviewDto> getReviewsBySeller(Long sellerId);
+
+    // 리뷰 수정
+    void updateReview(Long userId, Long reviewId, Map<String, Object> payload);
+
+    // 리뷰 삭제
+    void deleteReview(Long userId, Long reviewId);
 }

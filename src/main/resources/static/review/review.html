@@ -6,7 +6,7 @@
 	<link rel="stylesheet" href="/css/reset.css">
 	<link rel="stylesheet" href="/css/main.css">
 	<link rel="stylesheet" href="/css/review.css">
-    <link rel="stylesheet" href="/css/header.css">
+	<link rel="stylesheet" href="/css/header.css">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
@@ -16,40 +16,39 @@
 <!-- 헤더 -->
 <div id="header"></div>
 
-<div id="box"></div>
-
 <div class="container">
 	<fieldset class="review-box">
 		<h1>리뷰 관리</h1>
-		<div class="review-question">
-			<h2>🗯️상품 품질 리뷰</h2>
-			<p>상품의 품질에 대해 어떻게 생각하시나요?</p>
-		</div>
 
+		<!-- 선택된 주문/상품 표시 -->
+		<p id="selectedItem"></p>
+
+		<!-- 상품 정보 영역 -->
+		<div id="productInfo">
+			<h3 id="productTitle">상품명</h3>
+			<p id="productPrice">가격</p>
+			<p id="productSeller">판매자</p>
+			<div id="productImages"></div>
+		</div>
 
 		<!-- 리뷰 작성 폼 -->
 		<form id="review-form">
-			<label for="orderSelect">주문 선택 :</label>
-			<select id="orderSelect" required>
-				<option value="">-- 주문 선택 --</option>
-			</select><br>
-
-			<label id="starRatingfont" for="score">별점 :</label>
+			<label id="starRatingfont">별점 :</label>
 			<div id="starRating">
-				<span class="star" data-value="1">⭐</span>
-				<span class="star" data-value="2">⭐</span>
-				<span class="star" data-value="3">⭐</span>
-				<span class="star" data-value="4">⭐</span>
-				<span class="star" data-value="5">⭐</span>
+				<span class="star" data-value="1">☆</span>
+				<span class="star" data-value="2">☆</span>
+				<span class="star" data-value="3">☆</span>
+				<span class="star" data-value="4">☆</span>
+				<span class="star" data-value="5">☆</span>
 			</div>
 			<input type="hidden" id="score" required><br>
 
 			<label for="rvCommentTextarea">댓글 작성</label>
-			<textarea id="rvCommentTextarea"></textarea>
+			<textarea id="rvCommentTextarea" placeholder="리뷰 내용을 입력하세요"></textarea><br>
 
-			<button type="submit">작성</button>
-
+			<button type="submit">작성 완료</button>
 		</form>
+
 	</fieldset>
 </div>
 

@@ -30,10 +30,7 @@ public class ReviewServiceImpl implements ReviewService {
         return orderRepository.findByBuyerIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .filter(order -> !order.isReviewed())
-                .map(order -> new ReviewOrderDto(
-                        order.getId(),
-                        order.getListing().getTitle()
-                ))
+                .map(order -> new ReviewOrderDto(order.getId(), order.getListing().getTitle()))
                 .collect(Collectors.toList());
     }
 
@@ -58,22 +55,55 @@ public class ReviewServiceImpl implements ReviewService {
     public void createReview(Long raterId, Map<String, Object> payload) {
         Long orderId = ((Number) payload.get("orderId")).longValue();
         Integer score = ((Number) payload.get("score")).intValue();
-        String rvComment = (String) payload.getOrDefault("rvComment", ""); // null이면 공란 처리
+        String rvComment = (String) payload.getOrDefault("rvComment", "");
 
-        // 주문 가져오기
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
 
+        if (order.isReviewed()) {
+            throw new RuntimeException("이미 리뷰가 작성된 주문입니다.");
+        }
 
         Review review = new Review();
         review.setOrder(order);
         review.setRaterId(raterId);
-        review.setRateeId(order.getSeller().getUserId()); // Long 타입 맞춤
+        review.setRateeId(order.getSeller().getUserId());
         review.setScore(score);
-        review.setRvComment(rvComment); // 빈 문자열 들어가도 OK
+        review.setRvComment(rvComment);
         review.setCreatedAt(LocalDateTime.now());
 
         reviewRepository.save(review);
+    }
+
+    @Override
+    public void updateReview(Long userId, Long reviewId, Map<String, Object> payload) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다."));
+
+        if (!review.getRaterId().equals(userId)) {
+            throw new RuntimeException("리뷰를 수정할 권한이 없습니다.");
+        }
+
+        if (payload.containsKey("score")) {
+            review.setScore(((Number) payload.get("score")).intValue());
+        }
+        if (payload.containsKey("rvComment")) {
+            review.setRvComment((String) payload.get("rvComment"));
+        }
+
+        reviewRepository.save(review);
+    }
+
+    @Override
+    public void deleteReview(Long userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다."));
+
+        if (!review.getRaterId().equals(userId)) {
+            throw new RuntimeException("리뷰를 삭제할 권한이 없습니다.");
+        }
+
+        reviewRepository.delete(review);
     }
 
     @Override
@@ -92,5 +122,4 @@ public class ReviewServiceImpl implements ReviewService {
                 ))
                 .collect(Collectors.toList());
     }
-
 }
