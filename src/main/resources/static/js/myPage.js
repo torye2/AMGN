@@ -613,6 +613,7 @@ async function loadSales() {
 }
 
 async function loadPurchases() {
+    console.log('loadPurchases 호출됨');
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = ''; // 초기화
     if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
@@ -715,8 +716,7 @@ async function loadPurchases() {
 
 
 
-// 페이지 로드 시 실행
-document.addEventListener('DOMContentLoaded', loadPurchases);
+
 
 const nicknameCache = {};
 
@@ -1395,7 +1395,7 @@ async function loadOrders() {
 }
 
 
-loadOrders();
+
 
 
 /*찜한 상품*/
