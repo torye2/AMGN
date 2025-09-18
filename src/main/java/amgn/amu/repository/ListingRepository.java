@@ -32,6 +32,8 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     Page<Listing> findByCategoryIdInAndRegionIdIn(List<Long> categoryIds, List<Long> regionIds, Pageable pageable);
     Page<Listing> findByRegionIdIn(List<Long> regionIds, Pageable pageable);
 
+    List<Listing> findBySellerIdAndStatus(Long sellerId, String status);
+
 
 
     // ✅ 제목 검색 (ACTIVE + 포함 + 대소문자 무시 + 페이징 + photos 로딩)

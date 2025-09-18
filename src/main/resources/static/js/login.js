@@ -16,4 +16,45 @@ document.addEventListener('DOMContentLoaded', () => {
             formError.style.display = 'block';
         }
     }
-})
+
+    const next = params.get('next');
+    const $next = document.getElementById('nextHidden');
+    if ($next && next) $next.value = next;
+
+    propageNext(params);
+});
+
+function propageNext(params) {
+    const next = params.get('next');
+    if (!next) return;
+
+    const hidden = document.getElementById('nextHidden');
+    if (hidden) hidden.value = next;
+
+    document.querySelectorAll('.sns-login a, .social-buttons a').forEach(a => {
+        try {
+            const u = new URL(a.getAttribute('href'), location.origin);
+            u.searchParams.set('next', next);
+            // 상대경로 유지
+            a.setAttribute('href', u.pathname + '?' + u.searchParams.toString());
+        } catch (e) {
+        }
+    });
+}
+
+function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+}
+async function ensureCsrfHidden() {
+    // 쿠키에서 먼저 시도
+    let token = getCookie('XSRF-TOKEN');
+    if (!token) {
+        // 쿠키가 아직 없으면 API로 한 번 받아오고, 서버 필터가 쿠키도 내려줌
+        const res = await fetch('/api/csrf', { credentials: 'include' });
+        const json = await res.json();
+        token = json.token;
+    }
+    document.getElementById('csrfHidden').value = token;
+}
+document.addEventListener('DOMContentLoaded', ensureCsrfHidden);

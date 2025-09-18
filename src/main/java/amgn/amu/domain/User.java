@@ -30,7 +30,7 @@ public class User {
     @Column(unique = true, nullable = false, length = 50)
     private String loginId;
 
-    @Column(nullable = false)
+    @Column(name = "PASSWORD_HASH", nullable = false)
     @JsonIgnore
     private String passwordHash;
 

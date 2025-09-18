@@ -67,7 +67,7 @@
             <div class="flex-head">
                 <h2>등록한 상품</h2>
                 <div class="subtabs" role="tablist">
-                    <button class="active" data-status="ON_SALE" type="button">판매중</button>
+                    <button class="active" data-status="ACTIVE" type="button">판매중</button>
                     <button data-status="RESERVED" type="button">예약중</button>
                     <button data-status="SOLD" type="button">판매완료</button>
                 </div>
@@ -260,9 +260,9 @@
                 <div class="flex-head">
                     <h2>소셜 계정 연결</h2>
                     <div class="btn-row">
-                        <a class="btn-social kakao"  href="/oauth2/authorization/kakao">카카오 계정 추가</a>
-                        <a class="btn-social naver"  href="/oauth2/authorization/naver">네이버 계정 추가</a>
-                        <a class="btn-social google" href="/oauth2/authorization/google">Google 계정 추가</a>
+                        <a class="btn-social kakao"  href="/api/oauth/connect/kakao">카카오 계정 추가</a>
+                        <a class="btn-social naver"  href="/api/oauth/connect/naver">네이버 계정 추가</a>
+                        <a class="btn-social google" href="/api/oauth/connect/google">Google 계정 추가</a>
                     </div>
                 </div>
                 <ul id="oauthLinked" style="margin-top:10px;"></ul>

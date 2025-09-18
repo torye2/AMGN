@@ -138,6 +138,13 @@ public class ListingService {
 				.collect(Collectors.toList());
 	}
 
+	public List<ListingDto> getListingsBySellerIdAndStatus(Long sellerId, String status) {
+		return listingRepository.findBySellerIdAndStatus(sellerId, status).stream()
+				.map(this::convertToDto)
+				.collect(Collectors.toList());
+	}
+
+
 	//  ID 기준 상품 조회
 	public ListingDto getListingById(long listingId) {
 		return listingRepository.findById(listingId)

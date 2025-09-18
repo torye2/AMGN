@@ -57,29 +57,34 @@ public class OnboardingController {
         ));
 
         if (po.getEmail() != null && po.isEmailVerified()) {
-            User byEmail = userMapper.findByEmailNormalized(ContactNormalizer.normalizeEmail(po.getEmail())).orElseThrow();
+            User byEmail = userMapper.findByEmailNormalized(ContactNormalizer.normalizeEmail(po.getEmail()))
+                    .orElse(null);
             if (byEmail != null) {
-                bridge.linkIdentity(byEmail.getUserId(), po);  // 기존 계정에 링크
-                session.removeAttribute("PENDING_OAUTH");
-                loginHelper.loginAs(req, res, byEmail.getUserId(), null, null);
-                return ResponseEntity.ok(Map.of("linked", true, "method", "email"));
+                return ResponseEntity.status(202).body(Map.of(
+                        "code","LOGIN_TO_LINK",
+                        "message","기존 계정으로 로그인하면 연결됩니다.",
+                        "nextUrl","/login?next=/api/oauth/link/confirm"
+                ));
             }
         }
 
         String raw = body.getPhoneNumber();
         String e164 = toE164(raw, "KR");
-        if (e164 == null) return ResponseEntity.badRequest().body(Map.of(
-                "code", "INVALID_PHONE",
-                "message", "휴대폰 번호 형식이 올바르지 않습니다."
-        ));
-
-        User owner = userMapper.findByPhoneE164(e164).orElseThrow();
-        Long ownerId = owner.getUserId();
-        if (ownerId != null) {
-            bridge.linkIdentity(ownerId, po);
-            session.removeAttribute("PENDING_OAUTH");
-            loginHelper.loginAs(req, res, ownerId, null, null);
-            return ResponseEntity.ok(Map.of("created", true));
+        if (e164 == null) {
+            return ResponseEntity.status(400).body(Map.of(
+                    "code", "INVALID_PHONE",
+                    "message", "휴대폰 번호 형식이 올바르지 않습니다."
+            ));
+        } else {
+            User owner = userMapper.findByPhoneE164(e164).orElse(null);
+            Long ownerId = owner.getUserId();
+            if (ownerId != null) {
+                return ResponseEntity.status(202).body(Map.of(
+                        "code","LOGIN_TO_LINK",
+                        "message","기존 계정으로 로그인하면 연결됩니다.",
+                        "nextUrl","/login?next=/api/oauth/link/confirm"
+                ));
+            }
         }
 
         long userId = bridge.createUserFromPending(po, raw, e164);

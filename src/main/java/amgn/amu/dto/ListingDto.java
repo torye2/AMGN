@@ -26,6 +26,7 @@ public class ListingDto {
     private Long sellerId;
     private List<String> photoUrls;
     private String sellerNickname;
+    private String status;
 
     public Listing toEntity() {
         return Listing.builder()
@@ -40,6 +41,7 @@ public class ListingDto {
                 .regionId(this.regionId)
                 .safePayYn(this.safePayYn)
                 .sellerId(this.sellerId)
+                .status(this.status)
                 .build();
     }
 
@@ -59,6 +61,7 @@ public class ListingDto {
                 .regionId(e.getRegionId())
                 .safePayYn(e.getSafePayYn())
                 .sellerId(e.getSellerId())
+                .status(e.getStatus())
                 // .sellerNickname(e.getSeller()!=null ? e.getSeller().getNickname() : null) // 연관관계 있으면
                 // .photoUrls(Collections.emptyList()) // 서비스에서 채워도 OK
                 .build();

@@ -4,19 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="css/reset.css" />
-    <link rel="stylesheet" href="css/main.css" />
-    <link rel="stylesheet" href="css/header.css" />
-    <link rel="stylesheet" href="css/login.css" />
+    <link rel="stylesheet" href="/css/reset.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/header.css" />
+    <link rel="stylesheet" href="/css/login.css" />
 </head>
 <body>
-<script src="js/login.js"></script>
 <div id="wrap">
     <div>
         <header id="header">
         </header>
     </div>
-    <form action="/loginAction" method="POST">
+    <form action="/login" method="POST">
         <div id="formError" class="form-alert" aria-live="polite"></div>
         <fieldset class="login-box">
             <h1>로그인</h1>
@@ -33,11 +32,12 @@
                 <label for="id-password">비밀번호</label>
                 <input
                         type="password"
-                        name="passwordHash"
+                        name="password"
                         id="id-password"
                         required="required"
                 />
             </div>
+            <input type="hidden" name="_csrf" id="csrfHidden">
             <button type="submit">로그인</button>
             <div class="sns-login" style="margin-top:16px">
                 <a class="btn sns google" href="/oauth2/authorization/google">Google로 로그인</a>
@@ -61,11 +61,12 @@
         </div>
     </form>
 </div>
-<script src="js/header.js"></script>
+<script src="/js/header.js"></script>
 <br>
 <div>
     <footer id="footer"></footer>
 </div>
-<script src="js/footer.js"></script>
+<script src="/js/footer.js"></script>
+<script src="/js/login.js"></script>
 </body>
 </html>
