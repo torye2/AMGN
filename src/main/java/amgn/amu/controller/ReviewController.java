@@ -6,6 +6,8 @@ import java.util.Map;
 import amgn.amu.dto.ReviewDto;
 import amgn.amu.dto.ReviewOrderDto;
 import amgn.amu.dto.LoginUserDto;
+import amgn.amu.dto.SellerReviewsSummaryDto;
+import amgn.amu.service.ProductReviewService;
 import amgn.amu.service.ReviewService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final ProductReviewService productReviewService;
 
     private Long getUserId(HttpSession session) {
         LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
@@ -68,5 +71,14 @@ public class ReviewController {
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<ReviewDto>> getSellerReviews(@PathVariable Long sellerId) {
         return ResponseEntity.ok(reviewService.getReviewsBySeller(sellerId));
+    }
+
+    @GetMapping("/seller/{sellerId}/summary")
+    public ResponseEntity<SellerReviewsSummaryDto> getSellerReviewsSummary(
+            @PathVariable Long sellerId,
+            @RequestParam(defaultValue = "3") int limit,
+            @RequestParam(required = false) Long listingId
+    ) {
+        return ResponseEntity.ok(productReviewService.getSellerReviewsSummary(sellerId, limit, listingId));
     }
 }

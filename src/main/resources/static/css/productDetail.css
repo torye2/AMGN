@@ -296,3 +296,31 @@
   height: 100%;
   object-fit: cover;
 }
+
+
+
+
+/* =========================
+   상점 후기 섹션
+   ========================= */
+.store-reviews { margin-top: 16px; border-top: 1px solid #f0f0f0; padding-top: 12px; }
+.store-review-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.store-review-title { font-size:15px; font-weight:700; margin:0; }
+.store-review-more { font-size:13px; color:#e74c3c; text-decoration:none; }
+.store-review-more:hover { text-decoration:underline; }
+
+.store-rating { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.star-wrap { position:relative; display:inline-block; font-size:16px; line-height:1; }
+.star-back { color:#e0e0e0; }
+.star-front { position:absolute; top:0; left:0; width:0%; overflow:hidden; white-space:nowrap; color:#f5a623; }
+
+.store-rating .score { color:#333; font-size:14px; }
+.store-rating .count { color:#888; font-size:13px; }
+
+.store-review-list { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
+.store-review-item { border:1px solid #eee; border-radius:8px; padding:10px; background:#fafafa; }
+.store-review-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.store-review-author { font-weight:600; font-size:13px; color:#333; }
+.store-review-date { font-size:12px; color:#999; }
+.store-review-text { font-size:14px; color:#444; line-height:1.4; white-space:pre-wrap; }
+.store-empty { color:#888; font-size:13px; text-align:center; padding:12px 0; }

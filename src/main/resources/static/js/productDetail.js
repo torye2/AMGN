@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 판매자 상품 그리드 로딩
   if (sellerId) {
     loadSellerProducts(sellerId);
+    loadSellerReviews(sellerId);
   }
 
   // ---- 더치트 버튼 로직 ----
@@ -343,3 +344,120 @@ function loadSellerProducts(sellerId) {
       console.error('판매자 상품 불러오기 실패:', err);
     });
 }
+
+/* ================================
+   판매자 후기 로더 (요약 API → 폴백 지원)
+================================ */
+async function loadSellerReviews(sellerId) {
+  const listEl   = document.getElementById('storeReviewList');
+  const starFront= document.getElementById('storeStarFront');
+  const scoreEl  = document.getElementById('storeRatingScore');
+  const countEl  = document.getElementById('storeRatingCount');
+  const moreEl   = document.getElementById('storeReviewMore');
+
+  // "후기 더보기" 링크 (원하는 경로로 바꿔도 됨)
+  if (moreEl) moreEl.href = `/shop.html?sellerId=${encodeURIComponent(sellerId)}#reviews`;
+
+  if (!listEl || !starFront || !scoreEl || !countEl) return;
+
+  // 1) 요약 엔드포인트 시도
+  let avg = 0, total = 0, items = [];
+  try {
+    const res = await fetch(`/api/reviews/seller/${encodeURIComponent(sellerId)}/summary?limit=3`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      avg   = typeof data?.avgRating === 'number' ? data.avgRating : 0;
+      total = typeof data?.reviewCount === 'number' ? data.reviewCount : 0;
+      items = Array.isArray(data?.items) ? data.items : [];
+    } else {
+      throw new Error('summary not ok');
+    }
+  } catch {
+    // 2) 폴백: 전체 리스트에서 상위 3개만
+    try {
+      const res2 = await fetch(`/api/reviews/seller/${encodeURIComponent(sellerId)}`, { credentials: 'include' });
+      if (res2.ok) {
+        const arr = await res2.json(); // [{ id, score, rvComment, createdAt, ... }]
+        items = (Array.isArray(arr) ? arr : []).slice(0, 3).map(r => ({
+          reviewId: r.id,
+          rating: r.score,
+          comment: r.rvComment,
+          reviewerNickname: '익명', // 백엔드 DTO에 닉네임 없으면 기본값
+          createdAt: r.createdAt
+        }));
+        // 평균/개수 계산
+        total = Array.isArray(arr) ? arr.length : 0;
+        avg = total ? (arr.reduce((s, v) => s + (Number(v.score)||0), 0) / total) : 0;
+      }
+    } catch (e) {
+      console.error('리뷰 폴백 실패:', e);
+    }
+  }
+
+  // 평점 렌더
+  scoreEl.textContent = avg ? Number(avg).toFixed(1) : '-';
+  countEl.textContent = total ?? 0;
+  starFront.style.width = Math.max(0, Math.min(100, (Number(avg)/5)*100)) + '%';
+
+  // 리스트 렌더
+  listEl.innerHTML = '';
+  if (!items.length) {
+    const li = document.createElement('li');
+    li.className = 'store-empty';
+    li.textContent = '후기가 없습니다.';
+    listEl.appendChild(li);
+    return;
+  }
+
+  items.forEach(r => {
+    const li = document.createElement('li');
+    li.className = 'store-review-item';
+
+    const head = document.createElement('div');
+    head.className = 'store-review-head';
+
+    const left = document.createElement('div');
+    left.className = 'store-review-author';
+    left.textContent = r.reviewerNickname ?? '익명';
+
+    const right = document.createElement('div');
+    right.className = 'store-review-date';
+    right.textContent = formatDateKST(r.createdAt);
+
+    head.append(left, right);
+
+    // 개별 별점
+    const stars = document.createElement('div');
+    stars.className = 'star-wrap';
+    const back = document.createElement('div');
+    back.className = 'star-back';
+    back.textContent = '★★★★★';
+    const front = document.createElement('div');
+    front.className = 'star-front';
+    front.textContent = '★★★★★';
+    front.style.width = Math.max(0, Math.min(100, (Number(r.rating)/5)*100)) + '%';
+    stars.append(back, front);
+
+    const text = document.createElement('div');
+    text.className = 'store-review-text';
+    text.textContent = r.comment ?? '';
+
+    li.append(head, stars, text);
+    listEl.appendChild(li);
+  });
+}
+
+// KST 기준 날짜 포맷 (YYYY.MM.DD)
+function formatDateKST(isoOrLocal) {
+  try {
+    const d = new Date(isoOrLocal);
+    // 단순 표기(타임존 보정이 필요하면 서버에서 ISO+Z로 내려주기 권장)
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  } catch {
+    return '';
+  }
+}
+
