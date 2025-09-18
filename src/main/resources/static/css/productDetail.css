@@ -324,3 +324,213 @@
 .store-review-date { font-size:12px; color:#999; }
 .store-review-text { font-size:14px; color:#444; line-height:1.4; white-space:pre-wrap; }
 .store-empty { color:#888; font-size:13px; text-align:center; padding:12px 0; }
+
+
+/* =========================
+   상품 상단 정보 타이포/레이아웃 개선
+   ========================= */
+
+/* 상품명 */
+.product-name {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  font-size: clamp(22px, 2.4vw, 32px); /* 반응형 크기 */
+  color: #111;
+}
+
+/* 판매자 닉네임 (배지 느낌) */
+.product-nickname {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 6px 0 2px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #636a77;
+  background: #f7f7f9;
+  border: 1px solid #eceff3;
+  border-radius: 999px;
+}
+.product-nickname::before {
+  content: "👤";
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 가격 (강조 + 포인트 언더라인) */
+.product-price {
+  position: relative;
+  margin: 8px 0 14px;
+  font-weight: 800;
+  font-size: clamp(20px, 2.1vw, 28px);
+  color: #111;
+}
+.product-price::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 56px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #111 0%, #888 100%); /* 은은한 포인트 */
+  opacity: 0.2;
+}
+
+/* 상품 설명 (카드형 + 라인클램프) */
+.product-introduct {
+  color: #444;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+
+  /* 기본: 6줄까지만 보여주기 (넘치면 말줄임) */
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 설명을 모두 펼칠 때 .expanded 클래스를 붙이면 클램프 해제됨 */
+.product-introduct.expanded {
+  -webkit-line-clamp: initial;
+  overflow: visible;
+}
+
+
+
+
+
+
+/* ============= 가격 스타일 조정 ============= */
+/* 굵기 낮추기 */
+.product-price {
+  font-weight: 600;               /* 기존 800 → 600 */
+}
+/* 가격 아래 줄 제거 */
+.product-price::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* ============= 하단 2열 레이아웃 ============= */
+.detail-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 280px; /* 왼쪽: 설명, 오른쪽: 상점 */
+  gap: 24px;
+  margin-top: 24px;
+  align-items: start;
+}
+
+/* 기존 float/margin 우측정렬 제거 */
+.detail-bottom-grid .store-info-card {
+  margin: 0;          /* 기존 margin-right hack 무효화 */
+  width: 100%;
+}
+
+/* 상품 설명 카드 스타일 */
+.product-desc-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.section-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* 새 컨테이너 안의 설명 본문(카드 내부 타이포) */
+.detail-bottom-grid .product-introduct {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  color: #333;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap; /* 줄바꿈 유지 */
+}
+
+/* 혹시 기존 위치에 남아있다면 숨김(새 컨테이너와 혼동 방지) */
+.product-info > .product-introduct { display: none; }
+
+/* 반응형: 모바일에서는 세로 스택 */
+@media (max-width: 900px) {
+  .detail-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===== 제목 오른쪽 액션 버튼 배치 ===== */
+.title-row {
+  display: flex;
+  align-items: flex-start;         /* 제목과 같은 높이 */
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.title-row .product-name {
+  margin: 0;                       /* 줄 간격 정리 */
+  flex: 1 1 auto;                  /* 남는 공간 차지 */
+}
+.title-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;                  /* 넓이 고정, 오른쪽 붙기 */
+  align-items: center;
+  min-width: max-content;
+}
+
+/* 공통 액션 버튼 */
+.action-button {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #222;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, transform .05s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.action-button:hover { background: #f7f7f7; }
+.action-button:active { transform: translateY(1px); }
+.action-button:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+/* 변형: 고스트(더치트) */
+.action-button.ghost {
+  border-color: #efefef;
+  color: #555;
+}
+
+/* 변형: 위험(신고) */
+.action-button.danger {
+  border-color: #ffcdd2;
+  color: #c62828;
+  background: #fff;
+}
+.action-button.danger:hover {
+  background: #fff5f5;
+  border-color: #ef9a9a;
+}
+
+/* 반응형: 좁을 때는 줄바꿈 허용 */
+@media (max-width: 640px) {
+  .title-row { flex-wrap: wrap; gap: 8px; }
+  .title-actions { width: 100%; justify-content: flex-end; }
+}

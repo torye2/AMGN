@@ -461,3 +461,35 @@ function formatDateKST(isoOrLocal) {
   }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const reportBtn = document.getElementById('report-button');
+  if (!reportBtn) return;
+
+  reportBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const meRes = await fetch('/api/user/me', { credentials: 'include' });
+      if (!meRes.ok) throw new Error('세션 확인 실패');
+      const me = await meRes.json(); // { loggedIn, userId, nickname } 형태라고 가정
+
+      if (!me?.loggedIn) {
+        alert('로그인이 필요합니다.');
+        // 로그인 후 돌아올 수 있게 현재 경로를 next로 넘겨줌(선택)
+        const next = encodeURIComponent(location.pathname + location.search + location.hash);
+        location.href = `/login.html?next=${next}`;
+        return;
+      }
+
+      const params = new URLSearchParams(location.search);
+      const listingId = params.get('id') || '';
+      const url = listingId
+        ? `/report/reportForm.html?listingId=${encodeURIComponent(listingId)}`
+        : `/report/reportForm.html`;
+
+      location.href = url;
+    } catch (err) {
+      console.error(err);
+      alert('로그인 상태 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  });
+});
