@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class MyPageController {
-    @GetMapping("/myPage.html")
+    @GetMapping("/myPage")
     public String showMyPage() {
         return "redirect:/myPage.html";
     }

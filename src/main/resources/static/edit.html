@@ -161,6 +161,8 @@
 </div>
 
 <script>
+    const xsrf = getCookie('XSRF-TOKEN');
+
     // =============================
     // 공통: 쿼리스트링에서 listingId 조회
     // =============================
@@ -665,8 +667,15 @@
     // =============================
     async function init() {
       try {
+          if (!xsrf) await ensureCsrf();
         // 현재 사용자(판매자 본인 확인)
-        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const meRes = await fetch('/api/user/me', {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': xsrf
+            } ,
+            credentials: 'include'
+        });
         const me = meRes.ok ? await meRes.json() : null; // {loggedIn, userId}
 
         // 상품 조회
@@ -795,9 +804,10 @@
 
           try {
             const resp = await fetch(`/product/${encodeURIComponent(listingId)}/edit`, {
-              method: 'POST',
-              body: fd,
-              credentials: 'include',
+                method: 'POST',
+                headers: { 'X-XSRF-TOKEN': xsrf },
+                body: fd,
+                credentials: 'include',
             });
             if (!resp.ok) {
               const msg = await resp.text();
@@ -822,6 +832,18 @@
       document.getElementById('addAttrBtn').addEventListener('click', () => addAttributeField());
       init();
     });
+    async function ensureCsrf() {
+        const r = await fetch('/api/csrf', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin'
+        });
+        const j = await r.json(); // { headerName, token }
+        return j; // 필요 시 헤더명도 동적으로 사용
+    }
+
+    function getCookie(name) {
+        return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+    }
 </script>
 <script src="/js/header.js"></script>
 </body>

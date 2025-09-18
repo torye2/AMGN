@@ -13,7 +13,9 @@
     if (!alreadyLoaded) {
       try {
         // 프로젝트가 공용 header.html 을 제공한다면 주입
-        const resp = await fetch('/header.html', { cache: 'no-store' });
+        const resp = await fetch('/header.html', {
+          cache: 'no-store'
+        });
         if (resp.ok) {
           headerContainer.innerHTML = await resp.text();
         }
@@ -67,7 +69,11 @@ async function initHeaderFeatures() {
   const reportMenu = document.getElementById('report-menu');
 
   if (authLinksDiv && authLinksDiv.dataset.loaded !== 'true') {
-    fetch('/api/user/status', { credentials: 'include' })
+    fetch('/api/user/status', {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      credentials: 'include'
+    })
       .then((r) => r.json())
       .then(async (data) => {
         if (data.isLoggedIn) {
@@ -107,7 +113,11 @@ async function initHeaderFeatures() {
   }
 
   async function ensureCsrf() {
-    const r = await fetch('/api/csrf', { credentials: 'same-origin' });
+    const r = await fetch('/api/csrf', {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      credentials: 'same-origin'
+    });
     const j = await r.json(); // { headerName, token }
     return j; // 필요 시 헤더명도 동적으로 사용
   }
@@ -140,7 +150,11 @@ async function buildCategoryMenu() {
 
   let res;
   try {
-    res = await fetch('/api/categories', { cache: 'no-store' });
+    res = await fetch('/api/categories', {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      cache: 'no-store'
+    });
   } catch (e) {
     console.error('Failed to fetch categories:', e);
     return;
@@ -305,7 +319,11 @@ function initRegionUI() {
   // 자동완성 API 호출
   async function fetchRegionSuggest(keyword = '') {
     const url = `/api/suggest?q=${encodeURIComponent(keyword)}&limit=50&onlyLeaf=true`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      cache: 'no-store'
+    });
     if (!res.ok) throw new Error('지역 목록 요청 실패');
 
     // 기대 응답: [{regionId, name, path}, ...]
@@ -510,7 +528,11 @@ async function useGpsAndSelectDong() {
   // 2) 서버 프록시로 카카오 역지오코딩 (응답: { label, lat, lng })
   let label;
   try {
-    const r = await fetch(`/api/geo/coord2regioncode?lat=${lat}&lng=${lng}`, { credentials: 'include' });
+    const r = await fetch(`/api/geo/coord2regioncode?lat=${lat}&lng=${lng}`, {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      credentials: 'include'
+    });
     if (!r.ok) {
       const txt = await r.text();
       console.error('geo proxy error:', r.status, txt);
@@ -576,7 +598,11 @@ async function useGpsAndSelectDong() {
   const candidates = [...new Set(candidatesRaw)];
 
   async function trySuggest(q) {
-    const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}&limit=10&onlyLeaf=true`, { cache: 'no-store' });
+    const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}&limit=10&onlyLeaf=true`, {
+      headers: { 'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'},
+      cache: 'no-store'
+    });
     if (!res.ok) return null;
     const rows = await res.json();
     if (!Array.isArray(rows) || rows.length === 0) return null;

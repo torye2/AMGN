@@ -203,7 +203,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = idInput.value.trim();
             if (!id) { alert('아이디를 입력해주세요.'); return; }
             try {
-                const res = await fetch(`/api/users/exist?id=${encodeURIComponent(id)}`);
+                const res = await fetch(`/api/users/exist?id=${encodeURIComponent(id)}`, {
+                    headers: { 'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin'
+                });
                 if (!res.ok) throw new Error('중복 확인 API 호출에 실패했습니다.');
                 const data = await res.json();
                 if (data.exist) {

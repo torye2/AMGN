@@ -51,7 +51,11 @@ async function ensureCsrfHidden() {
     let token = getCookie('XSRF-TOKEN');
     if (!token) {
         // 쿠키가 아직 없으면 API로 한 번 받아오고, 서버 필터가 쿠키도 내려줌
-        const res = await fetch('/api/csrf', { credentials: 'include' });
+        const res = await fetch('/api/csrf', {
+            headers: { 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'},
+            credentials: 'include'
+        });
         const json = await res.json();
         token = json.token;
     }

@@ -102,7 +102,7 @@ public class OauthController {
 
         session.setAttribute("LINKING_PROVIDER", provider.toLowerCase());
         session.setAttribute("LINK_USER_ID", myUserId);
-        session.setAttribute("LINK_RETURN", "/myPage.html");
+        session.setAttribute("LINK_RETURN", "/myPage.html#account");
 
         res.sendRedirect("/oauth2/authorization/" + provider.toLowerCase());
     }
