@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -17,9 +18,12 @@ public class AuthStatusController {
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
         res.setHeader("Pragma", "no-cache");
 
+        String sid = session.getId();
         LoginUserDto u = (LoginUserDto) session.getAttribute("loginUser");
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        System.out.println("[STATUS] sid=" + sid + " loginUser=" + (u==null? "null" : u.getLoginId()));
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("isLoggedIn", u != null);
+        result.put("loggedIn", u != null);
 
         if (u != null) {
             result.put("username",  u.getUserName());

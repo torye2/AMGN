@@ -111,6 +111,7 @@ public class SecurityConfig {
                             if (dto != null) {
                                 req.getSession(true).setAttribute("loginUser", dto);
                                 log.info("session set: loginUser.userId={}", dto.getUserId());
+                                log.info("session set: loginUser={}", dto);
                             } else {
                                 // 여기로 오면 뭔가 이상한 케이스 → 안전하게 로그인 페이지로 돌려보냄
                                 res.sendRedirect("/login.html?error");

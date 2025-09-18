@@ -34,23 +34,26 @@ public class LoginHelper {
 
     public void loginAs(HttpServletRequest req, HttpServletResponse res,
                         Long userId, String loginId, String displayName) {
-        // 1) 권한 구성(없으면 기본 ROLE_USER)
         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
         // 2) Principal — 커스텀 객체로 userId를 들고 다니면 이후에 편함
         var principal = new LoginPrincipal(userId, loginId, displayName);
 
-        // 3) 패스워드는 필요 없음(소셜/프로그램틱 로그인)
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);
 
-        // (선택) 세션 고정 공격 방지 — Spring Security 필터가 자동으로 하진 않으므로 수동 호출 권장
         req.changeSessionId();
 
-        // 4) SecurityContext에 저장 + 세션에 영속화
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
         contextRepo.saveContext(context, req, res);
+
+        var session = req.getSession(true);
+        if (session.getAttribute("loginUser") == null) {
+            User u = userRepository.findByUserId(userId).orElse(null);
+            var loginUser = LoginUserDto.from(u);
+            session.setAttribute("loginUser", loginUser);
+        }
     }
 
     public LoginUserDto fromAuthentication(Authentication auth) {
