@@ -116,7 +116,10 @@
       });
 
       // 성공(신규 생성 & 자동 로그인)
-      if (r.ok) { location.href = '/main'; return; }
+      if (r.status === 200 || r.status === 201) {
+        location.href = '/main';
+        return;
+      }
 
       // 실패/유도 케이스 공통 파싱
       let body = {};

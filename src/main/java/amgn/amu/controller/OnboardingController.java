@@ -35,6 +35,7 @@ public class OnboardingController {
     private final UserMapper userMapper;
     private final OauthBridgeService bridge;
     private final LoginHelper loginHelper;
+    private final UserRepository userRepository;
 
     @GetMapping("/onboarding")
     public ModelAndView onboardingPage(HttpServletRequest req) {
@@ -91,6 +92,12 @@ public class OnboardingController {
         bridge.linkIdentity(userId, po);
         session.removeAttribute("PENDING_OAUTH");
         loginHelper.loginAs(req, res, userId, null, null);
+        LoginUserDto dto = (LoginUserDto) req.getSession(true).getAttribute("loginUser");
+
+        if (dto == null) {
+            dto = LoginUserDto.from(userRepository.findByUserId(userId).get());
+            req.getSession(true).setAttribute("loginUser", dto);
+        }
 
         return ResponseEntity.ok(Map.of("created", true));
     }
