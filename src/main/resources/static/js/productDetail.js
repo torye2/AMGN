@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const listingId = params.get('id');
 
+
   if (!listingId) {
     alert('잘못된 접근: listingId 없음');
     return;
@@ -84,6 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 구매자/타 사용자: 채팅방 생성/조회 후 이동
       chatBtn.textContent = '채팅하기';
       chatBtn.addEventListener('click', async () => {
+        if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+        const xsrf = getCookie('XSRF-TOKEN');
         try {
           if (!me?.loggedIn) {
             alert('로그인이 필요합니다.');
@@ -96,7 +99,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
 
           const url = `/api/chat/room/open?listingId=${encodeURIComponent(listingId)}&sellerId=${encodeURIComponent(sellerId)}`;
-          const res = await fetch(url, { method: 'POST', credentials: 'include' });
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
+            credentials: 'include'
+          });
           if (!res.ok) throw new Error(await res.text() || '채팅방 생성/조회 실패');
 
           const room = await res.json();
@@ -134,11 +141,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       deleteBtn.className = 'delete-button';
       deleteBtn.textContent = '삭제하기';
       deleteBtn.addEventListener('click', async () => {
+        if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+        const xsrf = getCookie('XSRF-TOKEN');
         if (!confirm('정말 삭제하시겠습니까?')) return;
         try {
           const res = await fetch(`/product/${encodeURIComponent(listingId)}`, {
             method: 'DELETE',
-            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'XSRF-TOKEN': xsrf },
+            credentials: 'include'
           });
           if (!res.ok) throw new Error(await res.text() || '삭제 실패');
           alert('삭제되었습니다.');
@@ -165,10 +175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 클릭 토글
       wishBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+        if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+        const xsrf = getCookie('XSRF-TOKEN');
         try {
           if (!me?.loggedIn) { alert('로그인이 필요합니다.'); location.href = '/login.html'; return; }
           const res = await fetch(`/product/${encodeURIComponent(listingId)}/wish`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
             credentials: 'include'
           });
           if (!res.ok) {
@@ -262,8 +275,13 @@ function loadRelatedProducts(productId) {
    찜(위시) 보조 함수
 ================================ */
 async function refreshWishUI(wishBtn, listingId, initialCount = 0) {
+  if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+  const xsrf = getCookie('XSRF-TOKEN');
   try {
-    const res = await fetch(`/product/${encodeURIComponent(listingId)}/wish`, { credentials: 'include' });
+    const res = await fetch(`/product/${encodeURIComponent(listingId)}/wish`, {
+      headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
+      credentials: 'include'
+    });
     if (!res.ok) throw new Error('찜 상태 조회 실패');
     const data = await res.json();
     setWishButtonUI(wishBtn, data.wished, data.count);
@@ -493,3 +511,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+async function ensureCsrf() {
+  const r = await fetch('/api/csrf', {
+    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    credentials: 'same-origin'
+  });
+  const j = await r.json(); // { headerName, token }
+  return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+  return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}
