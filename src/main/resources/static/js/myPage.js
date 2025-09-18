@@ -615,6 +615,8 @@ async function loadSales() {
 async function loadPurchases() {
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = ''; // 초기화
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
 
     try {
         const [orders, me] = await Promise.all([
@@ -676,7 +678,10 @@ async function loadPurchases() {
                     const deleteBtn = createButton('리뷰 삭제', async () => {
                         if (!confirm('정말 리뷰를 삭제하시겠습니까?')) return;
                         try {
-                            const res = await fetch(`/api/reviews/${review.id}`, { method: 'DELETE' });
+                            const res = await fetch(`/api/reviews/${review.id}`, {
+                                method: 'DELETE',
+                                headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
+                            });
                             if (!res.ok) throw new Error('리뷰 삭제 실패');
                             await loadPurchases(); // 테이블 새로고침
                         } catch (err) {
