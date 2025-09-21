@@ -31,17 +31,23 @@ public class OauthBridgeService {
     private final UserMapper userMapper;
     private final OauthIdentityMapper oidMapper;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public Optional<Long> findLinkedUserId(String provider, String pid) {
         return Optional.ofNullable(oidMapper.findUserIdByProviderAndPid(provider, pid));
     }
 
     public long createUserFromPending(PendingOauth po, String phoneRaw, String phoneE164) {
+        String usable = "SOCIAL-NOLOGIN:" + UUID.randomUUID();
+        String passwordHash = passwordEncoder.encode(usable);
+
         User u = new User();
         u.setLoginId("SOC_" + UUID.randomUUID());
+        u.setPasswordHash(passwordHash);
         u.setEmail(po.getEmail());
         u.setEmailNormalized(normalizeEmail(po.getEmail()));
         u.setUserName(po.getDisplayName());
+        u.setNickName(po.getDisplayName());
         u.setPhoneNumber(phoneRaw);
         u.setPhoneE164(phoneE164);
         u.setPhoneVerified(0);

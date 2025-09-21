@@ -18,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.io.IOException;
 import java.util.List;
@@ -43,25 +44,20 @@ public class OauthController {
 
     @GetMapping("/link/confirm")
     @Transactional
-    public ResponseEntity<?> confirm(HttpServletRequest req,
-                                     HttpServletResponse res,
-                                     @AuthenticationPrincipal LoginHelper.LoginPrincipal loginUser) {
+    public ModelAndView confirm(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         var po = (session != null) ? (PendingOauth) session.getAttribute("PENDING_OAUTH") : null;
         if (po == null) {
-            return ResponseEntity.status(400).body(Map.of(
-                    "code", "NO_PENDING",
-                    "message", "세션이 만료되었어요. 소셜 로그인을 다시 시도해 주세요."
-            ));
+            return new ModelAndView("redirect:/login.html?next=/api/oauth/link/confirm");
         }
-        if (loginUser == null) {
-            return ResponseEntity.status(401).body(Map.of(
-                    "code","NO_PENDING","message","세션이 만료되었습니다."
-            ));
+
+        Long uid = this.loginUser.userId(req);
+        if (uid == null) {
+            return new ModelAndView("redirect:/login.html?next=/oauth/link/confirm");
         }
-        bridge.linkIdentity(loginUser.userId(), po);
+        bridge.linkIdentity(uid, po);
         session.removeAttribute("PENDING_OAUTH");
-        return ResponseEntity.ok(Map.of("linked", true, "method", "login"));
+        return new ModelAndView("redirect:/main.html");
     }
 
     // 연결 해제 (여러 로그인 수단 중 하나를 끊을 때)
@@ -69,7 +65,7 @@ public class OauthController {
     public ApiResult<Void> unlink(@RequestBody @Valid OauthUnlinkRequest oreq,
                                   HttpServletRequest req) {
         Long uid = loginUser.userId(req);
-        bridge.unlink(uid, oreq.getProvider().toUpperCase());
+        bridge.unlink(uid, oreq.getProvider().toLowerCase());
         return ApiResult.ok(null);
     }
 

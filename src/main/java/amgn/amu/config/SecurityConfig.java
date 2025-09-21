@@ -93,6 +93,8 @@ public class SecurityConfig {
                         .passwordParameter("password")
                         .successHandler((req, res, auth) -> {
                             var log = org.slf4j.LoggerFactory.getLogger(SecurityConfig.class);
+                            Object pending = req.getSession(false).getAttribute("PENDING_OAUTH");
+                            if (pending != null) { log.info(pending.toString()); }
 
                             log.info("LOGIN SUCCESS authName={}, principalClass={}",
                                     auth.getName(), auth.getPrincipal().getClass().getName());
@@ -117,7 +119,12 @@ public class SecurityConfig {
                                 res.sendRedirect("/login.html?error");
                                 return;
                             }
+
                             var s = req.getSession(false);
+                            if (s != null) {
+                                s.setAttribute("PENDING_OAUTH", pending);
+                            }
+
                             String next = (s != null) ? (String) s.getAttribute("NEXT_URL") : null;
                             if (next != null) {
                                 s.removeAttribute("NEXT_URL");
