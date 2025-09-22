@@ -713,50 +713,57 @@ async function loadPurchases() {
 
 // ----------------- 초기화 -----------------
 const { IMP } = window;
-IMP.init("77OeTAH6ixLhmgfwJR9BlC4z6xcWVjy3QZFHHinNK65uARI42rBcUpucdmTzq2ZW4dfD74nhPHWceqac"); // 아임포트 V2 테스트 키
 
 // ----------------- 결제 처리 -----------------
-async function handlePayment(order) {
+IMP.init('store-5a5febb7-cd4d-4dba-80e1-45137984ce13');
 
-    console.log('handlePayment 호출됨', order);
+async function handlePayment(orderId, amount, buyerName, buyerEmail, buyerPhone) {
+    try {
+        // 1️⃣ 서버에서 사전등록
+        const preRes = await fetch(`/api/payments/pre-register/${orderId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
 
+        if (!preRes.ok) throw new Error('결제 사전등록 실패');
 
-    let success = false;
+        // 2️⃣ 아임포트 결제 요청
+        IMP.request_pay({
+            pg: 'html5_inicis',
+            pay_method: 'card',
+            merchant_uid: `order_${orderId}_${Date.now()}`,
+            name: '상품명',
+            amount: amount,
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_tel: buyerPhone
+        }, async function (rsp) {
+            if (rsp.success) {
+                // 3️⃣ 서버에서 결제 승인 + 주문 상태 반영
+                const approveRes = await fetch(`/api/payments/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imp_uid: rsp.imp_uid,
+                        merchant_uid: rsp.merchant_uid,
+                        orderId: orderId
+                    })
+                });
 
-    if (order.method === 'DELIVERY' || order.method === 'KG_INICIS' || order.method === 'MEETUP') {
-        success = await kgPay(order);
-    } else if (order.method === 'TOSS') {
-        success = await tossPay(order);
-    } else if (order.method === 'KAKAO') {
-        success = await kakaoPay(order);
-    } else {
-        alert('지원되지 않는 결제 방식입니다.');
-        return;
-    }
+                if (!approveRes.ok) throw new Error('결제 승인 실패');
 
-    if (success) {
-        try {
-            const res = await fetch(`/orders/${order.id}/pay`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
-                },
-                body: JSON.stringify({
-                    method: order.method,
-                    idempotencyKey: `order_${order.id}_${Date.now()}`
-                })
-            });
-            if (!res.ok) throw new Error('서버 결제 처리 실패');
+                alert('결제 완료! 주문 상태가 PAID로 변경되었습니다.');
+            } else {
+                alert(`결제 실패: ${rsp.error_msg}`);
+            }
+        });
 
-            alert('결제가 완료되었습니다!');
-            await loadPurchases(); // 구매 내역 갱신
-        } catch (err) {
-            console.error(err);
-            alert(err.message);
-        }
+    } catch (e) {
+        console.error(e);
+        alert(e.message);
     }
 }
+
 
 // ----------------- KG_INICIS(V2 아임포트) 결제 -----------------
 function kgPay(order) {

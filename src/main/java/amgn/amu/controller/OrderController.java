@@ -2,14 +2,17 @@ package amgn.amu.controller;
 
 import amgn.amu.dto.*;
 import amgn.amu.service.OrderService;
+import amgn.amu.service.PaymentService;
 import amgn.amu.service.ReviewService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -19,8 +22,10 @@ import java.util.Map;
 public class OrderController {
 
 	private final OrderService orderService;
+	private final PaymentService paymentService;
 	private final ReviewService reviewService;
 
+	// ---------------- 공통 유틸 ----------------
 	private Long getUserIdFromSession(HttpSession session) {
 		LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
 		if (loginUser == null) {
@@ -32,57 +37,85 @@ public class OrderController {
 	// ---------------- 주문 ----------------
 
 	@PostMapping
-	public OrderDto create(@RequestBody OrderCreateRequest req, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.create(userId, req);
+	public OrderDto create(@Valid @RequestBody OrderCreateRequest req, HttpSession session) {
+		return orderService.create(getUserIdFromSession(session), req);
 	}
 
 	@PostMapping("/{orderId}/pay")
-	public OrderDto pay(@PathVariable Long orderId, @RequestBody PaymentRequest req, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.pay(userId, orderId, req);
+	public OrderDto payDefault(@PathVariable Long orderId,
+							   @RequestBody PaymentRequest req,
+							   HttpSession session) {
+		// 기본 결제 처리 (단일 PG용)
+		return orderService.pay(getUserIdFromSession(session), orderId, req);
+	}
+
+	@PostMapping("/{orderId}/pay/kakao")
+	public OrderDto payKakao(@PathVariable Long orderId,
+							 @RequestBody PaymentRequest req,
+							 HttpSession session) {
+		return paymentService.payWithKakao(getUserIdFromSession(session), orderId, req);
+	}
+
+	@PostMapping("/{orderId}/pay/inicis")
+	public OrderDto payInicis(@PathVariable Long orderId,
+							  @RequestBody PaymentRequest req,
+							  HttpSession session) {
+		return paymentService.payWithInicis(getUserIdFromSession(session), orderId, req);
+	}
+
+	@PostMapping("/{orderId}/confirm-meetup")
+	public OrderDto confirmMeetup(@PathVariable Long orderId, HttpSession session) {
+		return orderService.confirmMeetup(getUserIdFromSession(session), orderId);
+	}
+
+	@PostMapping("/{orderId}/tracking")
+	public OrderDto inputTracking(@PathVariable Long orderId,
+								  @Valid @RequestBody TrackingInputRequest req,
+								  HttpSession session) {
+		return orderService.inputTracking(getUserIdFromSession(session), orderId, req);
+	}
+
+	@PostMapping("/{orderId}/confirm-delivery")
+	public OrderDto delivered(@PathVariable Long orderId, HttpSession session) {
+		return orderService.confirmDelivered(getUserIdFromSession(session), orderId);
 	}
 
 	@PostMapping("/{orderId}/complete")
 	public OrderDto complete(@PathVariable Long orderId, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.complete(userId, orderId);
+		return orderService.complete(getUserIdFromSession(session), orderId);
 	}
 
 	@DeleteMapping("/{orderId}/cancel")
 	public ResponseEntity<Void> cancel(@PathVariable Long orderId, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		orderService.deleteOrder(userId, orderId);
+		orderService.cancel(getUserIdFromSession(session), orderId);
 		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/{orderId}/dispute")
+	public OrderDto dispute(@PathVariable Long orderId,
+							@RequestParam String reason,
+							HttpSession session) {
+		return orderService.dispute(getUserIdFromSession(session), orderId, reason);
+	}
+
+	@GetMapping
+	public ResponseEntity<List<OrderDto>> getOrders(HttpSession session) {
+		return ResponseEntity.ok(orderService.myOrders(getUserIdFromSession(session)));
+	}
+
+	@GetMapping("/sell")
+	public ResponseEntity<List<OrderDto>> getSellOrders(HttpSession session) {
+		return ResponseEntity.ok(orderService.getSellOrders(getUserIdFromSession(session)));
 	}
 
 	@GetMapping("/buy")
 	public ResponseEntity<List<OrderDto>> getBuyOrders(HttpSession session) {
-		try {
-			Long userId = getUserIdFromSession(session);
-			System.out.println("getBuyOrders userId: " + userId);
-			List<OrderDto> buyOrders = orderService.getBuyOrders(userId);
-			System.out.println("buyOrders size: " + buyOrders.size());
-			return ResponseEntity.ok(buyOrders);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-		}
+		return ResponseEntity.ok(orderService.getBuyOrders(getUserIdFromSession(session)));
 	}
 
-	// 새로 추가된 /sell API
-	@GetMapping("/sell")
-	public ResponseEntity<List<OrderDto>> getSellOrders(HttpSession session) {
-		try {
-			Long userId = getUserIdFromSession(session);
-			System.out.println("getSellOrders userId: " + userId);
-			List<OrderDto> sellOrders = orderService.getSellOrders(userId); // 서비스에 getSellOrders 메서드 필요
-			System.out.println("sellOrders size: " + sellOrders.size());
-			return ResponseEntity.ok(sellOrders);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-		}
+	@PostMapping("/{orderId}/revert")
+	public ResponseEntity<OrderDto> revertCancel(@PathVariable Long orderId, HttpSession session) {
+		return ResponseEntity.ok(orderService.revertCancel(getUserIdFromSession(session), orderId));
 	}
 
 	// ---------------- 리뷰 ----------------
@@ -94,8 +127,7 @@ public class OrderController {
 
 	@PostMapping("/reviews")
 	public ResponseEntity<Void> createReview(@RequestBody Map<String, Object> payload, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		reviewService.createReview(userId, payload);
+		reviewService.createReview(getUserIdFromSession(session), payload);
 		return ResponseEntity.ok().build();
 	}
 
@@ -103,15 +135,22 @@ public class OrderController {
 	public ResponseEntity<Void> updateReview(@PathVariable Long reviewId,
 											 @RequestBody Map<String, Object> payload,
 											 HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		reviewService.updateReview(userId, reviewId, payload);
+		reviewService.updateReview(getUserIdFromSession(session), reviewId, payload);
 		return ResponseEntity.ok().build();
 	}
 
 	@DeleteMapping("/reviews/{reviewId}")
 	public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		reviewService.deleteReview(userId, reviewId);
+		reviewService.deleteReview(getUserIdFromSession(session), reviewId);
 		return ResponseEntity.ok().build();
 	}
+
+	@PostMapping("/pre-register/{orderId}")
+	public PaymentResponse preRegister(@PathVariable Long orderId, HttpSession session) {
+		Long userId = getUserIdFromSession(session);
+		PaymentRequest req = new PaymentRequest(orderId, orderService.getOrder(userId, orderId).finalPrice(),
+				PaymentRequest.PaymentMethod.KG_INICIS, "order_" + orderId + "_" + System.currentTimeMillis(), LocalDateTime.now().plusMinutes(30));
+		return paymentService.preparePayment(userId, req);
+	}
+
 }
