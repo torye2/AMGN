@@ -1929,57 +1929,29 @@ async function loadOauthLinks() {
         const payload = j.data || j;
         const links = payload.linkedProviders || [];
         const canUnlink = !!payload.canUnlink;
-        const linkedSet = new Set(links);
-        const missing = ALL_PROVIDERS.filter(p => !linkedSet.has(p));
         console.log("payload: " + payload);
 
         if (!links.length) {
-            wrap.innerHTML = [
-                '<li class="empty">연결된 소셜 계정이 없습니다.</li>',
-                ...missing.map(p => `
-          <li class="provider-item dim" data-provider="${p}">
-            <span class="provider-name">${p}</span>
-            <span class="provider-actions">
-              <button class="btn-link" type="button">연결하기</button>
-            </span>
-          </li>
-        `)
-            ].join('');
+            wrap.innerHTML = '<li class="empty">연결된 소셜 계정이 없습니다.</li>';
             return;
         }
 
-        wrap.innerHTML = [
-            ...links.map(p => `
-        <li class="provider-item" data-provider="${p}">
-          <span class="provider-name">${p}</span>
-          <span class="provider-actions">
-            ${canUnlink ? '<button class="btn-unlink" type="button">연결 해제</button>' : ''}
-          </span>
-        </li>
-      `),
-            ...missing.map(p => `
-        <li class="provider-item dim" data-provider="${p}">
-          <span class="provider-name">${p}</span>
-          <span class="provider-actions">
-            <button class="btn-link" type="button">연결하기</button>
-          </span>
-        </li>
-      `)
-        ].join('');
+        wrap.innerHTML = links.map(p => `
+      <li class="provider-item" data-provider="${p}">
+        <span class="provider-name">${p}</span>
+        <span class="provider-actions">
+          ${canUnlink ? '<button class="btn-unlink" type="button">연결 해제</button>' : ''}
+        </span>
+      </li>
+    `).join('');
     } catch (e) {
         wrap.innerHTML = `<li class="empty">불러오기 실패: ${e.message}</li>`;
     }
 }
 
 document.addEventListener('click', async (e) => {
-    const item = e.target.closest('#oauth-links .provider-item, #oauthLinked .provider-item');
+    const item = e.target.closest('#oauth-links .provider-item');
     if (!item) return;
-
-    if (e.target.classList.contains('btn-link')) {
-        const provider = item.getAttribute('data-provider');
-        window.location.href = CONNECT_URL(provider);
-        return;
-    }
 
     if (e.target.classList.contains('btn-unlink')) {
         if (!getCookie('XSRF-TOKEN')) await ensureCsrf();

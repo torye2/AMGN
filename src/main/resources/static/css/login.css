@@ -95,3 +95,33 @@ body{
 .btn-social.kakao  { background:#FEE500; border-color:#F2D300; }
 .btn-social.naver  { background:#03C75A; color:#fff; border-color:#04b352; }
 .btn-social.google { background:#fff; color:#222; border-color:#dadce0; }
+
+/* 소셜 로그인 영역을 폼(400px)과 폭 맞추고 가운데 정렬 */
+.social-login {
+  max-width: 400px;
+  margin: 16px auto 0;
+}
+
+/* 기본(모바일)은 현재처럼 세로 100% 폭 유지 */
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 데스크톱에서는 가로 3등분 그리드 + 버튼 폭 자동 */
+@media (min-width: 520px) {
+  .social-buttons {
+    display: grid;
+    /* 각 버튼이 최소 170px은 확보 -> 한 줄 유지 */
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 10px;
+  }
+  .btn-social {
+    width: auto;
+    padding: 10px 12px;   /* 필요시 10px 8px로 줄여도 OK */
+    white-space: nowrap;  /* 1줄 유지 */
+    font-size: 14px;      /* 여유 안 나면 13px */
+  }
+}
+

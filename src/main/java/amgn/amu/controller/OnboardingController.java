@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,7 @@ import org.springframework.web.servlet.ModelAndView;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class OnboardingController {
@@ -57,10 +59,11 @@ public class OnboardingController {
                 "message", "세션이 만료되었어요. 소셜 로그인을 다시 시도해 주세요."
         ));
 
-        if (po.getEmail() != null && po.isEmailVerified()) {
+        if (po.getEmail() != null) {
             User byEmail = userMapper.findByEmailNormalized(ContactNormalizer.normalizeEmail(po.getEmail()))
                     .orElse(null);
             if (byEmail != null) {
+                log.info(session.getAttribute("PENDING_OAUTH").toString());
                 return ResponseEntity.status(202).body(Map.of(
                         "code","LOGIN_TO_LINK",
                         "message","기존 계정으로 로그인하면 연결됩니다.",
@@ -76,24 +79,24 @@ public class OnboardingController {
                     "code", "INVALID_PHONE",
                     "message", "휴대폰 번호 형식이 올바르지 않습니다."
             ));
-        } else {
-            User owner = userMapper.findByPhoneE164(e164).orElse(null);
-            Long ownerId = owner.getUserId();
-            if (ownerId != null) {
-                return ResponseEntity.status(202).body(Map.of(
-                        "code","LOGIN_TO_LINK",
-                        "message","기존 계정으로 로그인하면 연결됩니다.",
-                        "nextUrl","/login?next=/api/oauth/link/confirm"
-                ));
-            }
+        }
+        User owner = userMapper.findByPhoneE164(e164).orElse(null);
+        if (owner != null) {
+            log.info(session.getAttribute("PENDING_OAUTH").toString());
+            return ResponseEntity.status(202).body(Map.of(
+                    "code","LOGIN_TO_LINK",
+                    "message","기존 계정으로 로그인하면 연결됩니다.",
+                    "nextUrl","/login?next=/api/oauth/link/confirm"
+            ));
         }
 
         long userId = bridge.createUserFromPending(po, raw, e164);
         bridge.linkIdentity(userId, po);
+
         session.removeAttribute("PENDING_OAUTH");
         loginHelper.loginAs(req, res, userId, null, null);
-        LoginUserDto dto = (LoginUserDto) req.getSession(true).getAttribute("loginUser");
 
+        LoginUserDto dto = (LoginUserDto) req.getSession(true).getAttribute("loginUser");
         if (dto == null) {
             dto = LoginUserDto.from(userRepository.findByUserId(userId).get());
             req.getSession(true).setAttribute("loginUser", dto);
