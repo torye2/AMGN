@@ -38,6 +38,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
@@ -77,6 +78,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 "/api/oauth/connect/**",
+                                "/api/oauth/reauth/**",
                                 "/api/oauth/me",
                                 "/api/oauth/link/confirm",
                                 "/api/oauth/unlink",
@@ -205,6 +207,33 @@ public class SecurityConfig {
             String accessToken = client.getAccessToken().getTokenValue();
             String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
             var expiresAt = client.getAccessToken().getExpiresAt();
+
+            // 재인증 라운드 우선 처리
+            if (session != null && session.getAttribute("REAUTH_PROVIDER") != null) {
+                // 재인증 성공 플래그(짧은 유효시간) 설정
+                session.setAttribute("reauth_ok_until", java.time.Instant.now().plusSeconds(180));
+
+                String ret = Optional.ofNullable((String) session.getAttribute("REAUTH_RETURN"))
+                        .orElse("/myPage.html#account");
+                String after = Optional.ofNullable((String) session.getAttribute("REAUTH_AFTER"))
+                        .orElse("delete");
+
+                // 세션 정리
+                session.removeAttribute("REAUTH_PROVIDER");
+                session.removeAttribute("REAUTH_RETURN");
+                session.removeAttribute("REAUTH_AFTER");
+
+                String base = ret, frag = "";
+                int i = ret.indexOf('#');
+                if (i >= 0) { base = ret.substring(0, i); frag = ret.substring(i); } // ex: frag="#account"
+
+                String sep = base.contains("?") ? "&" : "?";
+                String redirect = base + sep + "reauth=ok&after=" +
+                        java.net.URLEncoder.encode(after, java.nio.charset.StandardCharsets.UTF_8) +
+                        frag;
+                res.sendRedirect(redirect);
+                return;
+            }
 
             var po = new PendingOauth();
             po.setProvider(provider);

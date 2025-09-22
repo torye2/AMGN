@@ -16,7 +16,8 @@ public class FlashMsgController {
     @GetMapping("/flash")
     public ResponseEntity<Map<String,Object>> getFlashMsg(HttpServletRequest req){
         HttpSession session = req.getSession(false);
-        String msg = (session != null) ? (String) session.getAttribute("FLASH_MSG") : null;
+        Object flash = session.getAttribute("FLASH_MSG");
+        String msg = (flash != null) ? (String) flash : null;
         if (session != null) {
             session.removeAttribute("FLASH_MSG");
         }

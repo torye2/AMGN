@@ -7,6 +7,7 @@ import amgn.amu.dto.LoginUserDto;
 import amgn.amu.dto.oauth_totp.OauthLinkStatusResponse;
 import amgn.amu.dto.oauth_totp.OauthUnlinkRequest;
 import amgn.amu.dto.oauth_totp.PendingOauth;
+import amgn.amu.repository.UserRepository;
 import amgn.amu.service.OauthBridgeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +33,7 @@ public class OauthController {
 
     private final OauthBridgeService bridge;
     private final LoginUser loginUser;
+    private final UserRepository userRepository;
 
     // 소셜 로그인 성공 후 현재 세션 상태를 확인할 때 호출
     @GetMapping("/me")
@@ -102,5 +104,27 @@ public class OauthController {
 
         res.sendRedirect("/oauth2/authorization/" + provider.toLowerCase());
     }
+
+    // OauthController.java
+
+    @GetMapping("/reauth/{provider}")
+    public void reauth(@PathVariable String provider,
+                       @RequestParam(name = "return", required = false) String returnUrl,
+                       @RequestParam(name = "after", required = false, defaultValue = "delete") String after,
+                       HttpServletRequest req,
+                       HttpServletResponse res) throws IOException {
+
+        // 재인증 라운드 표식과 콜백 정보를 세션에 저장
+        HttpSession session = req.getSession(true);
+        session.setAttribute("REAUTH_PROVIDER", provider.toLowerCase());
+        if (returnUrl != null && !returnUrl.isBlank()) {
+            session.setAttribute("REAUTH_RETURN", returnUrl);
+        }
+        session.setAttribute("REAUTH_AFTER", after); // 예: "delete"
+
+        // Spring OAuth2 로그인 시작 URL로 보냄
+        res.sendRedirect("/oauth2/authorization/" + provider.toLowerCase());
+    }
+
 
 }

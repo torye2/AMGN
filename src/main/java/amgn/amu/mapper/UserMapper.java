@@ -31,4 +31,12 @@ public interface UserMapper {
     boolean existsByPhoneE164(@Param("phoneE164") String phoneE164);
 
     Optional<User> findByPhoneE164(@Param("phoneE164") String phoneE164);
+
+    int softDeleteAndAnonymize(
+            @Param("userId") Long userId,
+            @Param("newLoginId") String newLoginId,
+            @Param("newNickName") String newNickName,
+            @Param("passwordHashForDeleted") String passwordHashForDeleted,
+            @Param("deletedStatus") String deletedStatus
+    );
 }

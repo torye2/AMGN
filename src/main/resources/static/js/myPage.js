@@ -1,5 +1,6 @@
 // ----- Endpoints -----
 const ENDPOINTS = {
+    deleteMe: '/api/user/delete',
     oauthMe: '/api/oauth/me',
     oauthUnlink: '/api/oauth/unlink',
     myProducts: (status) => `/product/my-products${status ? `?status=${status}` : ''}`,
@@ -17,6 +18,7 @@ const ENDPOINTS = {
     addressSetDefault: (id) => `/api/addresses/${id}/default`
 };
 
+let _authState = { linkedProviders: [] };
 const STATUS_MAP = { ON_SALE: 'ACTIVE', ACTIVE: 'ACTIVE', RESERVED: 'RESERVED', SOLD: 'SOLD' };
 const toApiStatus = (s) => STATUS_MAP[s] || s;
 
@@ -364,6 +366,20 @@ function noAuthGuard(res) {
     return res;
 }
 
+function normalizeMe(raw) {
+    const isLoggedIn = !!(raw?.isLoggedIn ?? raw?.loggedIn);
+    // 닉네임 통합
+    const nickname = raw?.nickname ?? raw?.nickName ?? raw?.name ?? '';
+    // 내부 숫자 PK (주문/리스트와 비교할 값)
+    const idCandidate = raw?.user_id ?? raw?.id ?? raw?.userId;
+    const userId = (idCandidate != null && !isNaN(Number(idCandidate))) ? Number(idCandidate) : null;
+    const username = raw?.username ?? raw?.userName ?? raw?.name ?? '';
+    // 문자열 로그인ID (화면표시/URL 파라미터로 쓸 값)
+    const loginId = raw?.loginId ?? (typeof raw?.userId === 'string' ? raw.userId : raw?.username);
+    const createdAt = raw?.createdAt ?? raw?.joinedAt;
+    return { isLoggedIn, nickname, userId, loginId, createdAt };
+}
+
 // 로그인 상태/유저 식별자 가져오기
 async function fetchMe() {
     const res = await fetch(ENDPOINTS.meStatus, {
@@ -371,8 +387,8 @@ async function fetchMe() {
             'X-Requested-With': 'XMLHttpRequest'}
     });
     noAuthGuard(res);
-    // { isLoggedIn, nickname, userId(로그인ID 문자열) }
-    return res.json();
+    const j = await res.json();
+    return normalizeMe(j);
 }
 
 // 주문에서 내 역할 추정(SELLER/BUYER/UNKNOWN)
@@ -382,11 +398,11 @@ function inferRole(order, me) {
         if (order.sellerId === me.userId) return 'SELLER';
         if (order.buyerId === me.userId) return 'BUYER';
     }
-    if (order.sellerName && me.nickName) {
-        if (order.sellerName === me.nickName) return 'SELLER';
+    if (order.sellerName && me.nickname) {
+        if (order.sellerName === me.nickname) return 'SELLER';
     }
-    if (order.buyerName && me.nickName) {
-        if (order.buyerName === me.nickName) return 'BUYER';
+    if (order.buyerName && me.nickname) {
+        if (order.buyerName === me.nickname) return 'BUYER';
     }
     return 'UNKNOWN';
 }
@@ -560,32 +576,6 @@ async function loadProducts(status) {
         grid.insertAdjacentHTML('beforeend', `<div class="empty">불러오기 실패: ${err.message}</div>`);
     } finally {
         if (reqId === _lastLoadReqId) grid.classList.remove('loading');
-    }
-}
-
-async function loadFavorites() {
-    const grid = $('#favGrid');
-    const empty = $('#favEmpty');
-    grid.innerHTML = '';
-    empty.hidden = true;
-    if (!ENDPOINTS.favorites) {
-        grid.innerHTML = `<div class='empty'>찜 기능이 아직 준비되지 않았습니다.</div>`;
-        return;
-    }
-    try {
-        const res = await fetch(ENDPOINTS.favorites, {
-            headers: { 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'}
-        });
-        noAuthGuard(res);
-        const list = await res.json();
-        if (!list.length) {
-            empty.hidden = false;
-            return;
-        }
-        list.forEach(p => grid.appendChild(renderProductCard(p)));
-    } catch (err) {
-        grid.innerHTML = `<div class='empty'>불러오기 실패: ${err.message}</div>`;
     }
 }
 
@@ -1162,7 +1152,7 @@ document.addEventListener('input', (e) => {
         }
     }
 });
-// Bind buttons on DOM ready
+// 계정 관리 탭 버튼 바인딩
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnCheckId')?.addEventListener('click', accountCheckId);
     document.getElementById('btnStartEdit')?.addEventListener('click', openReauth);
@@ -1223,9 +1213,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             birthYear: Number(document.getElementById('birthYear').value) || null,
             birthMonth: Number(document.getElementById('birthMonth').value) || null,
             birthDay: Number(document.getElementById('birthDay').value) || null,
-            province: document.getElementById('province').value.trim(),
-            city: document.getElementById('city').value.trim(),
-            detailAddress: document.getElementById('detailAddress').value.trim()
         };
         if (newPw) payload.newPassword = newPw;
         try {
@@ -1243,6 +1230,82 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (e) {
             alert('요청 실패');
+        }
+    });
+
+    const sp = new URLSearchParams(location.search);
+    const reauthOk = sp.get('reauth') === 'ok';
+    const after = sp.get('after');
+
+    if (reauthOk && after === 'delete') {
+        try {
+            const reason = sessionStorage.getItem('deleteReason') || '';
+            await doDeleteAccount(null, reason); // 비번 대신 최근 OAuth 재인증으로 통과
+            alert('탈퇴가 완료되었습니다.');
+            try { localStorage.clear(); sessionStorage.clear(); } catch {}
+            // 히스토리 깔끔히
+            location.replace('/main.html');
+        } catch (e) {
+            alert(e?.message || '탈퇴 실패');
+        }
+    }
+
+    // 탈퇴 버튼 → 확인 모달
+    document.getElementById('btnDelete')?.addEventListener('click', openDeleteModal);
+    document.getElementById('btnDeleteCancel')?.addEventListener('click', closeDeleteModal);
+
+    // 확인 모달 제출
+    document.getElementById('deleteForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const confirmText = (document.getElementById('deleteConfirm').value || '').trim();
+        const err = document.getElementById('deleteError');
+        if (confirmText !== '탈퇴합니다') {
+            err.textContent = '정확히 "탈퇴합니다"를 입력해 주세요.';
+            err.classList.add('is-visible');
+            return;
+        }
+        err.textContent = ''; err.classList.remove('is-visible');
+        closeDeleteModal();
+
+        // 인증 방법 선택 시트 열기
+        openAuthChoiceWithEnsure();
+
+        // 비번 재인증 모달을 선택했을 때 onsubmit을 "탈퇴 확정"으로 바꿔 둔다
+        const form = document.getElementById('reauthForm');
+        const modal = document.getElementById('reauthModal');
+        const errBox = document.getElementById('reauthError');
+        const originalHandler = form?.onsubmit;
+
+        if (form && modal) {
+            form.onsubmit = async (ev) => {
+                ev.preventDefault();
+                try {
+                    const pw = form.password.value.trim();
+                    if (!pw) {
+                        if (errBox) { errBox.textContent = '비밀번호를 입력하세요.'; errBox.classList.add('is-visible'); }
+                        return;
+                    }
+                    const v = await fetch(ENDPOINTS.verifyPassword, {
+                        method: 'POST', headers: acctHeaders(),
+                        body: JSON.stringify({ password: pw })
+                    }).then(r => r.json());
+                    if (!v.ok) {
+                        if (errBox) { errBox.textContent = v.message || '비밀번호가 일치하지 않습니다.'; errBox.classList.add('is-visible'); }
+                        return;
+                    }
+                    // 비번 검증 통과 → 최종 삭제
+                    await doDeleteAccount(pw, document.getElementById('deleteReason')?.value || '');
+                    alert('탈퇴가 완료되었습니다.');
+                    try { localStorage.clear(); sessionStorage.clear(); } catch {}
+                    location.href = '/main.html';
+                } catch (ex) {
+                    alert(ex.message || '탈퇴 실패');
+                } finally {
+                    // 원상복귀
+                    if (originalHandler) form.onsubmit = originalHandler;
+                    modal.classList.remove('is-open'); modal.setAttribute('aria-hidden','true');
+                }
+            };
         }
     });
 });
@@ -1317,9 +1380,7 @@ $('#shopForm')?.addEventListener('submit', async (e) => {
 $('#btnPreviewShop')?.addEventListener('click', () => {
     window.open('/shop/me', '_blank');
 });
-$('#btnDelete')?.addEventListener('click', async () => {
-    alert('회원 탈퇴 API가 아직 준비되지 않았습니다.');
-});
+
 // ----- Boot -----
 document.addEventListener('DOMContentLoaded', () => {
     // 알림/상점관리 탭 숨김(엔드포인트 없을 때)
@@ -1937,6 +1998,7 @@ async function loadOauthLinks() {
         const links = payload.linkedProviders || [];
         const canUnlink = !!payload.canUnlink;
         console.log("payload: " + payload);
+        _authState.linkedProviders = Array.isArray(payload.linkedProviders) ? payload.linkedProviders : [];
 
         if (!links.length) {
             wrap.innerHTML = '<li class="empty">연결된 소셜 계정이 없습니다.</li>';
@@ -2008,4 +2070,105 @@ async function popFlash() {
             alert(j.message);
         }
     } catch (_) {}
+}
+
+function openDeleteModal() {
+    const m = document.getElementById('deleteModal');
+    if (!m) return;
+    m.classList.add('is-open');
+    m.setAttribute('aria-hidden', 'false');
+    document.getElementById('deleteConfirm').value = '';
+    document.getElementById('deleteError').textContent = '';
+}
+function closeDeleteModal() {
+    const m = document.getElementById('deleteModal');
+    if (!m) return;
+    m.classList.remove('is-open');
+    m.setAttribute('aria-hidden', 'true');
+}
+
+async function doDeleteAccount(password, reason) {
+    await ensureCsrf();
+    const payload = {
+        password: password || '',
+        reason: (reason || '').trim(),
+        wipeConvenienceData: true
+    };
+    const r = await fetch(ENDPOINTS.deleteMe, {
+        method: 'DELETE',
+        headers: acctHeaders(),
+        body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+        const msg = await r.text().catch(()=> '');
+        throw new Error(msg || '탈퇴 요청 실패');
+    }
+}
+
+function startOauthReauth(provider, after = 'delete') {
+    const returnUrl = `${location.origin}${location.pathname}${location.search}#account`;
+    // 탈퇴 사유를 소셜 라운드트립 동안 보관
+    const reason = document.getElementById('deleteReason')?.value || '';
+    try { sessionStorage.setItem('deleteReason', reason); } catch {}
+    // 서버는 /api/oauth/reauth/{provider}에서 재로그인 후
+    // ?reauth=ok&after=delete 로 리다이렉트해 주도록 구현
+    location.href = `/api/oauth/reauth/${encodeURIComponent(provider)}?return=${encodeURIComponent(returnUrl)}&after=${encodeURIComponent(after)}`;
+}
+
+function openAuthChoiceSheet() {
+    // 이미 떠있으면 제거
+    document.getElementById('authChoiceSheet')?.remove();
+
+    const sheet = document.createElement('div');
+    sheet.id = 'authChoiceSheet';
+    sheet.style.position = 'fixed';
+    sheet.style.left = 0; sheet.style.right = 0; sheet.style.bottom = 0;
+    sheet.style.background = '#fff'; sheet.style.borderTop = '1px solid #eee';
+    sheet.style.padding = '16px'; sheet.style.boxShadow = '0 -6px 20px rgba(0,0,0,.12)';
+    sheet.style.zIndex = 9999;
+
+    const title = document.createElement('div');
+    title.textContent = '본인 확인 방법을 선택하세요';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '12px';
+    sheet.appendChild(title);
+
+    // ① 비밀번호로 인증
+    const btnPw = document.createElement('button');
+    btnPw.className = 'btn btn-primary';
+    btnPw.textContent = '비밀번호로 인증';
+    btnPw.style.marginRight = '8px';
+    btnPw.onclick = () => {
+        sheet.remove();
+        openReauth(); // 이미 있는 비번 재인증 모달 열기
+        // reauthForm onsubmit은 아래 deleteForm 핸들러에서 설정
+    };
+    sheet.appendChild(btnPw);
+
+    // ② 소셜로 인증 (연결된 provider 버튼들)
+    (_authState.linkedProviders || []).forEach(pv => {
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.style.marginRight = '8px';
+        b.textContent = `${pv}로 인증`;
+        b.onclick = () => startOauthReauth(pv, 'delete');
+        sheet.appendChild(b);
+    });
+
+    // 닫기
+    const close = document.createElement('button');
+    close.className = 'btn-secondary';
+    close.style.float = 'right';
+    close.textContent = '닫기';
+    close.onclick = () => sheet.remove();
+    sheet.appendChild(close);
+
+    document.body.appendChild(sheet);
+}
+
+async function openAuthChoiceWithEnsure() {
+    if (!_authState?.linkedProviders?.length) {
+        try { await loadOauthLinks(); } catch {}
+    }
+    openAuthChoiceSheet();
 }

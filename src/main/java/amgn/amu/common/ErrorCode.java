@@ -30,7 +30,9 @@ public enum ErrorCode {
     OAUTH_PROVIDER_ERROR(502, "소셜 로그인 제공자와 통신에 실패했습니다."),
     OAUTH_UNSUPPORTED_PROVIDER(400, "지원하지 않는 OAuth 제공자입니다."),
     OAUTH_LINK_FAILED(500, "소셜 계정 연결에 실패했습니다."),
-    OAUTH_NOT_FOUND(404, "해당 제공자 연결이 존재하지 않습니다: ");
+    OAUTH_NOT_FOUND(404, "해당 제공자 연결이 존재하지 않습니다: "),
+    DB_WRITE_FAILED(500, "DB 작성에 실패했습니다."),
+    REAUTH_REQUIRED(401, "재인증이 필요합니다.");
     public final int status; public final String message;
     ErrorCode(int s, String m){ this.status=s; this.message=m; }
 }
