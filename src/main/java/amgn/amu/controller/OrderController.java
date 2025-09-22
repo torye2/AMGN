@@ -1,18 +1,14 @@
 package amgn.amu.controller;
 
-import amgn.amu.common.RequireMfa;
-import amgn.amu.dto.ListingDto;
-import amgn.amu.dto.OrderCreateRequest;
-import amgn.amu.dto.OrderDto;
-import amgn.amu.dto.PaymentRequest;
-import amgn.amu.dto.TrackingInputRequest;
-import amgn.amu.dto.LoginUserDto;
+import amgn.amu.dto.*;
 import amgn.amu.service.OrderService;
+import amgn.amu.service.ReviewService;
 import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -23,122 +19,99 @@ import java.util.Map;
 public class OrderController {
 
 	private final OrderService orderService;
+	private final ReviewService reviewService;
 
-	// 세션에서 로그인 사용자 ID 추출
 	private Long getUserIdFromSession(HttpSession session) {
 		LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
 		if (loginUser == null) {
-			throw new RuntimeException("로그인이 필요합니다.");
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 		}
 		return loginUser.getUserId();
 	}
 
-	// 주문 생성
+	// ---------------- 주문 ----------------
+
 	@PostMapping
-	public OrderDto create(@Valid @RequestBody OrderCreateRequest req, HttpSession session) {
+	public OrderDto create(@RequestBody OrderCreateRequest req, HttpSession session) {
 		Long userId = getUserIdFromSession(session);
 		return orderService.create(userId, req);
 	}
 
-	// 주문 결제
 	@PostMapping("/{orderId}/pay")
-	public OrderDto pay(@PathVariable("orderId") Long orderId, @RequestBody PaymentRequest req,
-	        HttpSession session) {
-	    Long userId = getUserIdFromSession(session);
-	    return orderService.pay(userId, orderId, req);
-	}
-
-	// 직거래 확인
-	@PostMapping("/{orderId}/confirm-meetup")
-	public OrderDto confirmMeetup(@PathVariable("orderId") Long orderId, HttpSession session) {
+	public OrderDto pay(@PathVariable Long orderId, @RequestBody PaymentRequest req, HttpSession session) {
 		Long userId = getUserIdFromSession(session);
-		return orderService.confirmMeetup(userId, orderId);
+		return orderService.pay(userId, orderId, req);
 	}
 
-	// 배송 입력
-	@PostMapping("/{orderId}/tracking")
-	public String inputTracking(@PathVariable("orderId") Long orderId, @Valid @RequestBody TrackingInputRequest req,
-			HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.inputTracking(userId, orderId, req).toString();
-	}
-
-	// 배송 완료 확인
-	@PostMapping("/{orderId}/confirm-delivery")
-	public OrderDto delivered(@PathVariable("orderId") Long orderId, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.confirmDelivered(userId, orderId);
-	}
-
-	// 주문 완료
 	@PostMapping("/{orderId}/complete")
-	public OrderDto complete(@PathVariable("orderId") Long orderId, HttpSession session) {
+	public OrderDto complete(@PathVariable Long orderId, HttpSession session) {
 		Long userId = getUserIdFromSession(session);
 		return orderService.complete(userId, orderId);
 	}
 
-	// 주문 취소
 	@DeleteMapping("/{orderId}/cancel")
-	public ResponseEntity<Void> cancel(@PathVariable("orderId") Long orderId, HttpSession session) {
+	public ResponseEntity<Void> cancel(@PathVariable Long orderId, HttpSession session) {
 		Long userId = getUserIdFromSession(session);
 		orderService.deleteOrder(userId, orderId);
 		return ResponseEntity.ok().build();
 	}
 
-	// 분쟁
-	@PostMapping("/{orderId}/dispute")
-	public OrderDto dispute(@PathVariable("orderId") Long orderId, @RequestParam("reason") String reason,
-			HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		return orderService.dispute(userId, orderId, reason);
-	}
-
-	// 내 주문 조회
-	@GetMapping
-	public ResponseEntity<List<OrderDto>> getOrders(HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		List<OrderDto> orders = orderService.myOrders(userId);
-		return ResponseEntity.ok(orders);
-	}
-
-	// 특정 상품 조회
-	@GetMapping("/listing/{listingId}")
-	public ResponseEntity<ListingDto> getListing(@PathVariable("listingId") Long listingId) {
-		ListingDto listing = orderService.getListingInfo(listingId);
-		return ResponseEntity.ok(listing);
-	}
-
-	// 특정 listing 거래중인지 체크
-	@GetMapping("/check")
-	public Map<String, Boolean> checkOrder(@RequestParam("listingId") Long listingId) {
-		boolean exists = orderService.isListingInTransaction(listingId);
-		return Map.of("exists", exists);
-	}
-
-	// 판매 내역 조회
-	@GetMapping("/sell")
-	public ResponseEntity<List<OrderDto>> getSellOrders(HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		List<OrderDto> sellOrders = orderService.getSellOrders(userId);
-		return ResponseEntity.ok(sellOrders);
-	}
-
-	// 구매 내역 조회
 	@GetMapping("/buy")
 	public ResponseEntity<List<OrderDto>> getBuyOrders(HttpSession session) {
+		try {
+			Long userId = getUserIdFromSession(session);
+			System.out.println("getBuyOrders userId: " + userId);
+			List<OrderDto> buyOrders = orderService.getBuyOrders(userId);
+			System.out.println("buyOrders size: " + buyOrders.size());
+			return ResponseEntity.ok(buyOrders);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+		}
+	}
+
+	// 새로 추가된 /sell API
+	@GetMapping("/sell")
+	public ResponseEntity<List<OrderDto>> getSellOrders(HttpSession session) {
+		try {
+			Long userId = getUserIdFromSession(session);
+			System.out.println("getSellOrders userId: " + userId);
+			List<OrderDto> sellOrders = orderService.getSellOrders(userId); // 서비스에 getSellOrders 메서드 필요
+			System.out.println("sellOrders size: " + sellOrders.size());
+			return ResponseEntity.ok(sellOrders);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+		}
+	}
+
+	// ---------------- 리뷰 ----------------
+
+	@GetMapping("/reviews/orders/{orderId}")
+	public ResponseEntity<List<ReviewDto>> getReviewsByOrder(@PathVariable Long orderId) {
+		return ResponseEntity.ok(reviewService.getReviewsByOrder(orderId));
+	}
+
+	@PostMapping("/reviews")
+	public ResponseEntity<Void> createReview(@RequestBody Map<String, Object> payload, HttpSession session) {
 		Long userId = getUserIdFromSession(session);
-		List<OrderDto> buyOrders = orderService.getBuyOrders(userId);
-		return ResponseEntity.ok(buyOrders);
-	}
-	
-
-	// 주문 취소 후 상태를 다시 CREATED로 되돌리기
-	@PostMapping("/{orderId}/revert")
-	public ResponseEntity<OrderDto> revertCancel(@PathVariable("orderId") Long orderId, HttpSession session) {
-	    Long userId = getUserIdFromSession(session);
-	    OrderDto order = orderService.revertCancel(userId, orderId);
-	    return ResponseEntity.ok(order);
+		reviewService.createReview(userId, payload);
+		return ResponseEntity.ok().build();
 	}
 
+	@PutMapping("/reviews/{reviewId}")
+	public ResponseEntity<Void> updateReview(@PathVariable Long reviewId,
+											 @RequestBody Map<String, Object> payload,
+											 HttpSession session) {
+		Long userId = getUserIdFromSession(session);
+		reviewService.updateReview(userId, reviewId, payload);
+		return ResponseEntity.ok().build();
+	}
 
+	@DeleteMapping("/reviews/{reviewId}")
+	public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId, HttpSession session) {
+		Long userId = getUserIdFromSession(session);
+		reviewService.deleteReview(userId, reviewId);
+		return ResponseEntity.ok().build();
+	}
 }

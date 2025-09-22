@@ -6,6 +6,7 @@ import java.util.List;
 import amgn.amu.domain.User;
 import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.dto.OrderDto.TradeMethod;
+import amgn.amu.dto.PaymentRequest;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,10 +37,16 @@ public class Order {
     private Long finalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "method")
     private TradeMethod method;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private OrderStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method") // 새 필드
+    private PaymentRequest.PaymentMethod paymentMethod;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -72,7 +79,7 @@ public class Order {
     public boolean isReviewed() {
         return reviews != null && !reviews.isEmpty();
     }
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", referencedColumnName = "user_id", insertable = false, updatable = false)
     private User seller;

@@ -619,14 +619,14 @@ async function loadPurchases() {
     console.log('loadPurchases 호출됨');
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = ''; // 초기화
+
     if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
     const xsrf = getCookie('XSRF-TOKEN');
 
     try {
         const [orders, me] = await Promise.all([
             fetch('/orders/buy', {
-                headers: { 'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'}
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             }).then(noAuthGuard).then(r => r.json()),
             fetchMe()
         ]);
@@ -638,7 +638,7 @@ async function loadPurchases() {
 
         for (const o of orders) {
             const role = inferRole(o, me);
-            if (role !== 'BUYER' && role !== 'UNKNOWN') continue; // 구매 내역만
+            if (role !== 'BUYER' && role !== 'UNKNOWN') continue;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -653,32 +653,25 @@ async function loadPurchases() {
             const actionTd = tr.querySelector('td:last-child');
 
             if (o.status === 'COMPLETED') {
-                // 주문 확정 텍스트
                 const statusText = document.createElement('span');
                 statusText.textContent = '주문 확정';
                 statusText.style.marginRight = '10px';
                 actionTd.appendChild(statusText);
 
-                // 리뷰 상태 확인
                 const reviewsRes = await fetch(`/api/reviews/orders/${o.id}`);
                 const reviews = await reviewsRes.json();
 
                 if (!reviews || reviews.length === 0) {
-                    // 리뷰 작성 버튼
                     const reviewBtn = createButton('리뷰 작성', () => {
                         window.location.href = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}`;
                     });
                     actionTd.appendChild(reviewBtn);
                 } else {
-                    const review = reviews[0]; // 첫 리뷰
-
-                    // 리뷰 수정 버튼
+                    const review = reviews[0];
                     const editBtn = createButton('리뷰 수정', () => {
                         const url = `/review/review.html?orderId=${o.id}&listingId=${o.listingId}&reviewId=${review.id}&score=${review.score}&rvComment=${encodeURIComponent(review.rvComment)}`;
                         window.location.href = url;
                     });
-
-                    // 리뷰 삭제 버튼
                     const deleteBtn = createButton('리뷰 삭제', async () => {
                         if (!confirm('정말 리뷰를 삭제하시겠습니까?')) return;
                         try {
@@ -687,7 +680,7 @@ async function loadPurchases() {
                                 headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
                             });
                             if (!res.ok) throw new Error('리뷰 삭제 실패');
-                            await loadPurchases(); // 테이블 새로고침
+                            await loadPurchases();
                         } catch (err) {
                             console.error(err);
                             alert(err.message);
@@ -697,8 +690,10 @@ async function loadPurchases() {
                     actionTd.appendChild(editBtn);
                     actionTd.appendChild(deleteBtn);
                 }
+
             } else if (o.status === 'CREATED') {
-                actionTd.appendChild(createButton('결제', () => payOrder(o)));
+                // 결제 버튼 항상 활성화
+                actionTd.appendChild(createButton('결제', () => handlePayment(o)));
                 actionTd.appendChild(createButton('취소', () => cancelOrder(o.id, actionTd, o)));
             } else if (o.status === 'PAID') {
                 actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
@@ -709,11 +704,115 @@ async function loadPurchases() {
 
             tbody.appendChild(tr);
         }
+
     } catch (err) {
         console.error(err);
         tbody.innerHTML = `<tr><td colspan="6">구매 내역을 불러오는 중 오류가 발생했습니다: ${err.message}</td></tr>`;
     }
 }
+
+// ----------------- 초기화 -----------------
+const { IMP } = window;
+IMP.init("77OeTAH6ixLhmgfwJR9BlC4z6xcWVjy3QZFHHinNK65uARI42rBcUpucdmTzq2ZW4dfD74nhPHWceqac"); // 아임포트 V2 테스트 키
+
+// ----------------- 결제 처리 -----------------
+async function handlePayment(order) {
+
+    console.log('handlePayment 호출됨', order);
+
+
+    let success = false;
+
+    if (order.method === 'DELIVERY' || order.method === 'KG_INICIS' || order.method === 'MEETUP') {
+        success = await kgPay(order);
+    } else if (order.method === 'TOSS') {
+        success = await tossPay(order);
+    } else if (order.method === 'KAKAO') {
+        success = await kakaoPay(order);
+    } else {
+        alert('지원되지 않는 결제 방식입니다.');
+        return;
+    }
+
+    if (success) {
+        try {
+            const res = await fetch(`/orders/${order.id}/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')
+                },
+                body: JSON.stringify({
+                    method: order.method,
+                    idempotencyKey: `order_${order.id}_${Date.now()}`
+                })
+            });
+            if (!res.ok) throw new Error('서버 결제 처리 실패');
+
+            alert('결제가 완료되었습니다!');
+            await loadPurchases(); // 구매 내역 갱신
+        } catch (err) {
+            console.error(err);
+            alert(err.message);
+        }
+    }
+}
+
+// ----------------- KG_INICIS(V2 아임포트) 결제 -----------------
+function kgPay(order) {
+    return new Promise(async (resolve) => {
+        try {
+            // 1. 서버에서 paymentId 발급
+            const res = await fetch(`/api/payments/pre-register/${order.id}`, { method: 'POST' });
+            const { paymentId } = await res.json();
+
+            // 2. 클라이언트에서 결제 승인
+            IMP.request_pay({ paymentId }, function(rsp) {
+                if (rsp.success) resolve(true);
+                else { alert(rsp.error_msg); resolve(false); }
+            });
+        } catch (err) {
+            console.error(err);
+            alert('KG_INICIS 결제 준비 실패');
+            resolve(false);
+        }
+    });
+}
+
+// ----------------- Toss 결제 -----------------
+function tossPay(order) {
+    return new Promise((resolve) => {
+        const toss = new TossPayments("channel-key-f9db894a-500c-44dc-aeb5-a7ea24c2f7e5");
+        toss.requestPayment('카드', {
+            amount: order.finalPrice,
+            orderId: `order_${order.id}_${Date.now()}`,
+            orderName: order.listingTitle,
+            successUrl: window.location.href,
+            failUrl: window.location.href
+        })
+        .then(() => resolve(true))
+        .catch(err => { console.error(err); alert("Toss 결제 실패"); resolve(false); });
+    });
+}
+
+// ----------------- KakaoPay 결제 -----------------
+function kakaoPay(order) {
+    return new Promise((resolve) => {
+        fetch(`/kakao/pay/ready?orderId=${order.id}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.next_redirect_pc_url) {
+                    window.location.href = data.next_redirect_pc_url;
+                    resolve(true);
+                } else {
+                    alert("KakaoPay 준비 실패");
+                    resolve(false);
+                }
+            })
+            .catch(err => { console.error(err); alert("KakaoPay 결제 실패"); resolve(false); });
+    });
+}
+
 
 
 
@@ -1276,27 +1375,44 @@ function createButton(text, onClick) {
 // 결제
 async function payOrder(order) {
     try {
-        // 실제 결제 구현 없으므로 빈 객체 전송
-        const res = await fetch(`/orders/${order.id}/pay`, {
-            method: 'POST',
-            headers: acctHeaders(),
-            body: JSON.stringify({})
+        // 1. 서버에서 merchant_uid + 금액 가져오기
+        const res = await fetch(`/api/pay/prepare/${order.id}`);
+        const data = await res.json();
+
+        const { IMP } = window;
+        IMP.init("channel-key-cb0fc946-2218-494d-b06d-4609ad738145"); // 아임포트 테스트 키로 초기화
+
+        // 2. 아임포트 결제창 띄우기
+        IMP.request_pay({
+            pg: 'html5_inicis',
+            pay_method: 'card',
+            merchant_uid: data.merchantUid,
+            name: data.name,
+            amount: data.amount
+        }, async function(rsp) {
+            if (rsp.success) {
+                // 3. 서버에 결제 완료 확인 요청
+                const confirmRes = await fetch('/api/pay/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        merchantUid: rsp.merchant_uid,
+                        amount: rsp.paid_amount,
+                        impUid: rsp.imp_uid // 아임포트 결제 고유 ID
+                    })
+                });
+                if (!confirmRes.ok) throw new Error("결제 검증 실패");
+
+                alert("결제 완료!");
+                loadOrders(); // 구매 내역 갱신
+            } else {
+                alert("결제 실패: " + rsp.error_msg);
+            }
         });
 
-        // 결제 완료 후 버튼 업데이트
-        const tr = Array.from(document.querySelectorAll('#ordersTable tbody tr'))
-            .find(r => r.querySelector('td').textContent === String(order.id));
-        if (tr) {
-            const td = tr.querySelector('td:last-child');
-            td.innerHTML = '';
-            td.appendChild(createButton('주문 확정', () => completeOrder(order.id, td)));
-            td.appendChild(createButton('결제 취소', () => revertToCreated(order.id, td, order)));
-        }
-
-        alert('결제가 완료되었습니다.');
     } catch (err) {
         console.error(err);
-        alert('결제 처리 중 오류가 발생했습니다: ' + err.message);
+        alert("결제 처리 중 오류 발생");
     }
 }
 
@@ -1353,8 +1469,7 @@ async function loadOrders() {
 
     try {
         const res = await fetch('/orders/buy', {
-            headers: { 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'}
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         }); // 구매 내역 API 호출
         if (!res.ok) throw new Error('주문 내역 불러오기 실패');
 
@@ -1396,6 +1511,7 @@ async function loadOrders() {
         tbody.innerHTML = `<tr><td colspan="8">주문 내역을 불러오는 중 오류가 발생했습니다.</td></tr>`;
     }
 }
+
 
 
 

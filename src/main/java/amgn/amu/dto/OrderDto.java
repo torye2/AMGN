@@ -1,7 +1,6 @@
 package amgn.amu.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record OrderDto(
         Long id,
@@ -10,6 +9,7 @@ public record OrderDto(
         Long sellerId,
         Long finalPrice,
         TradeMethod method,
+        PaymentRequest.PaymentMethod paymentMethod,
         OrderStatus status,
         LocalDateTime createdAt
         , String listingTitle            // Listing 제목
