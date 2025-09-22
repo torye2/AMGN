@@ -9,6 +9,7 @@ public record PaymentRequest(
 		@NotNull PaymentMethod method,         // 결제 수단
 		@NotNull String idempotencyKey,        // 멱등성 키
 		@NotNull LocalDateTime expiryDate      // 결제 만료 시간
+
 ) {
 	public enum PaymentMethod {
 		KG_INICIS,
