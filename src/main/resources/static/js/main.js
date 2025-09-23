@@ -101,3 +101,72 @@ document.addEventListener('DOMContentLoaded', () => {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const card   = document.getElementById('topSellersCard');
+  const listEl = document.getElementById('topSellers');
+  const loading = document.getElementById('topSellersLoading');
+  const empty   = document.getElementById('topSellersEmpty');
+
+  fetch('/awards/top-sellers?metric=units&limit=3', {
+    headers: { 'Accept': 'application/json' },
+    credentials: 'same-origin',
+    cache: 'no-store'
+  })
+  .then(async (res) => {
+    if (res.status === 204) return [];
+    const ct = res.headers.get('content-type') || '';
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || '요청 실패');
+    if (!text) return [];
+    if (!ct.includes('application/json')) throw new Error('JSON이 아닌 응답입니다.');
+    return JSON.parse(text);
+  })
+  .then(rows => {
+    loading.style.display = 'none';
+    if (!rows || rows.length === 0) {
+      empty.classList.remove('d-none');
+      return;
+    }
+
+    const medalClass = ['gold','silver','bronze'];
+    const medalText  = ['1','2','3'];
+
+    listEl.innerHTML = '';
+    rows.slice(0,3).forEach((r, idx) => {
+      const col = document.createElement('div');
+      col.className = 'col-12 col-md-4';
+
+      const name = r.sellerName ?? `판매자 #${r.sellerId}`;
+      const units = Number(r.value ?? 0);
+      const avatarUrl = r.avatarUrl || 'https://placehold.co/88x88?text=%F0%9F%8C%9F';
+
+      // 링크: /shop.html?sellerId={id}
+      const url = new URL('/shop.html', window.location.origin);
+      url.searchParams.set('sellerId', String(r.sellerId));
+
+      col.innerHTML = `
+        <a href="${url.toString()}" class="text-decoration-none text-reset">
+          <div class="leader-item">
+            <div class="leader-medal ${medalClass[idx] || 'gold'}">${medalText[idx] || (idx+1)}</div>
+            <img class="leader-avatar" src="${avatarUrl}" alt="${name}">
+            <div class="flex-grow-1">
+              <div class="leader-name">${name}</div>
+              <div class="leader-stats">이번 달 판매수량 ${units.toLocaleString()}개</div>
+            </div>
+          </div>
+        </a>
+      `;
+      listEl.appendChild(col);
+    });
+
+    card.style.display = 'block';
+  })
+  .catch(err => {
+    console.error(err);
+    loading.style.display = 'none';
+    empty.classList.remove('d-none');
+    empty.classList.replace('alert-light', 'alert-warning');
+    empty.textContent = err.message || '리더보드를 불러오지 못했습니다.';
+  });
+});

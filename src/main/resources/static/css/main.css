@@ -512,3 +512,34 @@ body{
 @media (max-width: 1280px){
   #wishFixedSidebar{ display:none; }
 }
+
+.leaderboard-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 60%);
+  border-radius: 16px;
+}
+.leader-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 14px;
+  background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  transition: transform .15s ease;
+}
+.leader-item:hover { transform: translateY(-2px); }
+.leader-medal {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 800; color: #fff;
+}
+.leader-medal.gold { background: #f2c94c; }
+.leader-medal.silver { background: #c0c4cc; }
+.leader-medal.bronze { background: #d08b5b; }
+.leader-avatar {
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+  background: #eef2f7;
+}
+.leader-name { font-weight: 700; }
+.leader-stats { color: #6b7280; font-size: 0.9rem; }
+.crown { font-size: 1.3rem; }
+@media (max-width: 576px) {
+  .leader-item { padding: 10px; }
+  .leader-medal { width: 32px; height: 32px; }
+  .leader-avatar { width: 40px; height: 40px; }
+}
