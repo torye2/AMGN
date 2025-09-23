@@ -187,10 +187,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             const res = await fetch(`/orders`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type':'application/json',
+                    'Content-Type': 'application/json',
                     'X-XSRF-TOKEN': xsrf
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                credentials: 'include'
             });
             if (!res.ok) throw new Error('주문 등록 실패');
             alert('주문 등록 완료!');
