@@ -612,6 +612,7 @@
     function renderExistingPhotos(product) {
       const wrap = document.getElementById('existingPhotos');
       wrap.innerHTML = '';
+
       const photos = Array.isArray(product.photos)
         ? product.photos // 권장 구조: [{photoId, url}]
         : (Array.isArray(product.photoUrls) ? product.photoUrls.map((u, i) => ({ photoId: product.photoIds?.[i] ?? i, url: u })) : []);
@@ -619,6 +620,7 @@
       photos.forEach(p => {
         const div = document.createElement('div');
         div.className = 'thumb';
+        div.dataset.photoId = String(p.photoId);
 
         const img = document.createElement('img');
         img.src = p.url?.startsWith('/uploads') ? p.url : `/uploads/${p.url}`;
@@ -795,7 +797,8 @@
 
           // 삭제 예정 사진
           if (deletedPhotoIds.size > 0) {
-            fd.append('deletedPhotoIds', JSON.stringify(Array.from(deletedPhotoIds)));
+              const del = Array.from(deletedPhotoIds).map(id => Number(id));
+            fd.append('deletedPhotoIds', JSON.stringify(del));
           }
 
           // 새 사진 파일들

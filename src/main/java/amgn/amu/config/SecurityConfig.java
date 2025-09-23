@@ -80,7 +80,7 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/img/**", "/favicon.ico",
                                 "/search", "/category/**", "/footer.html", "/api/pw-reset/**",
                                 "/api/csrf", "/header.html","/list.html", "/api/find-id",
-                                "/oauth2/authorization/**","/login/oauth2/code/**"
+                                "/oauth2/authorization/**","/login/oauth2/code/**", "/signup"
                         ).permitAll()
                         // 읽기 전용 공개 API (HTTP GET만)
                         .requestMatchers(HttpMethod.GET,

@@ -117,7 +117,7 @@ public class ListingService {
 		if (listing.getPhotos() != null && !listing.getPhotos().isEmpty()) {
 			List<String> urls = listing.getPhotos().stream()
 					.map(ListingPhoto::getUrl)
-					.collect(Collectors.toList());
+					.toList();
 			dto.setPhotoUrls(urls);
 		}
 
