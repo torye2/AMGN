@@ -180,11 +180,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             recvAddr2: formData.get('recvAddr2'),
             recvZip: formData.get('recvZip')
         };
+        if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+        const xsrf = getCookie('XSRF-TOKEN');
 
         try {
             const res = await fetch(`/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type':'application/json',
+                    'X-XSRF-TOKEN': xsrf
+                },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error('주문 등록 실패');
@@ -202,3 +207,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadAddresses();
 
 });
+
+async function ensureCsrf() {
+    const r = await fetch('/api/csrf', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}
