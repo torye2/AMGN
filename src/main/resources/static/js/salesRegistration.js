@@ -48,10 +48,10 @@ salesForm.addEventListener('submit', async (event) => {
         const response = await fetch('/product/write', {
             method: 'POST',
             headers: {
-                'Content-Type':'application/json',
                 'X-XSRF-TOKEN': xsrf
             },
-            body: formData // FormData 객체를 그대로 전송
+            body: formData, // FormData 객체를 그대로 전송
+            credentials: 'same-origin'
         });
 
         const result = await response.json();
