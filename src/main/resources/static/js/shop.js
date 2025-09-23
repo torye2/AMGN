@@ -19,12 +19,31 @@
       if (!res.ok) throw new Error('판매자 정보를 불러오지 못했습니다.');
       return res.json();
     })
-    .then((data) => {
-      // 닉네임/타이틀: userName 사용
+    .then(async (data) => {
+      // 닉네임/타이틀: nickName → nickname → userName 순으로 사용, 없으면 닉네임 API 폴백
       const nicknameEl = document.querySelector('.shop-nickname');
       const titleEl = document.querySelector('.shop-title');
-      if (nicknameEl) nicknameEl.textContent = data.userName ?? '';
-      if (titleEl) titleEl.textContent = data.userName ?? '';
+
+      let displayName =
+        data?.nickName ??
+        data?.nickname ??
+        data?.userName ??
+        data?.username ??
+        data?.name ??
+        '';
+
+      if (!displayName || String(displayName).trim() === '') {
+        try {
+          const r = await fetch(`/api/user/nickname/${encodeURIComponent(sellerId)}`);
+          if (r.ok) {
+            const j = await r.json();
+            displayName = j?.nickname ?? displayName;
+          }
+        } catch (_) { /* 폴백 실패시 무시 */ }
+      }
+
+      if (nicknameEl) nicknameEl.textContent = displayName || '';
+      if (titleEl) titleEl.textContent = displayName || '';
 
       // 소유자 후보 수집
       const addCard = (v) => {

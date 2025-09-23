@@ -1405,6 +1405,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!VALID_TABS.has(initial)) initial = 'dashboard';
 
+    // 헤더 상점명/가입일을 먼저 갱신하여 초기 렌더에서 OO가 오래 보이지 않도록 함
+    fetchMe()
+      .then(async (me) => {
+          if (me?.nickname) {
+              const shopEl = document.getElementById('shopName');
+              if (shopEl) shopEl.textContent = `상점명: ${me.nickname}`;
+          }
+          const joinEl = document.getElementById('metaJoin');
+          if (joinEl && me?.createdAt) {
+              joinEl.textContent = me.createdAt;
+          }
+
+          // DB 기준 찜 수 즉시 갱신
+          try {
+            const r = await fetch('/product/wish/my/count', {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'include'
+            });
+            const { count } = r.ok ? await r.json() : { count: 0 };
+            const w = document.getElementById('metaWish');
+            if (w) w.textContent = String(count ?? 0);
+          } catch {
+            const w = document.getElementById('metaWish');
+            if (w) w.textContent = '0';
+          }
+
+          // DB 기준 팔로워 수 즉시 갱신 (현재 로그인 사용자 = 상점 주인)
+          try {
+            const sid = me && (me.userId ?? me.user_id ?? me.id);
+            const f = document.getElementById('metaFollowers');
+            if (sid != null) {
+              const r2 = await fetch(`/api/follows/${encodeURIComponent(sid)}/count`, {
+                  headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                  credentials: 'include'
+              });
+              const j2 = r2.ok ? await r2.json() : { count: 0 };
+              const followers = (j2 && (j2.count ?? j2.data?.count)) ?? 0;
+              if (f) f.textContent = String(followers);
+            } else {
+              if (f) f.textContent = '0';
+            }
+          } catch {
+            const f = document.getElementById('metaFollowers');
+            if (f) f.textContent = '0';
+          }
+      })
+      .catch(() => { /* 비로그인 등 오류는 무시 */ });
+
     switchTab(initial);
 });
 document.getElementById('btnCancelEdit')?.addEventListener('click', () => {
