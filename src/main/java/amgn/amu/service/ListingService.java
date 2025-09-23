@@ -119,6 +119,15 @@ public class ListingService {
 					.map(ListingPhoto::getUrl)
 					.toList();
 			dto.setPhotoUrls(urls);
+
+			List<ListingDto.PhotoDto> photoDtos = listing.getPhotos().stream()
+					.map(p -> {
+						ListingDto.PhotoDto pd = new ListingDto.PhotoDto();
+						pd.setPhotoId(p.getPhotoId());
+						pd.setUrl(p.getUrl());
+						return pd;
+					}).toList();
+			dto.setPhotos(photoDtos);
 		}
 
 		return dto;
