@@ -36,6 +36,25 @@
     </aside>
 
 
+    <!-- TOP 3 판매왕 -->
+    <div class="container mt-3">
+        <div id="topSellersCard" class="card leaderboard-card border-0 shadow-sm" style="display:none;">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center mb-3">
+                    <span class="crown me-2">👑</span>
+                    <h5 class="mb-0 fw-bold">이달의 판매왕 TOP 3</h5>
+                </div>
+                <div id="topSellers" class="row g-3"></div>
+            </div>
+        </div>
+
+        <!-- 로딩/빈상태 -->
+        <div id="topSellersLoading" class="placeholder-glow">
+            <span class="placeholder col-12" style="height:90px; display:block;"></span>
+        </div>
+        <div id="topSellersEmpty" class="alert alert-light border d-none">이번 달 결과가 없습니다.</div>
+    </div>
+
     <div id="cont_nav">
             <div class="container">
                 <div id="cont_ban">
@@ -48,24 +67,18 @@
                             </div>
                             <div class="carousel-inner rounded overflow-hidden">
                                 <div class="carousel-item active" data-bs-interval="3000">
-                                    <img src="https://placehold.co/1200x350?text=Banner+1" class="d-block w-100" alt="배너 1">
+                                    <img src="/img/banner.jpg" class="d-block w-100" alt="배너 1">
                                     <div class="carousel-caption d-none d-md-block">
-                                        <h5>배너 제목 1</h5>
-                                        <p>설명 텍스트 1</p>
                                     </div>
                                 </div>
                                 <div class="carousel-item" data-bs-interval="3000">
                                     <img src="https://placehold.co/1200x350?text=Banner+2" class="d-block w-100" alt="배너 2">
                                     <div class="carousel-caption d-none d-md-block">
-                                        <h5>배너 제목 2</h5>
-                                        <p>설명 텍스트 2</p>
                                     </div>
                                 </div>
                                 <div class="carousel-item" data-bs-interval="3000">
                                     <img src="https://placehold.co/1200x350?text=Banner+3" class="d-block w-100" alt="배너 3">
                                     <div class="carousel-caption d-none d-md-block">
-                                        <h5>배너 제목 3</h5>
-                                        <p>설명 텍스트 3</p>
                                     </div>
                                 </div>
                             </div>

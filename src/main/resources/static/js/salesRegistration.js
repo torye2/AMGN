@@ -6,6 +6,8 @@ salesForm.addEventListener('submit', async (event) => {
     event.preventDefault(); // 폼 제출의 기본 동작(페이지 새로고침) 방지
     messageDiv.textContent = "저장 중입니다...";
     messageDiv.style.color = "blue";
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
 
     try {
         // FormData 객체 생성
@@ -45,7 +47,11 @@ salesForm.addEventListener('submit', async (event) => {
 
         const response = await fetch('/product/write', {
             method: 'POST',
+            headers: {
+                'X-XSRF-TOKEN': xsrf
+            },
             body: formData, // FormData 객체를 그대로 전송
+            credentials: 'same-origin'
         });
 
         const result = await response.json();
@@ -318,3 +324,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+async function ensureCsrf() {
+    const r = await fetch('/api/csrf', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}

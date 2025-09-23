@@ -1,10 +1,7 @@
 package amgn.amu.repository;
 
-import amgn.amu.dto.ListingDto;
 import amgn.amu.dto.ListingSummaryResponse;
 import amgn.amu.entity.Listing;
-import amgn.amu.entity.ListingAttr;
-import amgn.amu.entity.ListingPhoto;
 //import org.apache.ibatis.annotations.Param;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;

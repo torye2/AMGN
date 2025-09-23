@@ -19,12 +19,31 @@
       if (!res.ok) throw new Error('판매자 정보를 불러오지 못했습니다.');
       return res.json();
     })
-    .then((data) => {
-      // 닉네임/타이틀: userName 사용
+    .then(async (data) => {
+      // 닉네임/타이틀: nickName → nickname → userName 순으로 사용, 없으면 닉네임 API 폴백
       const nicknameEl = document.querySelector('.shop-nickname');
       const titleEl = document.querySelector('.shop-title');
-      if (nicknameEl) nicknameEl.textContent = data.userName ?? '';
-      if (titleEl) titleEl.textContent = data.userName ?? '';
+
+      let displayName =
+        data?.nickName ??
+        data?.nickname ??
+        data?.userName ??
+        data?.username ??
+        data?.name ??
+        '';
+
+      if (!displayName || String(displayName).trim() === '') {
+        try {
+          const r = await fetch(`/api/user/nickname/${encodeURIComponent(sellerId)}`);
+          if (r.ok) {
+            const j = await r.json();
+            displayName = j?.nickname ?? displayName;
+          }
+        } catch (_) { /* 폴백 실패시 무시 */ }
+      }
+
+      if (nicknameEl) nicknameEl.textContent = displayName || '';
+      if (titleEl) titleEl.textContent = displayName || '';
 
       // 소유자 후보 수집
       const addCard = (v) => {
@@ -276,6 +295,9 @@
         });
 
         saveBtn.addEventListener('click', async () => {
+            if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+            const xsrf = getCookie('XSRF-TOKEN');
+
           if (!editing) return;
           try {
             saveBtn.disabled = true;
@@ -301,8 +323,8 @@
             const res = await fetch(`/api/shop/${encodeURIComponent(sellerId)}`, {
               method: 'PUT',
               body: fd,
-              headers,
-              credentials: 'include',
+                headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf },
+              credentials: 'include'
             });
 
             if (!res.ok) {
@@ -860,6 +882,9 @@
             renderButton();
 
             btn.addEventListener('click', async () => {
+                if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+                const xsrf = getCookie('XSRF-TOKEN');
+
                 try {
                     btn.disabled = true;
                     let res;
@@ -867,12 +892,14 @@
                         // 언팔로우
                         res = await fetch(`/api/follows/${encodeURIComponent(sellerId)}`, {
                             method: 'DELETE',
+                            headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf },
                             credentials: 'include'
                         });
                     } else {
                         // 팔로우
                         res = await fetch(`/api/follows/${encodeURIComponent(sellerId)}`, {
                             method: 'POST',
+                            headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf },
                             credentials: 'include'
                         });
                     }
@@ -897,3 +924,16 @@
         })
         .catch(() => { /* 상태 조회 실패 시 무시 */ });
 })();
+
+async function ensureCsrf() {
+    const r = await fetch('/api/csrf', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
+    const j = await r.json(); // { headerName, token }
+    return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+    return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}

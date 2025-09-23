@@ -1,5 +1,6 @@
 package amgn.amu.config;
 
+import amgn.amu.common.CustomUserDetails;
 import amgn.amu.component.LoginHelper;
 import amgn.amu.dto.LoginUserDto;
 import amgn.amu.dto.oauth_totp.PendingOauth;
@@ -15,8 +16,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,10 +30,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -38,10 +51,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean @Order(1)
     SecurityFilterChain oauth(HttpSecurity http,
                               AuthenticationSuccessHandler success,
@@ -64,7 +80,7 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/img/**", "/favicon.ico",
                                 "/search", "/category/**", "/footer.html", "/api/pw-reset/**",
                                 "/api/csrf", "/header.html","/list.html", "/api/find-id",
-                                "/oauth2/authorization/**","/login/oauth2/code/**"
+                                "/oauth2/authorization/**","/login/oauth2/code/**", "/signup"
                         ).permitAll()
                         // 읽기 전용 공개 API (HTTP GET만)
                         .requestMatchers(HttpMethod.GET,
@@ -73,10 +89,12 @@ public class SecurityConfig {
                                 "/api/geo/**", "/uploads/**", "/api/users/**",
                                 "/region/**", "/api/region/**", "/api/user/**",
                                 "/api/listings/**", "/listing/**",
-                                "/api/search/**", "/product/**", "/api/system/**"
+                                "/api/search/**", "/product/**", "/api/system/**",
+                                "/awards/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/oauth/connect/**",
+                                "/api/oauth/reauth/**",
                                 "/api/oauth/me",
                                 "/api/oauth/link/confirm",
                                 "/api/oauth/unlink",
@@ -85,7 +103,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/onboarding").authenticated()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(nextParamCaptureFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
+                .addFilterAfter(nextParamCaptureFilter(userRepository), OAuth2AuthorizationRequestRedirectFilter.class)
                 .formLogin(f -> f
                         .loginPage("/login.html")
                         .loginProcessingUrl("/login")
@@ -115,6 +133,7 @@ public class SecurityConfig {
                                 log.info("session set: loginUser.userId={}", dto.getUserId());
                                 log.info("session set: loginUser={}", dto);
                             } else {
+                                log.info("loginUser is null");
                                 // 여기로 오면 뭔가 이상한 케이스 → 안전하게 로그인 페이지로 돌려보냄
                                 res.sendRedirect("/login.html?error");
                                 return;
@@ -133,14 +152,22 @@ public class SecurityConfig {
                             else { res.sendRedirect("/main.html"); }
                         })
                         .failureHandler((req, res, ex) -> {
-                            org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger("AUTH");
-                            log.warn("LOGIN FAIL: {} - {}", ex.getClass().getSimpleName(), ex.getMessage());
-                            String msg = java.net.URLEncoder.encode("아이디 또는 비밀번호가 올바르지 않습니다.","UTF-8");
-                            res.sendRedirect("/login.html?error=" + msg);
+                            var log = org.slf4j.LoggerFactory.getLogger("AUTH");
+                            log.warn("FORM LOGIN FAIL: {} - {}", ex.getClass().getName(), ex.getMessage());
+
+                            if (ex instanceof DisabledException) {
+                                res.sendRedirect("/login.html?error=account_disabled");
+                            } else if (ex instanceof BadCredentialsException) {
+                                res.sendRedirect("/login.html?error=bad_credentials");
+                            } else if (ex instanceof UsernameNotFoundException) {
+                                res.sendRedirect("/login.html?error=user_not_found");
+                            } else {
+                                res.sendRedirect("/login.html?error");
+                            }
                         })
                         .failureUrl("/login.html?error")
                 )
-                .oauth2Login(o -> o
+                .oauth2Login(o -> o.userInfoEndpoint(u -> u.userService(oAuth2UserService(userRepository)))
                         .loginPage("/login.html")
                         .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
                         .successHandler(success)
@@ -205,6 +232,33 @@ public class SecurityConfig {
             String accessToken = client.getAccessToken().getTokenValue();
             String refreshToken = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
             var expiresAt = client.getAccessToken().getExpiresAt();
+
+            // 재인증 라운드 우선 처리
+            if (session != null && session.getAttribute("REAUTH_PROVIDER") != null) {
+                // 재인증 성공 플래그(짧은 유효시간) 설정
+                session.setAttribute("reauth_ok_until", java.time.Instant.now().plusSeconds(180));
+
+                String ret = Optional.ofNullable((String) session.getAttribute("REAUTH_RETURN"))
+                        .orElse("/myPage.html#account");
+                String after = Optional.ofNullable((String) session.getAttribute("REAUTH_AFTER"))
+                        .orElse("delete");
+
+                // 세션 정리
+                session.removeAttribute("REAUTH_PROVIDER");
+                session.removeAttribute("REAUTH_RETURN");
+                session.removeAttribute("REAUTH_AFTER");
+
+                String base = ret, frag = "";
+                int i = ret.indexOf('#');
+                if (i >= 0) { base = ret.substring(0, i); frag = ret.substring(i); } // ex: frag="#account"
+
+                String sep = base.contains("?") ? "&" : "?";
+                String redirect = base + sep + "reauth=ok&after=" +
+                        java.net.URLEncoder.encode(after, java.nio.charset.StandardCharsets.UTF_8) +
+                        frag;
+                res.sendRedirect(redirect);
+                return;
+            }
 
             var po = new PendingOauth();
             po.setProvider(provider);
@@ -295,15 +349,44 @@ public class SecurityConfig {
     }
 
     @Bean
-    OncePerRequestFilter nextParamCaptureFilter() {
+    OncePerRequestFilter nextParamCaptureFilter(UserRepository userRepository) {
+        var log = org.slf4j.LoggerFactory.getLogger("FILTER");
+
         return new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
                     throws ServletException, IOException {
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.isAuthenticated()) {
+                    Long userId = null;
+                    if (auth.getPrincipal() instanceof CustomUserDetails cud) {
+                        userId = cud.getUserId();
+                        log.debug("FILTER: principal=CustomUserDetails userId={}", userId);
+                    } else if (auth.getPrincipal() instanceof org.springframework.security.core.userdetails.User udet) {
+                        log.debug("FILTER: principal=User username={}", udet.getUsername());
+                        // loginId로 조회해서 userId 얻기
+                        userId = userRepository.findByLoginId(udet.getUsername()).map(amgn.amu.domain.User::getUserId).orElse(null);
+                    } else {
+                        log.debug("FILTER: principalClass={}", auth.getPrincipal().getClass().getName());
+                    }
+                    if (userId != null) {
+                        var fresh = userRepository.findByUserId(userId).orElse(null);
+                        log.debug("FILTER: freshUser exists={}, status={}", fresh!=null, fresh!=null?fresh.getStatus():null);
+                        if (fresh == null || !"ACTIVE".equals(fresh.getStatus())) {
+                            log.warn("FILTER: inactive user detected. Forcing logout. userId={}", userId);
+                            new SecurityContextLogoutHandler().logout(req, res, auth);
+                            res.sendRedirect("/login.html?error=account_disabled");
+                            return;
+                        }
+                    }
+                }
+
+
                 String next = req.getParameter("next");
                 if (next != null && !next.isBlank()
                         && next.startsWith("/") && !next.startsWith("//")
                         && !next.equals("/login") && !next.equals("/login.html")) {
+                    log.debug("FILTER: captured NEXT_URL={}", next);
                     req.getSession(true).setAttribute("NEXT_URL", next);
                 }
                 chain.doFilter(req, res);
@@ -348,16 +431,32 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
     UserDetailsService userDetailsService(UserRepository userRepository) {
+        var log = org.slf4j.LoggerFactory.getLogger("AUTH");
+        final String DUMMY_BCRYPT = new BCryptPasswordEncoder().encode("never-match-" + java.util.UUID.randomUUID());
+
         return username -> userRepository.findByLoginId(username)
-                .map(u -> User
-                        .withUsername(u.getLoginId())
-                        .password(u.getPasswordHash())
-                        .roles("USER")
-                        .accountExpired(false).accountLocked(false)
-                        .credentialsExpired(false).disabled(false)
-                        .build())
+                .map(u -> {
+                    log.debug("UDS: loginId={}, status={}, hasPwHash={}",
+                            u.getLoginId(), u.getStatus(), (u.getPasswordHash()!=null && !u.getPasswordHash().isBlank()));
+
+                    if (!"ACTIVE".equalsIgnoreCase(u.getStatus())) {
+                        log.warn("UDS: Disabled user attempted login. loginId={}", u.getLoginId());
+                        throw new DisabledException("inactive/deleted");
+                    }
+                    String pw = u.getPasswordHash();
+                    if (pw == null || pw.isBlank()) {
+                        // 소셜 전용 계정: 폼로그인 시도하면 항상 실패
+                        pw = DUMMY_BCRYPT;
+                    }
+                    return org.springframework.security.core.userdetails.User
+                            .withUsername(u.getLoginId())
+                            .password(pw)
+                            .roles("USER")
+                            .accountExpired(false).accountLocked(false)
+                            .credentialsExpired(false).disabled(false)
+                            .build();
+                })
                 .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 
@@ -372,5 +471,23 @@ public class SecurityConfig {
                 || uri.startsWith("/review")
                 || (accept != null && accept.contains("application/json"))
                 || "XMLHttpRequest".equalsIgnoreCase(xr);
+    }
+
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService(UserRepository userRepository) {
+        DefaultOAuth2UserService service = new DefaultOAuth2UserService();
+
+        return req -> {
+            OAuth2User oauth2User = service.loadUser(req);
+
+            String nameAttrKey = req.getClientRegistration()
+                    .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
+
+            return new DefaultOAuth2User(
+                    Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+                    oauth2User.getAttributes(),
+                    nameAttrKey
+            );
+        };
     }
 }
