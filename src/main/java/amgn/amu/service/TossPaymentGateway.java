@@ -3,7 +3,7 @@ package amgn.amu.service;
 import org.springframework.stereotype.Service;
 import amgn.amu.dto.PaymentRequest;
 
-@Service
+
 public class TossPaymentGateway implements PaymentGateway {
     @Override
     public boolean pay(PaymentRequest req) {

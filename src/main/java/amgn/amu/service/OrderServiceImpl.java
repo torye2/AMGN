@@ -181,6 +181,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderDto cancel(Long actorUserId, Long orderId) {
         Order order = findOrderById(orderId);
+        String merchantUid = "refund_" + order.getId() + "_" + System.currentTimeMillis();
+        String impUidFromPayment = order.getImpUid(); // Order 엔티티에 impUid가 저장되어 있어야 함
+
 
         if (!order.getBuyerId().equals(actorUserId)) {
             throw new RuntimeException("권한이 없습니다.");
@@ -196,7 +199,10 @@ public class OrderServiceImpl implements OrderService {
                     order.getFinalPrice(),
                     order.getPaymentMethod(),
                     "refund_" + order.getId(),
-                    LocalDateTime.now().plusHours(1)
+                    LocalDateTime.now().plusHours(1),
+                    merchantUid,                           // merchantUid
+                    impUidFromPayment
+
             );
 
             PaymentGateway gateway = selectGateway(refundReq.method());

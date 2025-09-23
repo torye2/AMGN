@@ -20,17 +20,20 @@ public class PaymentController {
         return loginUser.getUserId();
     }
 
-    // 결제 준비 (merchant_uid 발급 등)
     @PostMapping("/prepare")
     public PaymentResponse preparePayment(@RequestBody PaymentRequest req, HttpSession session) {
         Long userId = getUserId(session);
-        return paymentService.preparePayment(userId, req);
+        return paymentService.preparePayment(userId, req.orderId());
     }
 
-    // 결제 완료 확인 (서버에서 금액 검증)
     @PostMapping("/complete")
     public PaymentResponse completePayment(@RequestBody PaymentRequest req, HttpSession session) {
         Long userId = getUserId(session);
         return paymentService.completePayment(userId, req);
+    }
+
+    @GetMapping("/payment/test-pre-register/{orderId}/{amount}")
+    public String testPreRegister(@PathVariable Long orderId, @PathVariable Long amount) {
+        return paymentService.testPreRegister(orderId, amount);
     }
 }
