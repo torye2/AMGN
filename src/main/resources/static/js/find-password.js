@@ -70,6 +70,8 @@ document.getElementById('pwCheckForm').addEventListener('submit', async (e)=>{
 document.getElementById('pwResetForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   showError('');
+  if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+  const xsrf = getCookie('XSRF-TOKEN');
 
   const pw1 = $('#pw1').value;
   const pw2 = $('#pw2').value;
@@ -92,7 +94,7 @@ document.getElementById('pwResetForm').addEventListener('submit', async (e)=>{
   try {
     const resp = await fetch('/api/pw-reset/commit', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf },
       body: JSON.stringify({ token: resetToken, newPassword: pw1 })
     });
     if(resp.ok){
@@ -105,3 +107,16 @@ document.getElementById('pwResetForm').addEventListener('submit', async (e)=>{
     showError('네트워크 오류가 발생했습니다.');
   }
 });
+
+async function ensureCsrf() {
+  const r = await fetch('/api/csrf', {
+    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    credentials: 'same-origin'
+  });
+  const j = await r.json(); // { headerName, token }
+  return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+  return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}

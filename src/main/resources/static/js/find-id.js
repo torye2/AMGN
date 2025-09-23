@@ -25,6 +25,8 @@ const showError = (msg)=>{ const el=$('#formError'); el.textContent=msg||''; };
 document.getElementById('findIdForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   showError('');
+  if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+  const xsrf = getCookie('XSRF-TOKEN');
 
   const userName = $('#name').value.trim();
   const birthYear = $('#birthYear').value.trim();
@@ -40,7 +42,7 @@ document.getElementById('findIdForm').addEventListener('submit', async (e)=>{
   try {
     const resp = await fetch('/api/find-id', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf },
       body: JSON.stringify({ userName, birthYear: Number(birthYear), birthMonth: Number(birthMonth), birthDay: Number(birthDay), phoneNumber })
     });
     if(resp.ok){
@@ -59,3 +61,16 @@ document.getElementById('findIdForm').addEventListener('submit', async (e)=>{
     showError('네트워크 오류가 발생했습니다.');
   }
 });
+
+async function ensureCsrf() {
+  const r = await fetch('/api/csrf', {
+    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    credentials: 'same-origin'
+  });
+  const j = await r.json(); // { headerName, token }
+  return j; // 필요 시 헤더명도 동적으로 사용
+}
+
+function getCookie(name) {
+  return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
+}

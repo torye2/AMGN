@@ -27,4 +27,15 @@ public class LoginUser {
         }
         throw new IllegalStateException("로그인 된 사용자를 식별할 수 없습니다.");
     }
+
+    public String status(HttpServletRequest req) {
+        var session = req.getSession(false);
+        if (session != null) {
+            Object loginUser = session.getAttribute("loginUser");
+            if (loginUser instanceof LoginUserDto dto) {
+                return dto.getStatus();
+            }
+        }
+        throw new IllegalStateException("로그인 된 사용자를 식별할 수 없습니다.");
+    }
 }

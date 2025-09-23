@@ -26,6 +26,8 @@ public class LoginUserDto {
     @NotBlank
     private String phoneNumber;
     @NotBlank
+    private String status;
+    @NotBlank
     private Integer birthYear;
     @NotBlank
     private Integer birthMonth;
@@ -46,6 +48,7 @@ public class LoginUserDto {
         dto.birthMonth = user.getBirthMonth();
         dto.birthDay = user.getBirthDay();
         dto.createdAt = user.getCreatedAt();
+        dto.status = user.getStatus();
 
         return dto;
     }

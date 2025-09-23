@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUserId(Long userId);
 
+    Optional<User> findByEmail(String email);
+
     // 아이디 찾기: 이름/생년월일/휴대폰 + ACTIVE
     Optional<User> findByUserNameAndBirthYearAndBirthMonthAndBirthDayAndPhoneNumber(
             String userName, Integer birthYear, Integer birthMonth, Integer birthDay, String phoneNumber

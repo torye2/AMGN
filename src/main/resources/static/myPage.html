@@ -269,7 +269,8 @@
                 <ul id="oauthLinked" style="margin-top:10px;"></ul>
                 <div class="help">최소 1개의 로그인 수단은 유지해야 합니다.</div>
             </section>
-            <form class="form-grid" id="accountForm" novalidate=""><div>
+            <form class="form-grid" id="accountForm" novalidate="">
+                <div>
                 <!-- 아이디(로그인 ID) + 중복확인 -->
                 <label>아이디
                     <div class="input-with-button">
@@ -321,7 +322,37 @@
                     <button disabled="" id="btnSave" class="btn btn-primary" type="submit">저장</button>
                     <button id="btnCancelEdit" class="btn btn-ghost" type="button">취소</button>
                 </div>
-            </div></form>
+            </div>
+            </form>
+            <!-- Danger zone: 회원 탈퇴 -->
+            <section id="dangerZone" class="section" style="margin-top:24px;border-top:1px solid #eee;padding-top:16px;">
+                <h3 style="color:#b42318;">회원 탈퇴</h3>
+                <p style="color:#6b7280;margin:8px 0 16px;">
+                    회원 탈퇴 시, 계정은 비식별화되며 복구할 수 없습니다. 거래/결제 등 법적 보존 기록은 정책에 따라 익명 상태로 보관될 수 있습니다.
+                </p>
+                <button id="btnDelete" class="btn" type="button" style="background:#b42318;color:#fff;">회원 탈퇴</button>
+            </section>
+
+            <!-- 탈퇴 확인 모달 -->
+            <div class="mp-modal" id="deleteModal" aria-hidden="true">
+                <div class="mp-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+                    <h3 class="mp-modal__title" id="deleteTitle">정말 탈퇴하시겠어요?</h3>
+                    <p class="mp-modal__desc">
+                        아래에 <strong>탈퇴합니다</strong>를 입력하고 계속을 누르면, 다음 단계에서 비밀번호를 확인합니다.
+                    </p>
+                    <form class="mp-modal__form" id="deleteForm">
+                        <input id="deleteConfirm" placeholder="탈퇴합니다" required type="text" />
+                        <textarea id="deleteReason" placeholder="(선택) 탈퇴 사유" rows="3" style="margin-top:8px;"></textarea>
+                        <div class="btn-row" style="margin-top:12px;">
+                            <button type="submit" class="btn btn-primary">계속</button>
+                            <button type="button" id="btnDeleteCancel" class="btn-secondary">취소</button>
+                        </div>
+                    </form>
+                    <div id="deleteError" class="mp-modal__error" aria-live="polite"></div>
+                </div>
+            </div>
+
+
         </div>
         <!-- 비밀번호 재인증 모달 -->
         <div class="mp-modal" id="reauthModal">
