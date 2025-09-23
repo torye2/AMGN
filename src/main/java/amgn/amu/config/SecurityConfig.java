@@ -89,7 +89,8 @@ public class SecurityConfig {
                                 "/api/geo/**", "/uploads/**", "/api/users/**",
                                 "/region/**", "/api/region/**", "/api/user/**",
                                 "/api/listings/**", "/listing/**",
-                                "/api/search/**", "/product/**", "/api/system/**"
+                                "/api/search/**", "/product/**", "/api/system/**",
+                                "/awards/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/oauth/connect/**",
