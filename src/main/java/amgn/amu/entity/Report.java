@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "report")
+@Table(name = "reports")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,21 +17,51 @@ public class Report {
     @Column(name = "report_id")
     private Long reportId;
 
-    @Column(name = "reporter_id")
+    @Column(name = "reporter_id", nullable = false)
     private Long reporterId;
 
-    @Column(name = "target_type")
-    private String targetType;
+    @Column(nullable = false)
+    private Long reportedUserId;
 
-    @Column(name = "target_id")
-    private Long targetId;
+    private Long listingId;
+    private Long chatRoomId;
 
-    @Column(name = "reason")
-    private String reason;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reason_code", nullable = false, length = 20)
+    private ReasonCode reasonCode;
 
-    @Column(name = "status")
-    private String status;
+    @Column(length = 255)
+    private String reasonText;
 
-    @Column(name = "created_at")
-    private int createdAt;
+    @Lob
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private ReportStatus status;
+
+    @Column(nullable = false)
+    private Integer evidenceCount;
+
+    private Long handledBy;
+    private Instant handledAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist void onCreate() {
+        var now = Instant.now();
+        createdAt = now;
+        updatedAt = now;
+        if (status == null) status = ReportStatus.PENDING;
+        if (evidenceCount == null) evidenceCount = 0;
+    }
+    @PreUpdate void onUpdate() { updatedAt = Instant.now(); }
 }
+
+enum ReasonCode { ABUSE, SCAM, INAPPROPRIATE, OTHER }
+
+enum ReportStatus { PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELED }
