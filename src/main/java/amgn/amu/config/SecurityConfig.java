@@ -80,7 +80,8 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/img/**", "/favicon.ico",
                                 "/search", "/category/**", "/footer.html", "/api/pw-reset/**",
                                 "/api/csrf", "/header.html","/list.html", "/api/find-id",
-                                "/oauth2/authorization/**","/login/oauth2/code/**", "/signup"
+                                "/oauth2/authorization/**","/login/oauth2/code/**", "/signup",
+                                "/shop.html"
                         ).permitAll()
                         // 읽기 전용 공개 API (HTTP GET만)
                         .requestMatchers(HttpMethod.GET,
@@ -90,7 +91,7 @@ public class SecurityConfig {
                                 "/region/**", "/api/region/**", "/api/user/**",
                                 "/api/listings/**", "/listing/**",
                                 "/api/search/**", "/product/**", "/api/system/**",
-                                "/awards/**"
+                                "/awards/**", "/api/shop/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/oauth/connect/**",

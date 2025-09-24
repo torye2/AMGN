@@ -5,90 +5,194 @@
     <title>구매 채팅 목록</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
-        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
-        h1 { margin-bottom: 16px; }
-        #status { margin-bottom: 12px; color: #555; }
-        ul { list-style: none; padding: 0; }
-        li {
-          padding: 12px 14px;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          margin-bottom: 10px;
-          cursor: pointer;
-          transition: background 0.15s ease-in-out;
+        :root{
+          --bg:#0b0c0f; --card:#11141a; --text:#eef2f6; --muted:#9aa4b2;
+          --border:#20242c; --primary:#4f46e5; --primary-weak:rgba(79,70,229,.12);
+          --shadow:0 10px 25px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.2);
+          color-scheme: dark;
         }
-        li:hover { background: #f8f9fb; }
-        .meta { font-size: 13px; color: #666; margin-top: 4px; }
-        .empty { color: #999; }
-        .error { color: #d33; white-space: pre-line; margin-top: 12px; }
+        @media (prefers-color-scheme: light){
+          :root{
+            --bg:#f7f8fb; --card:#fff; --text:#0b1220; --muted:#6b7280;
+            --border:#e5e7eb; --primary:#4f46e5; --primary-weak:rgba(79,70,229,.1);
+            --shadow:0 10px 24px rgba(2,6,23,.08), 0 2px 8px rgba(2,6,23,.06);
+            color-scheme: light;
+          }
+        }
+        html,body{height:100%}
+        body{
+          margin:0;
+          font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Arial, Apple Color Emoji, Segoe UI Emoji;
+          background: radial-gradient(1200px 600px at 80% -10%, var(--primary-weak), transparent 60%),
+                      radial-gradient(900px 500px at -10% 10%, rgba(34,211,238,.08), transparent 55%),
+                      var(--bg);
+          color:var(--text);
+        }
+        .container{max-width:880px;margin:32px auto;padding:0 20px;}
+        h1{margin:0 0 10px; font-size:clamp(22px,3.3vw,32px); letter-spacing:-.02em; display:flex; gap:10px; align-items:center;}
+        .title-dot{width:10px;height:10px;border-radius:9999px;background:linear-gradient(135deg,#22d3ee,var(--primary)); box-shadow:0 0 0 6px var(--primary-weak);}
+        #status{margin:6px 0 18px;color:var(--muted);font-size:14px;}
+
+        .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:clip;}
+        .ribbon{height:10px;background:linear-gradient(90deg,#22d3ee,var(--primary));opacity:.9;}
+        ul{list-style:none;padding:6px;margin:0;}
+
+        /* ▶︎ 한 줄 레이아웃: "판매자닉네임 · 상품명" */
+        li.room{
+          border:1px solid transparent;border-radius:12px;padding:14px 16px;cursor:pointer;position:relative;
+          transition:transform .12s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
+          display:flex; align-items:center; gap:8px;
+        }
+        li.room+li.room{margin-top:8px;}
+        li.room:hover{background:linear-gradient(0deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+          border-color:var(--border); transform:translateY(-1px); box-shadow:0 6px 14px rgba(2,6,23,.15);}
+        li.room:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-weak), 0 0 0 6px rgba(79,70,229,.15);}
+
+        .seller{font-weight:700; letter-spacing:-.01em; flex:0 0 auto; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+        .sep{opacity:.6; flex:0 0 auto;}
+        .product{color:var(--muted); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+        .empty{ color:var(--muted); padding:28px 18px; text-align:center; font-size:14px; }
+        .error{ color:#ef4444; white-space:pre-line; margin-top:14px; background:rgba(239,68,68,.08);
+          border:1px solid rgba(239,68,68,.25); border-radius:12px; padding:10px 12px; display:none;}
     </style>
 </head>
 <body>
-<h1>구매 채팅 목록</h1>
-<div id="status">로그인 상태 확인 중...</div>
-<ul id="chatRooms"></ul>
-<div id="error" class="error"></div>
+<div class="container">
+    <h1><span class="title-dot"></span>구매 채팅 목록</h1>
+    <div id="status">로그인 상태 확인 중...</div>
+
+    <div class="card">
+        <div class="ribbon"></div>
+        <ul id="chatRooms" aria-live="polite" aria-busy="true"></ul>
+    </div>
+
+    <div id="error" class="error" role="alert"></div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const statusEl = document.getElementById('status');
       const listEl   = document.getElementById('chatRooms');
       const errorEl  = document.getElementById('error');
+      const setBusy = (b)=>listEl.setAttribute('aria-busy', String(!!b));
 
-      try {
-        // 1) 로그인 사용자 조회
-        const meRes = await fetch('/api/user/me', { cache: 'no-store', credentials: 'include' });
+      // 간단 캐시
+      const sellerCache  = new Map(); // userId -> nickname
+      const listingCache = new Map(); // listingId -> title
+
+      // 방 객체에 이미 값이 있으면 우선 사용
+      const pickSellerNickname = (room) =>
+        room.sellerNickname ?? room.seller_nickname ?? room.seller?.nickname ?? null;
+
+      const pickListingTitle = (room) =>
+        room.listingTitle ?? room.listing_name ?? room.productName ?? room.listing?.title ?? null;
+
+      async function fetchSellerNickname(userId){
+        if (!userId) return null;
+        if (sellerCache.has(userId)) return sellerCache.get(userId);
+        const candidates = [
+          `/api/users/${encodeURIComponent(userId)}`,
+          `/api/user/${encodeURIComponent(userId)}`,
+          `/api/profile/${encodeURIComponent(userId)}`
+        ];
+        for (const url of candidates){
+          try{
+            const r = await fetch(url, {credentials:'include'});
+            if (!r.ok) continue;
+            const d = await r.json();
+            const nick = d.nickname ?? d.name ?? d.user?.nickname ?? d.profile?.nickname;
+            if (nick){ sellerCache.set(userId, nick); return nick; }
+          }catch(e){}
+        }
+        return null;
+      }
+
+      async function fetchListingTitle(listingId){
+        if (!listingId) return null;
+        if (listingCache.has(listingId)) return listingCache.get(listingId);
+        const candidates = [
+          `/api/listings/${encodeURIComponent(listingId)}`,
+          `/api/listing/${encodeURIComponent(listingId)}`,
+          `/api/products/${encodeURIComponent(listingId)}`,
+          `/api/product/${encodeURIComponent(listingId)}`
+        ];
+        for (const url of candidates){
+          try{
+            const r = await fetch(url, {credentials:'include'});
+            if (!r.ok) continue;
+            const d = await r.json();
+            const title = d.title ?? d.name ?? d.productName ?? d.listing?.title ?? d.product?.name;
+            if (title){ listingCache.set(listingId, title); return title; }
+          }catch(e){}
+        }
+        return null;
+      }
+
+      try{
+        setBusy(true);
+
+        // 1) 로그인 사용자
+        const meRes = await fetch('/api/user/me', {cache:'no-store', credentials:'include'});
         if (!meRes.ok) throw new Error('로그인 사용자 조회 실패');
         const me = await meRes.json();
 
-        if (!me.loggedIn) {
+        if (!me.loggedIn){
           statusEl.textContent = '로그인이 필요합니다.';
           alert('로그인이 필요합니다.');
           location.href = '/login.html';
           return;
         }
 
-        const myUserId = me.userId; // 숫자 PK
+        const myUserId = me.userId;
         statusEl.textContent = `구매자: ${me.nickname ?? myUserId}`;
 
-        // 2) 내가 속한 모든 채팅방 조회
-        const roomsRes = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(myUserId)}`, { credentials: 'include' });
+        // 2) 전체 방 조회
+        const roomsRes = await fetch(`/api/chat/rooms?userId=${encodeURIComponent(myUserId)}`, {credentials:'include'});
         if (!roomsRes.ok) throw new Error('채팅방 목록 조회 실패');
         const allRooms = await roomsRes.json();
 
-        // 3) 구매자로서 속한 방만 필터 (buyerId == myUserId)
+        // 3) 구매자로 속한 방만
         const buyerRooms = (allRooms || []).filter(r => String(r.buyerId) === String(myUserId));
 
         listEl.innerHTML = '';
-        if (buyerRooms.length === 0) {
+        if (buyerRooms.length === 0){
           listEl.innerHTML = `<li class="empty">구매 채팅방이 없습니다.</li>`;
           return;
         }
 
-        // 최신 생성 순(선택)
-        buyerRooms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // 최신 생성 순
+        buyerRooms.sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
 
-        // 4) 목록 렌더
-        buyerRooms.forEach(room => {
+        // 4) 필요한 정보 채우기 → 한 줄 표시용 데이터
+        const enriched = await Promise.all(buyerRooms.map(async (room) => {
+          const sellerNickname = pickSellerNickname(room) ?? await fetchSellerNickname(room.sellerId) ?? `판매자#${room.sellerId}`;
+          const listingTitle   = pickListingTitle(room)   ?? await fetchListingTitle(room.listingId) ?? `상품#${room.listingId}`;
+          return {...room, _sellerNickname: sellerNickname, _listingTitle: listingTitle};
+        }));
+
+        // 5) 렌더: "닉네임 · 상품명"
+        enriched.forEach(room => {
           const li = document.createElement('li');
+          li.className = 'room';
+          li.tabIndex = 0;
           li.innerHTML = `
-            <div><strong>방번호:</strong> ${room.roomId} &nbsp; <strong>상품ID:</strong> ${room.listingId}</div>
-            <div class="meta">
-              판매자ID: ${room.sellerId ?? '-'} &nbsp;|&nbsp;
-              상태: ${room.status || 'OPEN'} &nbsp;|&nbsp;
-              생성: ${room.createdAt ? new Date(room.createdAt).toLocaleString() : '-'}
-            </div>
+            <span class="seller">${room._sellerNickname}</span>
+            <span class="sep">·</span>
+            <span class="product">${room._listingTitle}</span>
           `;
-          li.addEventListener('click', () => {
-            // 입장: roomId 기준으로 메시지 로드
-            location.href = `/chatPage.html?roomId=${room.roomId}`;
-          });
+          const go = () => location.href = `/chatPage.html?roomId=${room.roomId}`;
+          li.addEventListener('click', go);
+          li.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); go(); } });
           listEl.appendChild(li);
         });
 
-      } catch (err) {
+      }catch(err){
         console.error(err);
+        errorEl.style.display = 'block';
         errorEl.textContent = `오류: ${err.message}`;
+      }finally{
+        setBusy(false);
       }
     });
 </script>

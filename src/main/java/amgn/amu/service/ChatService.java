@@ -5,16 +5,18 @@ import amgn.amu.dto.ChatMessageDto;
 import amgn.amu.dto.ChatRoomDto;
 import amgn.amu.entity.ChatMessage;
 import amgn.amu.entity.ChatRoom;
+import amgn.amu.entity.Listing;
 import amgn.amu.repository.ChatMessageRepository;
 import amgn.amu.repository.ChatRoomRepository;
+import amgn.amu.repository.ListingRepository;
 import amgn.amu.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class ChatService {
     private final ChatMessageRepository messageRepository;
     private final ChatRoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final ListingRepository listingRepository;
 
     // -------------------------------
     // roomId로 메시지 저장 (방 생성하지 않음)

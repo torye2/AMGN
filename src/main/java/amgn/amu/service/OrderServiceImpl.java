@@ -299,6 +299,7 @@ public class OrderServiceImpl implements OrderService {
                 order.getId(),
                 order.getListingId(),
                 order.getBuyerId(),
+                order.getBuyer().getNickName(),
                 order.getSellerId(),
                 order.getFinalPrice(),
                 order.getMethod(),
