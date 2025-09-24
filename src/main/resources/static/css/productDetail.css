@@ -621,3 +621,22 @@
 }
 
 /* 접근성: 포커스 스타일은 유지 */
+
+.product-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #eceff3;
+  background: #f7f7f9;
+  color: #4a5568;
+}

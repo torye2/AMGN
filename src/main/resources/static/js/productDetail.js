@@ -30,6 +30,60 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ---- 화면 렌더 ----
+  // === ENUM → 한글 라벨 매핑 ===
+  function labelCondition(v) {
+    switch ((v || '').toUpperCase()) {
+      case 'NEW': return '새상품';
+      case 'LIKE_NEW': return '거의 새것';
+      case 'GOOD': return '좋음';
+      case 'FAIR': return '보통';
+      case 'POOR': return '사용감 많음';
+      default: return '-';
+    }
+  }
+  function labelNegotiable(v) {
+    return (String(v || '').toUpperCase() === 'Y') ? '가능' : '불가';
+  }
+  function labelTradeType(v) {
+    switch ((v || '').toUpperCase()) {
+      case 'MEETUP': return '직거래';
+      case 'DELIVERY': return '택배';
+      case 'BOTH': return '직거래·택배';
+      default: return '-';
+    }
+  }
+
+  // ★ regionName을 우선 사용하고, 없으면 regionId로 조회(백엔드에 API 있을 때)
+  async function resolveRegionNameIfNeeded(product) {
+    if (product?.regionName) return product.regionName;
+    const regionId = product?.regionId;
+    if (!regionId) return null;
+
+    // 엔드포인트가 없다면 백엔드 DTO에 regionName 추가하는 방식을 추천 (아래 4번 참고)
+    try {
+      // 예시 엔드포인트: /api/regions/{id} → { id, name }
+      const r = await fetch(`/api/regions/${encodeURIComponent(regionId)}`);
+      if (!r.ok) throw 0;
+      const j = await r.json();
+      return j?.name || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // === 메타 배지 렌더 ===
+  (async function renderMetaBadges() {
+    const metaCondition = document.getElementById('metaCondition');
+    const metaNegotiable = document.getElementById('metaNegotiable');
+    const metaTrade = document.getElementById('metaTrade');
+    const metaRegion = document.getElementById('metaRegion');
+
+    if (metaCondition)  metaCondition.textContent  = `상태: ${labelCondition(product.itemCondition)}`;
+    if (metaNegotiable) metaNegotiable.textContent = `가격제안: ${labelNegotiable(product.negotiable)}`;
+    if (metaTrade)      metaTrade.textContent      = `거래방식: ${labelTradeType(product.tradeType)}`;
+    if (metaRegion) metaRegion.textContent = `지역: ${product.regionName || '-'}`;
+  })();
+
   const titleEl   = document.getElementById('productTitle');
   const sellerEl  = document.getElementById('productSeller');
   const priceEl   = document.getElementById('productPrice');
