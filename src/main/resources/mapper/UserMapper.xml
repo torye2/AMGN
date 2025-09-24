@@ -30,21 +30,21 @@
 
     <select id="existsByLoginId" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE LOGIN_ID = #{loginId}
+        FROM users WHERE LOGIN_ID = #{loginId}
     </select>
 
     <select id="existsByEmail" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE EMAIL = #{email}
+        FROM users WHERE EMAIL = #{email}
     </select>
 
     <select id="existsByPhone" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE PHONE_NUMBER = #{phoneNumber}
+        FROM users WHERE PHONE_NUMBER = #{phoneNumber}
     </select>
 
     <select id="findByLoginId" resultMap="UserMap">
-        SELECT * FROM USERS WHERE LOGIN_ID = #{loginId}
+        SELECT * FROM users WHERE LOGIN_ID = #{loginId}
     </select>
 
     <insert id="insert"
@@ -52,7 +52,7 @@
             useGeneratedKeys="true"
             keyProperty="userId"
             keyColumn="user_id">
-        INSERT INTO USERS (
+        INSERT INTO users (
                            LOGIN_ID, PASSWORD_HASH, USER_NAME, EMAIL, EMAIL_NORMALIZED, NICK_NAME, GENDER,
                            PHONE_NUMBER, PHONE_E164, BIRTH_YEAR, BIRTH_MONTH, BIRTH_DAY, STATUS
         ) VALUES (
@@ -62,17 +62,17 @@
     </insert>
 
     <select id="findByEmail" resultType="amgn.amu.domain.User">
-        SELECT * FROM USERS WHERE EMAIL = #{email}
+        SELECT * FROM users WHERE EMAIL = #{email}
     </select>
 
     <insert id="createSocialUser" parameterType="amgn.amu.domain.User"
             useGeneratedKeys="true" keyProperty="userId">
-        INSERT INTO USERS (LOGIN_ID, PASSWORD_HASH, EMAIL, EMAIL_NORMALIZED,USER_NAME, NICK_NAME, PHONE_NUMBER, STATUS, CREATED_AT)
+        INSERT INTO users (LOGIN_ID, PASSWORD_HASH, EMAIL, EMAIL_NORMALIZED,USER_NAME, NICK_NAME, PHONE_NUMBER, STATUS, CREATED_AT)
         VALUES (#{loginId}, #{passwordHash}, #{email}, #{emailNormalized},#{userName}, #{nickName}, #{phoneNumber}, 'ACTIVE', NOW())
     </insert>
 
     <update id="completeOnboarding" parameterType="map">
-        UPDATE USERS
+        UPDATE users
         SET PHONE_NUMBER = #{phoneNumber},
             PHONE_E164 = #{phoneE164},
             PHONE_VERIFIED = 0,
@@ -82,25 +82,25 @@
     </update>
 
     <select id="findByEmailNormalized" resultMap="UserMap">
-        SELECT * FROM USERS WHERE EMAIL_NORMALIZED = #{emailNormalized}
+        SELECT * FROM users WHERE EMAIL_NORMALIZED = #{emailNormalized}
     </select>
 
     <select id="existsByEmailNormalized" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE EMAIL_NORMALIZED = #{emailNormalized}
+        FROM users WHERE EMAIL_NORMALIZED = #{emailNormalized}
     </select>
 
     <select id="existsByPhoneE164" resultType="boolean">
         SELECT CASE WHEN COUNT(*)>0 THEN 1 ELSE 0 END
-        FROM USERS WHERE PHONE_E164 = #{phoneE164}
+        FROM users WHERE PHONE_E164 = #{phoneE164}
     </select>
 
     <select id="findByPhoneE164" resultMap="UserMap">
-        SELECT * FROM USERS WHERE PHONE_E164 = #{phoneE164}
+        SELECT * FROM users WHERE PHONE_E164 = #{phoneE164}
     </select>
 
     <update id="softDeleteAndAnonymize">
-        UPDATE USERS
+        UPDATE users
         SET
             STATUS = #{deletedStatus},
             LOGIN_ID = #{newLoginId},
