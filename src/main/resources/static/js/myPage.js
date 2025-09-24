@@ -714,11 +714,10 @@ const pgMap = {
 
 // ----------------- 공통 테스트 결제 함수 -----------------
 async function handlePayment(order) {
-    console.log('테스트 결제 수단 확인:', order.paymentMethod);
+    console.log('결제 시도:', order);
 
-    const merchantUid = `test_${order.id}_${Date.now()}`; // 테스트용 UID
+    const merchantUid = `test_${order.id}_${Date.now()}`; // idempotencyKey로 활용
     const pg = pgMap[order.paymentMethod];
-
     if (!pg) {
         alert('지원하지 않는 결제 수단입니다.');
         return;
@@ -746,7 +745,8 @@ async function handlePayment(order) {
                 },
                 body: JSON.stringify({
                     paymentMethod: order.paymentMethod,
-                    amount: order.finalPrice
+                    amount: order.finalPrice,
+                    idempotencyKey: merchantUid // 서버 중복 결제 방지용
                 })
             });
 
@@ -761,7 +761,7 @@ async function handlePayment(order) {
                 const actionTd = tr.querySelector('td:last-child');
                 actionTd.innerHTML = '';
                 actionTd.appendChild(createButton('주문 확정', () => completeOrder(order.id, actionTd)));
-                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, order)));
+                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, updatedOrder)));
             }
 
         } catch (err) {
@@ -771,37 +771,23 @@ async function handlePayment(order) {
     }
 }
 
-
-// ----------------- 아임포트 테스트 (테스트 전용, 운영 X) -----------------
+// ----------------- 아임포트 테스트 -----------------
 function payWithIamportTest(order, merchantUid, pg) {
-    console.log('order:', order);
-    console.log('merchantUid:', merchantUid);
-    console.log('pg:', pg);
-
-    // 최소 결제 금액 체크 (PG/아임포트가 요구하는 최소값에 맞추기)
-    if (!order.finalPrice || order.finalPrice < 2) {
-        alert('결제 금액이 너무 작습니다. 테스트용으로 1000원 이상 설정해 주세요.');
-        return Promise.resolve(false);
-    }
-
-    // 테스트용 기본값 (필드가 없으면 대체)
     const buyerName = order.buyerName || '홍길동';
     const buyerEmail = order.buyerEmail || 'test@example.com';
     const buyerTel = order.buyerPhone || '01012345678';
 
-    // 테스트 카드 (PG/채널별로 다른 테스트 카드가 필요할 수 있음)
-    // 아래는 자주 쓰이는 테스트 카드 예시 (Visa)
     const testCard = {
-        card_number: '4141414141414141', // Visa 테스트 카드
-        expiry: '12/25',                  // MM/YY
-        birth: '970101',                  // (주민번호 앞6자리) 필요할 때
-        pwd_2digit: '12',                 // (카드 비밀번호 앞 2자리) 필요할 때
-        cvc: '123'                        // CVC (일부 PG는 필요)
+        card_number: '4141414141414141',
+        expiry: '12/25',
+        birth: '970101',
+        pwd_2digit: '12',
+        cvc: '123'
     };
 
     return new Promise((resolve) => {
         IMP.request_pay({
-            pg: pg,                    // ex: 'html5_inicis'
+            pg: pg,
             pay_method: 'card',
             merchant_uid: merchantUid,
             name: order.listingTitle || '테스트 주문',
@@ -809,9 +795,6 @@ function payWithIamportTest(order, merchantUid, pg) {
             buyer_name: buyerName,
             buyer_email: buyerEmail,
             buyer_tel: buyerTel,
-
-            // 아래 카드 필드들은 테스트 목적일 때만 사용.
-            // PG / 아임포트 설정에 따라 동작하지 않을 수 있음.
             card_number: testCard.card_number,
             expiry: testCard.expiry,
             birth: testCard.birth,
@@ -820,10 +803,10 @@ function payWithIamportTest(order, merchantUid, pg) {
         }, function(rsp) {
             console.log('IMP.response (테스트):', rsp);
             if (rsp.success) {
-                alert('테스트 결제 성공! 실제 결제는 진행되지 않았습니다.');
+                alert('아임포트 테스트 결제 성공! 실제 결제는 진행되지 않았습니다.');
                 resolve(true);
             } else {
-                alert(`테스트 결제 실패: ${rsp.error_msg}`);
+                alert(`결제 실패: ${rsp.error_msg}`);
                 resolve(false);
             }
         });
@@ -833,11 +816,11 @@ function payWithIamportTest(order, merchantUid, pg) {
 // ----------------- Toss 테스트 -----------------
 function payWithTossTest(order, merchantUid) {
     return new Promise((resolve) => {
-        const toss = new TossPayments("channel-key-f9db894a-500c-44dc-aeb5-a7ea24c2f7e5"); // 테스트 채널
-        // 테스트 카드 번호는 Toss 테스트용 카드 사용
+        const toss = new TossPayments("channel-key-f9db894a-500c-44dc-aeb5-a7ea24c2f7e5");
+
         const testCard = {
-            cardNumber: "4100111111111111", // Toss 테스트 카드
-            cardPassword: "12",              // 앞 2자리 비밀번호
+            cardNumber: "4100111111111111",
+            cardPassword: "12",
             expiry: "12/25",
             cvc: "123"
         };
@@ -866,7 +849,7 @@ function payWithTossTest(order, merchantUid) {
 // ----------------- KakaoPay 테스트 -----------------
 function payWithKakaoTest(order, merchantUid) {
     return new Promise((resolve) => {
-        fetch(`/kakao/pay/ready?orderId=${order.id}`)
+        fetch(`/kakao/pay/ready?orderId=${order.id}&merchantUid=${merchantUid}`)
             .then(r => r.json())
             .then(data => {
                 console.log('KakaoPay 테스트 준비:', data);
@@ -886,6 +869,8 @@ function payWithKakaoTest(order, merchantUid) {
             });
     });
 }
+
+
 
 
 

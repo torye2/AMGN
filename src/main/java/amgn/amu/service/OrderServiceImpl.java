@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import amgn.amu.domain.User;
+import amgn.amu.repository.UserRepository;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ListingRepository listingRepository;
     private final PaymentLogRepository paymentLogRepository;
+    private final UserRepository userRepository;
 
     // PG사 DI
     private final KgpPaymentGateway kgpPaymentGateway;
@@ -55,14 +58,54 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
+    public OrderDto refundPayment(Long buyerId, Long orderId) {
+        Order order = findOrderByIdAndCheckBuyer(orderId, buyerId);
+
+        if (order.getStatus() != OrderStatus.PAID) {
+            throw new RuntimeException("결제되지 않은 주문은 환불할 수 없습니다.");
+        }
+
+        String merchantUid = "refund_" + order.getId() + "_" + System.currentTimeMillis();
+        String impUidFromPayment = order.getImpUid(); // Order 엔티티에 impUid가 저장되어 있어야 함
+
+        PaymentRequest refundReq = new PaymentRequest(
+                order.getId(),
+                order.getFinalPrice(),
+                order.getPaymentMethod(),
+                "refund_" + order.getId(),
+                LocalDateTime.now().plusHours(1),
+                merchantUid,
+                impUidFromPayment
+        );
+
+        PaymentGateway gateway = selectGateway(refundReq.method());
+        boolean refunded = gateway.refund(refundReq);
+        if (!refunded) throw new RuntimeException("환불 실패");
+
+        paymentLogRepository.save(new PaymentLog(null, refundReq.idempotencyKey(), orderId, "REFUND", LocalDateTime.now()));
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+        updateListingStatus(order.getListingId(), order.getStatus());
+
+        return toDto(order);
+    }
+
+
+    @Override
     public OrderDto create(Long actorUserId, OrderCreateRequest req) {
+        // 1. 상품 조회
         Listing listing = listingRepository.findById(req.listingId())
                 .orElseThrow(() -> new RuntimeException("상품이 존재하지 않습니다: " + req.listingId()));
 
+        // 2. 본인 상품 주문 방지
         if (listing.getSellerId().equals(actorUserId)) {
             throw new RuntimeException("본인 상품은 주문할 수 없습니다.");
         }
 
+        // 3. 이미 거래 중이거나 완료된 상품 확인
         if (orderRepository.existsByListingIdAndStatusIn(
                 req.listingId(),
                 List.of(OrderStatus.CREATED, OrderStatus.PAID, OrderStatus.IN_TRANSIT, OrderStatus.MEETUP_CONFIRMED))) {
@@ -71,6 +114,7 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("이미 판매가 완료된 상품입니다.");
         }
 
+        // 4. Order 엔티티 생성
         Order order = new Order();
         order.setBuyerId(actorUserId);
         order.setListingId(req.listingId());
@@ -87,7 +131,7 @@ public class OrderServiceImpl implements OrderService {
         order.setReceiverAddress2(req.recvAddr2());
         order.setReceiverZip(req.recvZip());
 
-        // 결제 수단 처리 (기본값 KG_INICIS)
+        // 5. 결제 수단 처리 (기본값 KG_INICIS)
         PaymentRequest.PaymentMethod paymentMethod;
         if (req.paymentMethod() == null || req.paymentMethod().isBlank()) {
             paymentMethod = PaymentRequest.PaymentMethod.KG_INICIS;
@@ -100,11 +144,19 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setPaymentMethod(paymentMethod);
 
+        // 6. Buyer 엔티티 세팅 (NPE 방지)
+        User buyer = userRepository.findById(actorUserId)
+                .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다: " + actorUserId));
+        order.setBuyer(buyer);
+
+        // 7. 저장 및 상품 상태 업데이트
         orderRepository.save(order);
         updateListingStatus(order.getListingId(), order.getStatus());
 
+        // 8. DTO 반환
         return toDto(order);
     }
+
 
 
     // ---------------- 결제 ----------------
@@ -112,48 +164,80 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public OrderDto pay(Long buyerId, Long orderId, PaymentRequest req) {
-        // 주문 및 구매자 검증
+        // 1. 주문 및 구매자 검증
         Order order = findOrderByIdAndCheckBuyer(orderId, buyerId);
 
-        // 상태 및 금액 검증
+        // 2. 상태 및 금액 검증
         if (order.getStatus() != OrderStatus.CREATED) {
             throw new RuntimeException("결제할 수 없는 상태입니다.");
         }
-
         if (!req.amount().equals(order.getFinalPrice())) {
             throw new RuntimeException("결제 금액이 주문 금액과 일치하지 않습니다.");
         }
 
-        // 중복 결제 체크
+        // 3. 중복 결제 체크
         if (isDuplicatePayment(req.idempotencyKey())) {
             throw new RuntimeException("중복 결제입니다.");
         }
 
-        // 결제 처리
-        PaymentGateway gateway = selectGateway(req.method());
-        boolean success = gateway.pay(req);
+        // 4. 결제 처리 (테스트 환경에서만 시뮬레이션)
+        PaymentRequest.PaymentMethod paymentMethod = req.method();
+        boolean success;
+        if (isLocalOrTest()) {
+            // 테스트 환경: 결제 시뮬레이션
+            success = true;
+            System.out.println("[TEST] 결제 시뮬레이션: " + req.amount() + "원, 메서드: " + paymentMethod);
+        } else {
+            // 실제 결제
+            PaymentGateway gateway = selectGateway(paymentMethod);
+            success = gateway.pay(req);
+        }
+
         if (!success) {
             throw new RuntimeException("결제 실패");
         }
 
-        // 결제 성공 시 상태 변경 및 로그 기록
-        order.setPaymentMethod(req.method());
+        // 5. 결제 성공 시 buyer 객체 세팅 (NPE 방지)
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다: " + buyerId));
+        order.setBuyer(buyer);
+
+        // 6. 주문 상태 및 결제 수단 업데이트
+        order.setPaymentMethod(paymentMethod);
         order.setStatus(OrderStatus.PAID);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // 결제 로그 기록
+        // 7. 결제 로그 기록 (테스트 환경에서도 기록 가능)
         paymentLogRepository.save(new PaymentLog(null, req.idempotencyKey(), orderId, "PAY", LocalDateTime.now()));
 
-        // 상품 상태 업데이트
+        // 8. 상품 상태 업데이트
         updateListingStatus(order.getListingId(), order.getStatus());
 
+        // 9. DTO 변환 후 반환
         return toDto(order);
     }
 
-    private boolean isDuplicatePayment(String idempotencyKey) {
+    private boolean isDuplicatePayment(@NotNull String idempotencyKey) {
+        // 테스트/로컬 환경에서는 중복 결제 체크 무시
+        if (isLocalOrTest()) return false;
+
+        // null 또는 빈 문자열이면 중복 결제 아님
+        if (idempotencyKey.isBlank()) {
+            return false;
+        }
+
+        // 실제 DB 조회
         return paymentLogRepository.existsByIdempotencyKey(idempotencyKey);
     }
+
+    // 로컬/테스트 환경 체크
+    private boolean isLocalOrTest() {
+        return "local".equals(System.getProperty("spring.profiles.active"))
+                || "test".equals(System.getProperty("spring.profiles.active"));
+    }
+
+
 
 
     @Override
