@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 
 
+import java.util.Collection;
 import java.util.List;
 
 public interface ListingRepository extends JpaRepository<Listing, Long> {
