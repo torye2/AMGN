@@ -115,6 +115,21 @@ public class ListingService {
 		dto.setSellerNickname(listing.getSeller().getNickName());
 		dto.setStatus(listing.getStatus());
 
+		String regionName = null;
+		try {
+			Integer ridInt = listing.getRegionId();
+			Long rid = (ridInt == null) ? null : ridInt.longValue();
+			if (rid != null) {
+				regionName = regionRepository.getNameById(rid);
+			}
+			log.info("after region lookup: regionName={}", regionName);
+		} catch (Exception e) {
+			log.warn("regionName resolve failed. regionId={}, err={}", listing.getRegionId(), e.toString());
+		}
+		dto.setRegionName(regionName);
+
+
+
 		if (listing.getPhotos() != null && !listing.getPhotos().isEmpty()) {
 			List<String> urls = listing.getPhotos().stream()
 					.map(ListingPhoto::getUrl)

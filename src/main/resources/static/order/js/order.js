@@ -178,7 +178,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             recvPhone: formData.get('recvPhone'),
             recvAddr1: formData.get('recvAddr1'),
             recvAddr2: formData.get('recvAddr2'),
-            recvZip: formData.get('recvZip')
+            recvZip: formData.get('recvZip'),
+            paymentMethod: 'KG_INICIS' // 기본 결제 수단
         };
         if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
         const xsrf = getCookie('XSRF-TOKEN');

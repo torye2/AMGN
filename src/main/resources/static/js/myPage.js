@@ -703,112 +703,176 @@ async function loadPurchases() {
 
 // ----------------- 초기화 -----------------
 const { IMP } = window;
+IMP.init('imp50832616'); // 아임포트 테스트용 가맹점 코드
 
-// ----------------- 결제 처리 -----------------
-IMP.init('store-5a5febb7-cd4d-4dba-80e1-45137984ce13');
+// PG 매핑
+const pgMap = {
+    'KG_INICIS': 'html5_inicis',   // KG이니시스 V2 테스트 채널
+    'TOSS': 'tosspayments',     // 토스페이먼츠 테스트 채널
+    'KAKAO': 'kakaopay'         // 카카오페이 테스트 채널
+};
 
-async function handlePayment(orderId, amount, buyerName, buyerEmail, buyerPhone) {
-    try {
-        // 1️⃣ 서버에서 사전등록
-        const preRes = await fetch(`/api/payments/pre-register/${orderId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        });
+// ----------------- 공통 테스트 결제 함수 -----------------
+async function handlePayment(order) {
+    console.log('결제 시도:', order);
 
-        if (!preRes.ok) throw new Error('결제 사전등록 실패');
+    const merchantUid = `test_${order.id}_${Date.now()}`; // idempotencyKey로 활용
+    const pg = pgMap[order.paymentMethod];
+    if (!pg) {
+        alert('지원하지 않는 결제 수단입니다.');
+        return;
+    }
 
-        // 2️⃣ 아임포트 결제 요청
-        IMP.request_pay({
-            pg: 'html5_inicis',
-            pay_method: 'card',
-            merchant_uid: `order_${orderId}_${Date.now()}`,
-            name: '상품명',
-            amount: amount,
-            buyer_name: buyerName,
-            buyer_email: buyerEmail,
-            buyer_tel: buyerPhone
-        }, async function (rsp) {
-            if (rsp.success) {
-                // 3️⃣ 서버에서 결제 승인 + 주문 상태 반영
-                const approveRes = await fetch(`/api/payments/approve`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        imp_uid: rsp.imp_uid,
-                        merchant_uid: rsp.merchant_uid,
-                        orderId: orderId
-                    })
-                });
+    let success = false;
 
-                if (!approveRes.ok) throw new Error('결제 승인 실패');
+    if (order.paymentMethod === 'KG_INICIS') {
+        success = await payWithIamportTest(order, merchantUid, pg);
+    } else if (order.paymentMethod === 'TOSS') {
+        success = await payWithTossTest(order, merchantUid);
+    } else if (order.paymentMethod === 'KAKAO') {
+        success = await payWithKakaoTest(order, merchantUid);
+    }
 
-                alert('결제 완료! 주문 상태가 PAID로 변경되었습니다.');
-            } else {
-                alert(`결제 실패: ${rsp.error_msg}`);
+    if (success) {
+        try {
+            // 서버에 결제 완료 상태 전송
+            const xsrf = getCookie('XSRF-TOKEN');
+            const res = await fetch(`/orders/${order.id}/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': xsrf
+                },
+                body: JSON.stringify({
+                    paymentMethod: order.paymentMethod,
+                    amount: order.finalPrice,
+                    idempotencyKey: merchantUid // 서버 중복 결제 방지용
+                })
+            });
+
+            if (!res.ok) throw new Error('서버 주문 상태 갱신 실패');
+            const updatedOrder = await res.json();
+            console.log('서버 주문 상태 갱신:', updatedOrder);
+
+            // UI 갱신: 버튼 변경
+            const tr = Array.from(document.querySelectorAll('#ordersTable tbody tr'))
+                .find(r => r.cells[0].textContent == order.id);
+            if (tr) {
+                const actionTd = tr.querySelector('td:last-child');
+                actionTd.innerHTML = '';
+                actionTd.appendChild(createButton('주문 확정', () => completeOrder(order.id, actionTd)));
+                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(order.id, actionTd, updatedOrder)));
             }
-        });
 
-    } catch (e) {
-        console.error(e);
-        alert(e.message);
+        } catch (err) {
+            console.error(err);
+            alert(err.message);
+        }
     }
 }
 
+// ----------------- 아임포트 테스트 -----------------
+function payWithIamportTest(order, merchantUid, pg) {
+    const buyerName = order.buyerName || '홍길동';
+    const buyerEmail = order.buyerEmail || 'test@example.com';
+    const buyerTel = order.buyerPhone || '01012345678';
 
-// ----------------- KG_INICIS(V2 아임포트) 결제 -----------------
-function kgPay(order) {
-    return new Promise(async (resolve) => {
-        try {
-            // 1. 서버에서 paymentId 발급
-            const res = await fetch(`/api/payments/pre-register/${order.id}`, { method: 'POST' });
-            const { paymentId } = await res.json();
+    const testCard = {
+        card_number: '4141414141414141',
+        expiry: '12/25',
+        birth: '970101',
+        pwd_2digit: '12',
+        cvc: '123'
+    };
 
-            // 2. 클라이언트에서 결제 승인
-            IMP.request_pay({ paymentId }, function(rsp) {
-                if (rsp.success) resolve(true);
-                else { alert(rsp.error_msg); resolve(false); }
-            });
-        } catch (err) {
-            console.error(err);
-            alert('KG_INICIS 결제 준비 실패');
-            resolve(false);
-        }
+    return new Promise((resolve) => {
+        IMP.request_pay({
+            pg: pg,
+            pay_method: 'card',
+            merchant_uid: merchantUid,
+            name: order.listingTitle || '테스트 주문',
+            amount: order.finalPrice,
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_tel: buyerTel,
+            card_number: testCard.card_number,
+            expiry: testCard.expiry,
+            birth: testCard.birth,
+            pwd_2digit: testCard.pwd_2digit,
+            cvc: testCard.cvc
+        }, function(rsp) {
+            console.log('IMP.response (테스트):', rsp);
+            if (rsp.success) {
+                alert('아임포트 테스트 결제 성공! 실제 결제는 진행되지 않았습니다.');
+                resolve(true);
+            } else {
+                alert(`결제 실패: ${rsp.error_msg}`);
+                resolve(false);
+            }
+        });
     });
 }
 
-// ----------------- Toss 결제 -----------------
-function tossPay(order) {
+// ----------------- Toss 테스트 -----------------
+function payWithTossTest(order, merchantUid) {
     return new Promise((resolve) => {
         const toss = new TossPayments("channel-key-f9db894a-500c-44dc-aeb5-a7ea24c2f7e5");
+
+        const testCard = {
+            cardNumber: "4100111111111111",
+            cardPassword: "12",
+            expiry: "12/25",
+            cvc: "123"
+        };
+
         toss.requestPayment('카드', {
             amount: order.finalPrice,
-            orderId: `order_${order.id}_${Date.now()}`,
-            orderName: order.listingTitle,
+            orderId: merchantUid,
+            orderName: order.listingTitle || '테스트 주문',
+            cardNumber: testCard.cardNumber,
+            cardPassword: testCard.cardPassword,
+            expiry: testCard.expiry,
+            cvc: testCard.cvc,
             successUrl: window.location.href,
             failUrl: window.location.href
-        })
-        .then(() => resolve(true))
-        .catch(err => { console.error(err); alert("Toss 결제 실패"); resolve(false); });
+        }).then(() => {
+            alert('Toss 테스트 결제 성공! 실제 결제는 진행되지 않았습니다.');
+            resolve(true);
+        }).catch(err => {
+            console.error(err);
+            alert("Toss 테스트 결제 실패");
+            resolve(false);
+        });
     });
 }
 
-// ----------------- KakaoPay 결제 -----------------
-function kakaoPay(order) {
+// ----------------- KakaoPay 테스트 -----------------
+function payWithKakaoTest(order, merchantUid) {
     return new Promise((resolve) => {
-        fetch(`/kakao/pay/ready?orderId=${order.id}`)
+        fetch(`/kakao/pay/ready?orderId=${order.id}&merchantUid=${merchantUid}`)
             .then(r => r.json())
             .then(data => {
+                console.log('KakaoPay 테스트 준비:', data);
                 if (data.next_redirect_pc_url) {
-                    window.location.href = data.next_redirect_pc_url;
+                    window.open(data.next_redirect_pc_url, '_blank', 'width=500,height=800');
+                    alert("KakaoPay 테스트 결제창이 새 창으로 열렸습니다. 실제 결제는 진행되지 않습니다.");
                     resolve(true);
                 } else {
-                    alert("KakaoPay 준비 실패");
+                    alert("KakaoPay 테스트 결제 준비 실패: URL 없음");
                     resolve(false);
                 }
             })
-            .catch(err => { console.error(err); alert("KakaoPay 결제 실패"); resolve(false); });
+            .catch(err => {
+                console.error(err);
+                alert("KakaoPay 테스트 결제 실패");
+                resolve(false);
+            });
     });
 }
+
+
+
+
 
 
 
@@ -1493,34 +1557,47 @@ async function payOrder(order) {
     try {
         // 1. 서버에서 merchant_uid + 금액 가져오기
         const res = await fetch(`/api/pay/prepare/${order.id}`);
+        if (!res.ok) throw new Error('결제 준비 실패');
         const data = await res.json();
 
+        // 필수 값 체크
+        const { merchantUid, amount, name } = data;
+        if (!merchantUid || !amount || !name) {
+            console.error('PG 정보 부족:', data);
+            alert('등록된 PG 설정 정보가 없습니다. 관리자에게 문의하세요.');
+            return;
+        }
+
         const { IMP } = window;
-        IMP.init("channel-key-cb0fc946-2218-494d-b06d-4609ad738145"); // 아임포트 테스트 키로 초기화
+        IMP.init("channel-key-cb0fc946-2218-494d-b06d-4609ad738145"); // 아임포트 테스트 키
 
         // 2. 아임포트 결제창 띄우기
         IMP.request_pay({
-            pg: 'html5_inicis',
+            pg: pg,
             pay_method: 'card',
-            merchant_uid: data.merchantUid,
-            name: data.name,
-            amount: data.amount
+            merchant_uid: merchantUid,
+            name: name,
+            amount: amount
         }, async function(rsp) {
             if (rsp.success) {
-                // 3. 서버에 결제 완료 확인 요청
-                const confirmRes = await fetch('/api/pay/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        merchantUid: rsp.merchant_uid,
-                        amount: rsp.paid_amount,
-                        impUid: rsp.imp_uid // 아임포트 결제 고유 ID
-                    })
-                });
-                if (!confirmRes.ok) throw new Error("결제 검증 실패");
+                try {
+                    const confirmRes = await fetch('/api/pay/complete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            merchantUid: rsp.merchant_uid,
+                            amount: rsp.paid_amount,
+                            impUid: rsp.imp_uid
+                        })
+                    });
+                    if (!confirmRes.ok) throw new Error("결제 검증 실패");
 
-                alert("결제 완료!");
-                loadOrders(); // 구매 내역 갱신
+                    alert("결제 완료!");
+                    loadOrders(); // 구매 내역 갱신
+                } catch (err) {
+                    console.error(err);
+                    alert("결제 검증 중 오류 발생");
+                }
             } else {
                 alert("결제 실패: " + rsp.error_msg);
             }
@@ -1528,9 +1605,10 @@ async function payOrder(order) {
 
     } catch (err) {
         console.error(err);
-        alert("결제 처리 중 오류 발생");
+        alert("결제 처리 중 오류 발생: " + err.message);
     }
 }
+
 
 // 주문 확정
 async function completeOrder(orderId, td) {
