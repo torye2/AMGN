@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const listingId = params.get('id');
 
-
   if (!listingId) {
     alert('잘못된 접근: listingId 없음');
     return;
@@ -31,6 +30,60 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ---- 화면 렌더 ----
+  // === ENUM → 한글 라벨 매핑 ===
+  function labelCondition(v) {
+    switch ((v || '').toUpperCase()) {
+      case 'NEW': return '새상품';
+      case 'LIKE_NEW': return '거의 새것';
+      case 'GOOD': return '좋음';
+      case 'FAIR': return '보통';
+      case 'POOR': return '사용감 많음';
+      default: return '-';
+    }
+  }
+  function labelNegotiable(v) {
+    return (String(v || '').toUpperCase() === 'Y') ? '가능' : '불가';
+  }
+  function labelTradeType(v) {
+    switch ((v || '').toUpperCase()) {
+      case 'MEETUP': return '직거래';
+      case 'DELIVERY': return '택배';
+      case 'BOTH': return '직거래·택배';
+      default: return '-';
+    }
+  }
+
+  // ★ regionName을 우선 사용하고, 없으면 regionId로 조회(백엔드에 API 있을 때)
+  async function resolveRegionNameIfNeeded(product) {
+    if (product?.regionName) return product.regionName;
+    const regionId = product?.regionId;
+    if (!regionId) return null;
+
+    // 엔드포인트가 없다면 백엔드 DTO에 regionName 추가하는 방식을 추천 (아래 4번 참고)
+    try {
+      // 예시 엔드포인트: /api/regions/{id} → { id, name }
+      const r = await fetch(`/api/regions/${encodeURIComponent(regionId)}`);
+      if (!r.ok) throw 0;
+      const j = await r.json();
+      return j?.name || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // === 메타 배지 렌더 ===
+  (async function renderMetaBadges() {
+    const metaCondition = document.getElementById('metaCondition');
+    const metaNegotiable = document.getElementById('metaNegotiable');
+    const metaTrade = document.getElementById('metaTrade');
+    const metaRegion = document.getElementById('metaRegion');
+
+    if (metaCondition)  metaCondition.textContent  = `상태: ${labelCondition(product.itemCondition)}`;
+    if (metaNegotiable) metaNegotiable.textContent = `가격제안: ${labelNegotiable(product.negotiable)}`;
+    if (metaTrade)      metaTrade.textContent      = `거래방식: ${labelTradeType(product.tradeType)}`;
+    if (metaRegion) metaRegion.textContent = `지역: ${product.regionName || '-'}`;
+  })();
+
   const titleEl   = document.getElementById('productTitle');
   const sellerEl  = document.getElementById('productSeller');
   const priceEl   = document.getElementById('productPrice');
@@ -45,6 +98,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   const storeNicknameEl = document.getElementById('storeSellerNickname');
   if (storeNicknameEl) storeNicknameEl.textContent = product.sellerNickname ?? '-';
 
+  // ---- 상태 기반 UI (리본/톤다운/라벨) ----
+  (function applyStatusDecorations() {
+    const status = String(product?.status ?? '').trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+    const wrap = document.getElementById('wrap'); // 페이지 상위 컨테이너
+    const gallery = document.querySelector('.product-gallery');
+    const titleNode = document.querySelector('.title-row .product-name');
+
+    if (wrap && gallery) {
+      wrap.classList.remove('status-reserved', 'status-sold');
+      if (status === 'RESERVED') {
+        wrap.classList.add('status-reserved');
+        gallery.setAttribute('data-status-label', '예약중');
+      } else if (status === 'SOLD') {
+        wrap.classList.add('status-sold');
+        gallery.setAttribute('data-status-label', '판매완료');
+      } else {
+        gallery.removeAttribute('data-status-label');
+      }
+    }
+
+    // 타이틀 옆 배지 (예약/판매완료일 때만)
+    if (titleNode) {
+      const old = titleNode.parentElement.querySelector('.status-pill');
+      if (old) old.remove();
+      if (status === 'RESERVED' || status === 'SOLD') {
+        const pill = document.createElement('span');
+        pill.className = 'status-pill ' + (status === 'RESERVED' ? 'reserved' : 'sold');
+        pill.textContent = (status === 'RESERVED' ? '예약중' : '판매완료');
+        titleNode.after(pill);
+      }
+    }
+  })();
+
   // ---- 판매자/구매자 분기용 아이디 정리 ----
   const rawSellerId =
     product?.sellerId ??
@@ -56,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const viewerId = me?.loggedIn && me?.userId != null ? String(me.userId) : null;
   const isSellerViewing = !!(viewerId && sellerId && viewerId === sellerId);
 
-  // 판매자 상품 그리드 로딩
+  // 판매자 상품 그리드/후기 로딩
   if (sellerId) {
     loadSellerProducts(sellerId);
     loadSellerReviews(sellerId);
@@ -167,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       wishBtn.className = 'wish-button';
       wishBtn.type = 'button';
       wishBtn.innerHTML = '🤍 찜 <span id="wish-count">0</span>';
-      buttonGroup.prepend(wishBtn); // 맨 앞에 배치 (뒤에 두려면 append)
+      buttonGroup.prepend(wishBtn);
 
       // 초기 상태 불러오기
       await refreshWishUI(wishBtn, listingId, typeof product?.wishCount === 'number' ? product.wishCount : 0);
@@ -196,12 +282,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
 
-      // 구매자/타 사용자일 때만 주문 버튼 이벤트 부여
+      // === 상태에 따른 주문 버튼 제어 (항상 버튼 보이게) ===
       if (orderButton) {
-        orderButton.addEventListener('click', () => {
-          window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
-        });
+        // 혹시 이전 단계에서 숨겨졌다면 보이게
+        orderButton.style.display = '';
+
+        const rawStatus = (product?.status ?? '').toString();
+        const status = rawStatus.trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+        console.log('[productDetail] listing status =', rawStatus);
+
+        // 이전 클릭 핸들러 제거(덮어쓰기)
+        orderButton.onclick = null;
+
+        const disableOrder = (label, extraClass) => {
+          orderButton.textContent = label;
+          // disabled 속성은 사용하지 않음(일부 CSS가 숨길 수 있음)
+          orderButton.setAttribute('aria-disabled', 'true');
+          orderButton.classList.add('is-disabled');
+          if (extraClass) orderButton.classList.add(extraClass);
+          orderButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }, { once: true });
+        };
+
+        if (status === 'ACTIVE') {
+          orderButton.textContent = '주문하기';
+          orderButton.removeAttribute('aria-disabled');
+          orderButton.classList.remove('is-disabled', 'is-reserved', 'is-sold');
+          orderButton.onclick = () => {
+            window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
+          };
+        } else if (status === 'RESERVED') {
+          disableOrder('예약중', 'is-reserved');
+        } else if (status === 'SOLD') {
+          disableOrder('판매완료', 'is-sold');
+        } else {
+          // 상태가 알 수 없어도 버튼은 보이되, 안전하게 클릭만 막음
+          disableOrder('예약/판매 상태 확인중');
+        }
       }
+      // === 상태 제어 끝 ===
     }
   }
 
@@ -373,7 +495,7 @@ async function loadSellerReviews(sellerId) {
   const countEl  = document.getElementById('storeRatingCount');
   const moreEl   = document.getElementById('storeReviewMore');
 
-  // "후기 더보기" 링크 (원하는 경로로 바꿔도 됨)
+  // "후기 더보기" 링크
   if (moreEl) moreEl.href = `/shop.html?sellerId=${encodeURIComponent(sellerId)}#reviews`;
 
   if (!listEl || !starFront || !scoreEl || !countEl) return;
@@ -400,7 +522,7 @@ async function loadSellerReviews(sellerId) {
           reviewId: r.id,
           rating: r.score,
           comment: r.rvComment,
-          reviewerNickname: '익명', // 백엔드 DTO에 닉네임 없으면 기본값
+          reviewerNickname: '익명',
           createdAt: r.createdAt
         }));
         // 평균/개수 계산
@@ -469,7 +591,6 @@ async function loadSellerReviews(sellerId) {
 function formatDateKST(isoOrLocal) {
   try {
     const d = new Date(isoOrLocal);
-    // 단순 표기(타임존 보정이 필요하면 서버에서 ISO+Z로 내려주기 권장)
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -479,6 +600,7 @@ function formatDateKST(isoOrLocal) {
   }
 }
 
+// 신고하기 버튼
 document.addEventListener('DOMContentLoaded', () => {
   const reportBtn = document.getElementById('report-button');
   if (!reportBtn) return;
@@ -488,11 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const meRes = await fetch('/api/user/me', { credentials: 'include' });
       if (!meRes.ok) throw new Error('세션 확인 실패');
-      const me = await meRes.json(); // { loggedIn, userId, nickname } 형태라고 가정
+      const me = await meRes.json();
 
       if (!me?.loggedIn) {
         alert('로그인이 필요합니다.');
-        // 로그인 후 돌아올 수 있게 현재 경로를 next로 넘겨줌(선택)
         const next = encodeURIComponent(location.pathname + location.search + location.hash);
         location.href = `/login.html?next=${next}`;
         return;
@@ -518,7 +639,7 @@ async function ensureCsrf() {
     credentials: 'same-origin'
   });
   const j = await r.json(); // { headerName, token }
-  return j; // 필요 시 헤더명도 동적으로 사용
+  return j;
 }
 
 function getCookie(name) {

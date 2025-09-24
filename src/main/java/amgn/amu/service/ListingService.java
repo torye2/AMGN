@@ -113,6 +113,22 @@ public class ListingService {
 		dto.setSafePayYn(listing.getSafePayYn());
 		dto.setSellerId(listing.getSellerId());
 		dto.setSellerNickname(listing.getSeller().getNickName());
+		dto.setStatus(listing.getStatus());
+
+		String regionName = null;
+		try {
+			Integer ridInt = listing.getRegionId();
+			Long rid = (ridInt == null) ? null : ridInt.longValue();
+			if (rid != null) {
+				regionName = regionRepository.getNameById(rid);
+			}
+			log.info("after region lookup: regionName={}", regionName);
+		} catch (Exception e) {
+			log.warn("regionName resolve failed. regionId={}, err={}", listing.getRegionId(), e.toString());
+		}
+		dto.setRegionName(regionName);
+
+
 
 		if (listing.getPhotos() != null && !listing.getPhotos().isEmpty()) {
 			List<String> urls = listing.getPhotos().stream()
@@ -296,5 +312,9 @@ public class ListingService {
 		return page.map(this::convertToDto);
 	}
 
+	@Transactional
+	public void softDeleteById(Long listingId) {
+		listingRepository.deleteById(listingId); // @SQLDelete가 UPDATE로 처리
+	}
 
 }

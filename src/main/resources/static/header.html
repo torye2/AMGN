@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <title>중고거래사이트</title>
     <style>
+        /* '판매하기' 링크를 주변 메뉴 텍스트와 동일한 스타일로 보이게 */
+        .header-icon .menu > a {
+            color: inherit;
+            text-decoration: none;
+            font: inherit;
+            display: inline-block;
+        }
+        .header-icon .menu > a:hover {
+            text-decoration: none;
+            color: inherit;
+        }
     </style>
 </head>
 <body>
@@ -38,11 +49,7 @@
                     </div>
                 </div>
                 <div class="menu">
-                    판매하기
-                    <div class="submenu">
-                        <div><a href="/sale/salesRegistration.html">판매 등록</a></div>
-                        <div><a href="/sale/salesList.html">판매 내역</a></div>
-                    </div>
+                    <a href="/sale/salesRegistration.html">판매하기</a>
                 </div>
                 <div class="menu">
                     채팅
@@ -53,11 +60,7 @@
                 </div>
 
                 <div class="menu">
-                    마이페이지
-                    <div class="submenu">
-                        <div><a href="/myPage.html">내 정보</a></div>
-                        <div>구매 내역</div>
-                    </div>
+                    <a href="/myPage.html">마이페이지</a>
                 </div>
             </div>
         </div>

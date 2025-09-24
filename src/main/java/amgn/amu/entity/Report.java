@@ -8,6 +8,8 @@ import lombok.*;
 @Entity
 @Table(name = "reports")
 @Data
+@Getter @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Report {
@@ -60,8 +62,8 @@ public class Report {
         if (evidenceCount == null) evidenceCount = 0;
     }
     @PreUpdate void onUpdate() { updatedAt = Instant.now(); }
+
+    public enum ReasonCode { ABUSE, SCAM, INAPPROPRIATE, OTHER }
+
+    public enum ReportStatus { PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELED }
 }
-
-enum ReasonCode { ABUSE, SCAM, INAPPROPRIATE, OTHER }
-
-enum ReportStatus { PENDING, IN_REVIEW, RESOLVED, REJECTED, CANCELED }

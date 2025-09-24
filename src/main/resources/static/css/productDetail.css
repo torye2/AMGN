@@ -534,3 +534,109 @@
   .title-row { flex-wrap: wrap; gap: 8px; }
   .title-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* ========== 상태별 공통 ========== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  margin-left: 8px;
+}
+
+/* 예약중 / 판매완료 배지 */
+.status-pill.reserved { background: #fff6d6; color: #a15f00; border: 1px solid #ffe29a; }
+.status-pill.sold     { background: #ffe7e7; color: #b02020; border: 1px solid #ffbdbd; }
+
+/* 갤러리 위 리본 + 오버레이 (상태별) */
+.status-reserved .product-gallery,
+.status-sold .product-gallery {
+  position: relative;
+}
+
+.status-reserved .product-gallery::before,
+.status-sold .product-gallery::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.18);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.status-reserved .product-gallery::after,
+.status-sold .product-gallery::after {
+  content: attr(data-status-label);
+  position: absolute;
+  top: 12px; left: -58px;
+  transform: rotate(-45deg);
+  padding: 8px 80px;
+  font-weight: 800;
+  color: #111;
+  background: #ffe29a;  /* 예약중 기본색 */
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  text-align: center;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+/* 상태별 리본 색 */
+.status-sold .product-gallery::after {
+  background: #ffbdbd; /* 판매완료 리본색 */
+  color: #7a0f0f;
+}
+
+/* 이미지 톤 다운 (상태별) */
+.status-reserved .swiper-slide img { filter: saturate(0.8) brightness(0.95); }
+.status-sold .swiper-slide img     { filter: grayscale(40%) brightness(0.9); }
+
+/* 가격/텍스트 톤도 살짝 */
+.status-reserved .product-price { color: #7a5a00; }
+.status-sold .product-price     { color: #7a0f0f; text-decoration: line-through; text-decoration-thickness: 2px; }
+
+/* 주문 버튼 상태별 스타일 (클릭은 JS에서 이미 막음) */
+.order-button.is-disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.order-button.is-reserved {
+  background: #ffc64a; /* 노란계열 */
+  color: #222;
+}
+.order-button.is-sold {
+  background: #e34b4b; /* 붉은계열 */
+  color: #fff;
+}
+
+/* 스와이퍼 네비게이션도 톤 다운 */
+.status-reserved .swiper-button-prev,
+.status-reserved .swiper-button-next,
+.status-sold .swiper-button-prev,
+.status-sold .swiper-button-next {
+  filter: grayscale(70%);
+  opacity: .5;
+}
+
+/* 접근성: 포커스 스타일은 유지 */
+
+.product-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #eceff3;
+  background: #f7f7f9;
+  color: #4a5568;
+}

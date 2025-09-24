@@ -4,7 +4,9 @@ import amgn.amu.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -16,6 +18,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@SQLDelete(sql = "UPDATE listings SET status='DELETED' WHERE listing_id=?")
+@Where(clause = "status <> 'DELETED'")
 @Table(name = "listings")
 public class Listing {
     @Id

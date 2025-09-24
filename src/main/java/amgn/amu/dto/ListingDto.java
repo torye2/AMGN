@@ -28,6 +28,7 @@ public class ListingDto {
     private List<String> photoUrls;
     private String sellerNickname;
     private String status;
+    private String regionName;
 
     @Getter
     @Setter
