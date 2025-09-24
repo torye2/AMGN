@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
           const res = await fetch(`/product/${encodeURIComponent(listingId)}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', 'XSRF-TOKEN': xsrf },
+            headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
             credentials: 'include'
           });
           if (!res.ok) throw new Error(await res.text() || '삭제 실패');
