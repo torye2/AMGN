@@ -158,6 +158,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // [추가] 신고 버튼: 판매자 고정 신고 + listingId 전달
+  const reportBtn = document.getElementById('report-button');
+  if (reportBtn) {
+    if (isSellerViewing) {
+      // 내가 올린 상품은 신고 못하게
+      reportBtn.disabled = true;
+      reportBtn.classList.add('is-disabled');
+      reportBtn.title = '본인 게시글은 신고할 수 없습니다.';
+    } else {
+      reportBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const me = meRes.ok ? await meRes.json() : null;
+        if (!me?.loggedIn) {
+          alert('로그인이 필요합니다.');
+          const next = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.href = `/login.html?next=${next}`;
+          return;
+        }
+
+        // 판매자 닉네임/ID + listingId 모두 전달
+        const url = new URL('/report/reportForm.html', location.origin);
+        url.searchParams.set('listingId', String(listingId));
+        if (product?.sellerNickname) url.searchParams.set('reportedNickname', product.sellerNickname);
+        if (sellerId) url.searchParams.set('reportedUserId', sellerId);
+        location.href = url.toString();
+      });
+    }
+  }
+
+
   // ---- 채팅 버튼 로직 ----
   const chatBtn = document.getElementById('chat-button');
   if (chatBtn) {
@@ -599,39 +631,6 @@ function formatDateKST(isoOrLocal) {
     return '';
   }
 }
-
-// 신고하기 버튼
-document.addEventListener('DOMContentLoaded', () => {
-  const reportBtn = document.getElementById('report-button');
-  if (!reportBtn) return;
-
-  reportBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    try {
-      const meRes = await fetch('/api/user/me', { credentials: 'include' });
-      if (!meRes.ok) throw new Error('세션 확인 실패');
-      const me = await meRes.json();
-
-      if (!me?.loggedIn) {
-        alert('로그인이 필요합니다.');
-        const next = encodeURIComponent(location.pathname + location.search + location.hash);
-        location.href = `/login.html?next=${next}`;
-        return;
-      }
-
-      const params = new URLSearchParams(location.search);
-      const listingId = params.get('id') || '';
-      const url = listingId
-        ? `/report/reportForm.html?listingId=${encodeURIComponent(listingId)}`
-        : `/report/reportForm.html`;
-
-      location.href = url;
-    } catch (err) {
-      console.error(err);
-      alert('로그인 상태 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-    }
-  });
-});
 
 async function ensureCsrf() {
   const r = await fetch('/api/csrf', {
