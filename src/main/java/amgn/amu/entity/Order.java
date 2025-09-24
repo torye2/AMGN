@@ -69,6 +69,9 @@ public class Order {
     @Column(name = "recv_zip")
     private String receiverZip;
 
+    @Column(name = "imp_uid")
+    private String impUid; //
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", insertable = false, updatable = false)
     private Listing listing;

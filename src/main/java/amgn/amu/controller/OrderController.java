@@ -145,12 +145,5 @@ public class OrderController {
 		return ResponseEntity.ok().build();
 	}
 
-	@PostMapping("/pre-register/{orderId}")
-	public PaymentResponse preRegister(@PathVariable Long orderId, HttpSession session) {
-		Long userId = getUserIdFromSession(session);
-		PaymentRequest req = new PaymentRequest(orderId, orderService.getOrder(userId, orderId).finalPrice(),
-				PaymentRequest.PaymentMethod.KG_INICIS, "order_" + orderId + "_" + System.currentTimeMillis(), LocalDateTime.now().plusMinutes(30));
-		return paymentService.preparePayment(userId, req);
-	}
 
 }

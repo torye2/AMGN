@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let idCheckPassed = false;
     let lastCheckedId = '';
     const params = new URLSearchParams(location.search);
-    const msg   = params.get('error');       // 에러 메시지
+    const msg = params.get('error');       // 에러 메시지
 
     // 폼 상단 공통 에러 박스에 표시
     if (msg) {
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function daysInMonth(year, month) {
             return new Date(year, month, 0).getDate();
         }
+
         function renderDays() {
             const yy = parseInt(yearSel.value, 10);
             const mm = parseInt(monthSel.value, 10);
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
             for (let d = 1; d <= cnt; d++) html += `<option value="${d}">${d}</option>`;
             daySel.insertAdjacentHTML('beforeend', html);
         }
+
         yearSel.addEventListener('change', renderDays);
         monthSel.addEventListener('change', renderDays);
     }
@@ -108,14 +110,15 @@ document.addEventListener('DOMContentLoaded', function () {
         function passwordsMatch() {
             return pw.value && pw.value === pw2.value;
         }
-        pw.addEventListener('input', function () {
-           const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`-]).{8,}$/;
 
-           if(!pattern.test(pw.value)) {
-               pw.setCustomValidity("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야합니다.");
-           } else {
-               pw.setCustomValidity("");
-           }
+        pw.addEventListener('input', function () {
+            const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;"'<>,.?/~`-]).{8,}$/;
+
+            if (!pattern.test(pw.value)) {
+                pw.setCustomValidity("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야합니다.");
+            } else {
+                pw.setCustomValidity("");
+            }
         });
         pw2.addEventListener('input', () => {
             pw2.setCustomValidity(passwordsMatch() ? '' : '비밀번호가 일치하지 않습니다.');
@@ -201,11 +204,16 @@ document.addEventListener('DOMContentLoaded', function () {
         idCheckBtn.addEventListener('click', async () => {
             console.log('[SIGNUP] idCheck clicked');
             const id = idInput.value.trim();
-            if (!id) { alert('아이디를 입력해주세요.'); return; }
+            if (!id) {
+                alert('아이디를 입력해주세요.');
+                return;
+            }
             try {
                 const res = await fetch(`/api/users/exist?id=${encodeURIComponent(id)}`, {
-                    headers: { 'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'},
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     credentials: 'same-origin'
                 });
                 if (!res.ok) throw new Error('중복 확인 API 호출에 실패했습니다.');
@@ -230,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
         lastCheckedId = '';
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async function (e) {
         const digits = (phone.value || '').replace(/\D/g, '');
         phone.value = digits;
         const currentId = idInput.value.trim();
@@ -241,6 +249,25 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             alert('아이디 중복 확인을 완료해주세요.');
             return;
+        }
+
+        if (!form.querySelector('input[name="_csrf"]')) {
+            e.preventDefault(); // 토큰 붙인 후 다시 제출
+
+            const res = await fetch('/api/csrf', {credentials: 'include'});
+            if (!res.ok) {
+                alert('보안 토큰 발급 실패');
+                return;
+            }
+            const {token, parameterName} = await res.json();
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = parameterName; // 보통 "_csrf"
+            input.value = token;
+            form.appendChild(input);
+
+            form.submit();
         }
     });
 });

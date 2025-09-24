@@ -24,9 +24,17 @@ public class ListingDto {
     private String safePayYn; // 'Y' 또는 'N'
     private Long listingId;
     private Long sellerId;
+    private List<PhotoDto> photos;
     private List<String> photoUrls;
     private String sellerNickname;
     private String status;
+
+    @Getter
+    @Setter
+    public static class PhotoDto {
+        private Long photoId;
+        private String url;
+    }
 
     public Listing toEntity() {
         return Listing.builder()
