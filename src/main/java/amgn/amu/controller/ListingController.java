@@ -266,7 +266,7 @@ public class ListingController {
             }
 
             // 삭제
-            listingService.deleteListing(listingId);
+            listingService.softDeleteById(listingId);
 
             return ResponseEntity.ok(Map.of("message", "삭제 성공"));
         } catch (Exception e) {

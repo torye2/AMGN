@@ -297,5 +297,9 @@ public class ListingService {
 		return page.map(this::convertToDto);
 	}
 
+	@Transactional
+	public void softDeleteById(Long listingId) {
+		listingRepository.deleteById(listingId); // @SQLDelete가 UPDATE로 처리
+	}
 
 }
