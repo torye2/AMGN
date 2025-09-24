@@ -25,5 +25,5 @@ public interface OrderService {
 	  List<OrderDto> getBuyOrders(Long userId);										// 구매 내역 조회
 	  OrderDto revertCancel(Long userId, Long orderId);
 	  OrderDto getOrder(Long userId, Long orderId);                               // 주문을 ID로 조회
-
+	  OrderDto refundPayment(Long buyerId, Long orderId);
 	}

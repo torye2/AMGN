@@ -18,7 +18,7 @@
 
     <select id="findUserByProvider" resultType="amgn.amu.domain.User">
         SELECT U.*
-        FROM OAUTH_IDENTITIES OI
+        FROM oauth_identities OI
         JOIN USERS U ON U.USER_ID = OI.USER_ID
         WHERE OI.PROVIDER = #{provider}
         AND OI.PROVIDER_USER_ID = #{pid}
@@ -27,7 +27,7 @@
 
     <select id="findByProvider" resultType="amgn.amu.entity.OauthIdentity">
         SELECT *
-        FROM OAUTH_IDENTITIES
+        FROM oauth_identities
         WHERE PROVIDER = #{provider}
         AND PROVIDER_USER_ID = #{pid}
         LIMIT 1
@@ -35,15 +35,15 @@
 
     <insert id="insertLink" parameterType="amgn.amu.entity.OauthIdentity"
             useGeneratedKeys="true" keyProperty="oauthId">
-        INSERT INTO OAUTH_IDENTITIES
+        INSERT INTO oauth_identities
                 (USER_ID, PROVIDER, PROVIDER_USER_ID, EMAIL, DISPLAY_NAME, ACCESS_TOKEN,
                  REFRESH_TOKEN, TOKEN_EXPIRES_AT, CREATED_AT, UPDATED_AT)
         VALUES
             (#{userId}, #{provider}, #{providerUserId}, #{email}, #{displayName}, #{accessToken}, #{refreshToken}, #{tokenExpiresAt}, NOW(), NOW())
             AS new
             ON DUPLICATE KEY UPDATE
-                                 email=COALESCE(new.email, OAUTH_IDENTITIES.email),
-                                 display_name=COALESCE(new.display_name, OAUTH_IDENTITIES.display_name),
+                                 email=COALESCE(new.email, oauth_identities.email),
+                                 display_name=COALESCE(new.display_name, oauth_identities.display_name),
                                  access_token=new.access_token,
                                  refresh_token=new.refresh_token,
                                  token_expires_at=new.token_expires_at,
@@ -61,22 +61,22 @@
 
     <select id="findProvidersByUserId" resultType="string">
         SELECT PROVIDER
-        FROM OAUTH_IDENTITIES
+        FROM oauth_identities
         WHERE USER_ID = #{userId}
     </select>
 
     <delete id="deleteLinkByUserAndProvider">
-        DELETE FROM OAUTH_IDENTITIES
+        DELETE FROM oauth_identities
         WHERE USER_ID = #{userId} AND PROVIDER = #{provider}
     </delete>
 
     <select id="findUserIdByProviderAndPid">
         SELECT USER_ID
-        FROM OAUTH_IDENTITIES
+        FROM oauth_identities
         WHERE PROVIDER = #{provider} AND PROVIDER_USER_ID = #{pid}
     </select>
 
     <delete id="deleteByUserId">
-        DELETE FROM OAUTH_IDENTITIES WHERE USER_ID = #{userId}
+        DELETE FROM oauth_identities WHERE USER_ID = #{userId}
     </delete>
 </mapper>

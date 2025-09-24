@@ -10,11 +10,11 @@
     </resultMap>
 
     <select id="get" resultMap="TotpMap">
-        SELECT * FROM USER_MFA_TOTP WHERE USER_ID = #{userId}
+        SELECT * FROM user_mfa_totp WHERE USER_ID = #{userId}
     </select>
 
     <insert id="upsert">
-        INSERT INTO USER_MFA_TOTP
+        INSERT INTO user_mfa_totp
                 (USER_ID, SECRET_ENC, ENABLED, CREATED_AT, UPDATED_AT)
         VALUES (#{userId}, #{secretEnc}, #{enabled}, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
@@ -24,7 +24,7 @@
     </insert>
 
     <update id="setEnabled">
-        UPDATE USER_MFA_TOTP
+        UPDATE user_mfa_totp
         SET ENABLED = #{enabled}, UPDATED_AT = NOW()
         WHERE USER_ID = #{userId}
     </update>
