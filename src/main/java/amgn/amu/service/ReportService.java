@@ -1,12 +1,23 @@
 package amgn.amu.service;
 
+import amgn.amu.common.LoginUser;
+import amgn.amu.component.UserDirectory;
+import amgn.amu.dto.ReportDtos;
+import amgn.amu.entity.Report;
+import amgn.amu.entity.ReportAction;
+import amgn.amu.entity.ReportEvidence;
+import amgn.amu.entity.UserSuspension;
 import amgn.amu.repository.ReportActionRepository;
 import amgn.amu.repository.ReportEvidenceRepository;
 import amgn.amu.repository.ReportRepository;
 import amgn.amu.repository.UserSuspensionRepository;
-import amgn.amu.service.util.UserDirectory;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -15,5 +26,122 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final ReportActionRepository actionRepository;
     private final UserSuspensionRepository suspensionRepository;
-    //private final UserDirectory userDirectory;
+    private final UserDirectory userDirectory;
+    private final LoginUser  loginUser;
+
+    @Transactional
+    public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpSession session, HttpServletRequest request) {
+        Long reporterId = loginUser.userId(request);
+        Long reportedUserId = userDirectory.findUserIdByNickNameOrThrow(req.reportedNickname());
+
+        Report report = Report.builder()
+                .reporterId(reporterId)
+                .reportedUserId(reportedUserId)
+                .listingId(req.listingId())
+                .chatRoomId(req.chatRoomId())
+                .reasonCode(req.reasonCode())
+                .reasonText(req.reasonText())
+                .description(req.description())
+                .status(Report.ReportStatus.PENDING)
+                .evidenceCount(0)
+                .build();
+
+        reportRepository.save(report);
+        return new ReportDtos.CreateReportResponse(report.getReportId());
+    }
+
+    @Transactional
+    public void addEvidence(Long reportId, ReportDtos.AddEvidenceRequest req, HttpSession session, HttpServletRequest request) {
+        Long uid = loginUser.userId(request);
+        var evidence = ReportEvidence.builder()
+                .reportId(reportId)
+                .filePath(req.filePath())
+                .mimeType(req.mimeType())
+                .fileSize(req.fileSize())
+                .uploadedBy(uid)
+                .build();
+        evidenceRepository.save(evidence);
+
+        long cnt = evidenceRepository.countByReportId(reportId);
+        var report = reportRepository.findById(reportId).orElse(null);
+        report.setEvidenceCount((int) cnt);
+        reportRepository.save(report);
+    }
+
+    @Transactional
+    public void addAction(Long reportId, ReportDtos.AddActionRequest req, HttpSession session, HttpServletRequest request) {
+        Long adminId = loginUser.userId(request);
+
+        var action = ReportAction.builder()
+                .reportId(reportId)
+                .actorUserId(adminId)
+                .actionType(req.actionType())
+                .actionPayload(req.actionPayload())
+                .comment(req.comment())
+                .build();
+        actionRepository.save(action);
+
+        if (req.actionType() == ReportAction.ActionType.ASSIGN || req.actionType() == ReportAction.ActionType.NOTE) {
+            var report = reportRepository.findById(reportId).orElse(null);
+            if (report != null && report.getStatus() == Report.ReportStatus.PENDING) {
+                report.setStatus(Report.ReportStatus.IN_REVIEW);
+                report.setHandledBy(adminId);
+                report.setHandledAt(Instant.now());
+                reportRepository.save(report);
+            }
+        } else if (req.actionType() == ReportAction.ActionType.REJECT || req.actionType() == ReportAction.ActionType.RESOLVE) {
+            var report = reportRepository.findById(reportId).orElse(null);
+            report.setStatus(req.actionType() == ReportAction.ActionType.REJECT ? Report.ReportStatus.REJECTED : Report.ReportStatus.RESOLVED);
+            report.setHandledBy(adminId);
+            report.setHandledAt(Instant.now());
+            reportRepository.save(report);
+        }
+    }
+
+    @Transactional
+    public void suspendFromReport(Long reportId, ReportDtos.SuspendUserRequest req, HttpSession session, HttpServletRequest request) {
+        Long adminId = loginUser.userId(request);
+
+        var report = reportRepository.findById(reportId).orElse(null);
+        Instant endAt = (req.days() == null || req.days() <= 0) ?
+                null : Instant.now().plusSeconds(req.days() * 24L * 3600L);
+
+        if (report != null) {
+            var suspension = UserSuspension.builder()
+                    .userId(report.getReportedUserId())
+                    .reportId(report.getReportId())
+                    .endAt(endAt)
+                    .reasonCode(report.getReasonCode())
+                    .reasonText(req.reasonText() != null ? req.reasonText() : report.getReasonText())
+                    .createdBy(adminId)
+                    .status(UserSuspension.SuspensionStatus.ACTIVE)
+                    .build();
+            suspensionRepository.save(suspension);
+
+            userDirectory.setUserStatusBanned(report.getReportedUserId());
+
+            report.setStatus(Report.ReportStatus.RESOLVED);
+            report.setHandledBy(adminId);
+            report.setHandledAt(Instant.now());
+            reportRepository.save(report);
+        }
+
+        actionRepository.save(ReportAction.builder()
+                .reportId(reportId)
+                .actorUserId(adminId)
+                .actionType(ReportAction.ActionType.SUSPEND)
+                .actionPayload(endAt == null ? "{\"days\":0}" : "{\"days\":" + req.days() + "}")
+                .comment("정지 처리 실행")
+                .build());
+    }
+
+    @Transactional
+    public void revokeSuspension(Long suspensionId, String reason, HttpSession session, HttpServletRequest request) {
+        Long adminId = loginUser.userId(request);
+        var suspension = suspensionRepository.findById(suspensionId).orElse(null);
+        if (suspension != null) {
+            suspension.setStatus(UserSuspension.SuspensionStatus.REVOKED);
+            suspension.setRevokedAt(Instant.now());
+        }
+    }
 }
