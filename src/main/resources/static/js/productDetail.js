@@ -195,13 +195,61 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('찜 처리 중 오류가 발생했습니다.');
         }
       });
-
+/*
       // 구매자/타 사용자일 때만 주문 버튼 이벤트 부여
       if (orderButton) {
         orderButton.addEventListener('click', () => {
           window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
         });
       }
+      */
+      // === 상태에 따른 주문 버튼 제어 (항상 버튼 보이게) ===
+      if (orderButton) {
+        // 혹시 이전 단계에서 숨겨졌다면 보이게
+        orderButton.style.display = '';
+
+        const rawStatus = (product?.status ?? '').toString();
+        const status = rawStatus.trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+        console.log('[productDetail] listing status =', rawStatus);
+
+        // 이전 클릭 핸들러 제거(덮어쓰기)
+        orderButton.onclick = null;
+
+        const disableOrder = (label, extraClass) => {
+          orderButton.textContent = label;
+          // disabled 속성은 사용하지 않음(일부 CSS가 숨길 수 있음)
+          orderButton.setAttribute('aria-disabled', 'true');
+          orderButton.classList.add('is-disabled');
+          if (extraClass) orderButton.classList.add(extraClass);
+          orderButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }, { once: true });
+        };
+
+        if (status === 'ACTIVE') {
+          orderButton.textContent = '주문하기';
+          orderButton.removeAttribute('aria-disabled');
+          orderButton.classList.remove('is-disabled', 'is-reserved', 'is-sold');
+          orderButton.onclick = () => {
+            window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
+          };
+        } else if (status === 'RESERVED') {
+          disableOrder('예약중', 'is-reserved');
+        } else if (status === 'SOLD') {
+          disableOrder('판매완료', 'is-sold');
+        } else {
+          // 상태가 알 수 없어도 버튼은 보이되, 안전하게 클릭만 막음
+          disableOrder('예약/판매 상태 확인중');
+        }
+      }
+      // === 상태 제어 끝 ===
+
+
+
+
+
     }
   }
 
@@ -524,3 +572,60 @@ async function ensureCsrf() {
 function getCookie(name) {
   return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
 }
+
+  // ---- 버튼 영역(구매 vs 수정/삭제/찜) ----
+  const buttonGroup = document.querySelector('.button-group');
+  const orderButton = document.getElementById('order-button');
+
+  if (buttonGroup) {
+    if (isSellerViewing) {
+      // 판매자가 보면 구매 버튼 제거
+      if (orderButton) orderButton.remove();
+      // (생략) 수정/삭제 버튼 생성 로직 ...
+      buttonGroup.append(editBtn, deleteBtn);
+
+    } else {
+      // ★ 찜 버튼 (생략: 기존 코드 동일)
+      const wishBtn = document.createElement('button');
+      // ... (위시 초기화/토글 코드 그대로 유지)
+      buttonGroup.prepend(wishBtn);
+
+      // === 여기부터 상태에 따른 주문 버튼 제어 추가 ===
+      if (orderButton) {
+        const status = String(product?.status || '').toUpperCase(); // ACTIVE | RESERVED | SOLD
+
+        // 일단 모든 기존 클릭을 막기 위해 새로 달기 전에 핸들러 제거가 어려우므로
+        // 조건별로 붙이며, 막는 경우에는 disabled + preventDefault 처리
+        const disableOrder = (label, extraClass) => {
+          orderButton.textContent = label;
+          orderButton.disabled = true;
+          orderButton.classList.add('is-disabled');
+          if (extraClass) orderButton.classList.add(extraClass);
+          // 안전하게 클릭 차단
+          orderButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          });
+        };
+
+        if (status === 'RESERVED') {
+          disableOrder('예약중', 'is-reserved');
+        } else if (status === 'SOLD') {
+          disableOrder('판매완료', 'is-sold');
+        } else if (status === 'ACTIVE') {
+          // 정상 주문 가능
+          orderButton.disabled = false;
+          orderButton.textContent = '주문하기';
+          orderButton.classList.remove('is-disabled', 'is-reserved', 'is-sold');
+          orderButton.addEventListener('click', () => {
+            window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
+          });
+        } else {
+          // 알 수 없는 상태면 안전하게 비활성화
+          disableOrder('주문 불가');
+        }
+      }
+      // === 상태 제어 끝 ===
+    }
+  }

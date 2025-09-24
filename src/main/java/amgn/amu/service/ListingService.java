@@ -113,6 +113,7 @@ public class ListingService {
 		dto.setSafePayYn(listing.getSafePayYn());
 		dto.setSellerId(listing.getSellerId());
 		dto.setSellerNickname(listing.getSeller().getNickName());
+		dto.setStatus(listing.getStatus());
 
 		if (listing.getPhotos() != null && !listing.getPhotos().isEmpty()) {
 			List<String> urls = listing.getPhotos().stream()
