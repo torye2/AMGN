@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const listingId = params.get('id');
 
-
   if (!listingId) {
     alert('잘못된 접근: listingId 없음');
     return;
@@ -45,6 +44,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   const storeNicknameEl = document.getElementById('storeSellerNickname');
   if (storeNicknameEl) storeNicknameEl.textContent = product.sellerNickname ?? '-';
 
+  // ---- 상태 기반 UI (리본/톤다운/라벨) ----
+  (function applyStatusDecorations() {
+    const status = String(product?.status ?? '').trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+    const wrap = document.getElementById('wrap'); // 페이지 상위 컨테이너
+    const gallery = document.querySelector('.product-gallery');
+    const titleNode = document.querySelector('.title-row .product-name');
+
+    if (wrap && gallery) {
+      wrap.classList.remove('status-reserved', 'status-sold');
+      if (status === 'RESERVED') {
+        wrap.classList.add('status-reserved');
+        gallery.setAttribute('data-status-label', '예약중');
+      } else if (status === 'SOLD') {
+        wrap.classList.add('status-sold');
+        gallery.setAttribute('data-status-label', '판매완료');
+      } else {
+        gallery.removeAttribute('data-status-label');
+      }
+    }
+
+    // 타이틀 옆 배지 (예약/판매완료일 때만)
+    if (titleNode) {
+      const old = titleNode.parentElement.querySelector('.status-pill');
+      if (old) old.remove();
+      if (status === 'RESERVED' || status === 'SOLD') {
+        const pill = document.createElement('span');
+        pill.className = 'status-pill ' + (status === 'RESERVED' ? 'reserved' : 'sold');
+        pill.textContent = (status === 'RESERVED' ? '예약중' : '판매완료');
+        titleNode.after(pill);
+      }
+    }
+  })();
+
   // ---- 판매자/구매자 분기용 아이디 정리 ----
   const rawSellerId =
     product?.sellerId ??
@@ -56,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const viewerId = me?.loggedIn && me?.userId != null ? String(me.userId) : null;
   const isSellerViewing = !!(viewerId && sellerId && viewerId === sellerId);
 
-  // 판매자 상품 그리드 로딩
+  // 판매자 상품 그리드/후기 로딩
   if (sellerId) {
     loadSellerProducts(sellerId);
     loadSellerReviews(sellerId);
@@ -167,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       wishBtn.className = 'wish-button';
       wishBtn.type = 'button';
       wishBtn.innerHTML = '🤍 찜 <span id="wish-count">0</span>';
-      buttonGroup.prepend(wishBtn); // 맨 앞에 배치 (뒤에 두려면 append)
+      buttonGroup.prepend(wishBtn);
 
       // 초기 상태 불러오기
       await refreshWishUI(wishBtn, listingId, typeof product?.wishCount === 'number' ? product.wishCount : 0);
@@ -195,14 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('찜 처리 중 오류가 발생했습니다.');
         }
       });
-/*
-      // 구매자/타 사용자일 때만 주문 버튼 이벤트 부여
-      if (orderButton) {
-        orderButton.addEventListener('click', () => {
-          window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
-        });
-      }
-      */
+
       // === 상태에 따른 주문 버튼 제어 (항상 버튼 보이게) ===
       if (orderButton) {
         // 혹시 이전 단계에서 숨겨졌다면 보이게
@@ -245,11 +270,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
       // === 상태 제어 끝 ===
-
-
-
-
-
     }
   }
 
@@ -421,7 +441,7 @@ async function loadSellerReviews(sellerId) {
   const countEl  = document.getElementById('storeRatingCount');
   const moreEl   = document.getElementById('storeReviewMore');
 
-  // "후기 더보기" 링크 (원하는 경로로 바꿔도 됨)
+  // "후기 더보기" 링크
   if (moreEl) moreEl.href = `/shop.html?sellerId=${encodeURIComponent(sellerId)}#reviews`;
 
   if (!listEl || !starFront || !scoreEl || !countEl) return;
@@ -448,7 +468,7 @@ async function loadSellerReviews(sellerId) {
           reviewId: r.id,
           rating: r.score,
           comment: r.rvComment,
-          reviewerNickname: '익명', // 백엔드 DTO에 닉네임 없으면 기본값
+          reviewerNickname: '익명',
           createdAt: r.createdAt
         }));
         // 평균/개수 계산
@@ -517,7 +537,6 @@ async function loadSellerReviews(sellerId) {
 function formatDateKST(isoOrLocal) {
   try {
     const d = new Date(isoOrLocal);
-    // 단순 표기(타임존 보정이 필요하면 서버에서 ISO+Z로 내려주기 권장)
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -527,6 +546,7 @@ function formatDateKST(isoOrLocal) {
   }
 }
 
+// 신고하기 버튼
 document.addEventListener('DOMContentLoaded', () => {
   const reportBtn = document.getElementById('report-button');
   if (!reportBtn) return;
@@ -536,11 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const meRes = await fetch('/api/user/me', { credentials: 'include' });
       if (!meRes.ok) throw new Error('세션 확인 실패');
-      const me = await meRes.json(); // { loggedIn, userId, nickname } 형태라고 가정
+      const me = await meRes.json();
 
       if (!me?.loggedIn) {
         alert('로그인이 필요합니다.');
-        // 로그인 후 돌아올 수 있게 현재 경로를 next로 넘겨줌(선택)
         const next = encodeURIComponent(location.pathname + location.search + location.hash);
         location.href = `/login.html?next=${next}`;
         return;
@@ -566,66 +585,9 @@ async function ensureCsrf() {
     credentials: 'same-origin'
   });
   const j = await r.json(); // { headerName, token }
-  return j; // 필요 시 헤더명도 동적으로 사용
+  return j;
 }
 
 function getCookie(name) {
   return document.cookie.split('; ').find(v => v.startsWith(name + '='))?.split('=')[1];
 }
-
-  // ---- 버튼 영역(구매 vs 수정/삭제/찜) ----
-  const buttonGroup = document.querySelector('.button-group');
-  const orderButton = document.getElementById('order-button');
-
-  if (buttonGroup) {
-    if (isSellerViewing) {
-      // 판매자가 보면 구매 버튼 제거
-      if (orderButton) orderButton.remove();
-      // (생략) 수정/삭제 버튼 생성 로직 ...
-      buttonGroup.append(editBtn, deleteBtn);
-
-    } else {
-      // ★ 찜 버튼 (생략: 기존 코드 동일)
-      const wishBtn = document.createElement('button');
-      // ... (위시 초기화/토글 코드 그대로 유지)
-      buttonGroup.prepend(wishBtn);
-
-      // === 여기부터 상태에 따른 주문 버튼 제어 추가 ===
-      if (orderButton) {
-        const status = String(product?.status || '').toUpperCase(); // ACTIVE | RESERVED | SOLD
-
-        // 일단 모든 기존 클릭을 막기 위해 새로 달기 전에 핸들러 제거가 어려우므로
-        // 조건별로 붙이며, 막는 경우에는 disabled + preventDefault 처리
-        const disableOrder = (label, extraClass) => {
-          orderButton.textContent = label;
-          orderButton.disabled = true;
-          orderButton.classList.add('is-disabled');
-          if (extraClass) orderButton.classList.add(extraClass);
-          // 안전하게 클릭 차단
-          orderButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          });
-        };
-
-        if (status === 'RESERVED') {
-          disableOrder('예약중', 'is-reserved');
-        } else if (status === 'SOLD') {
-          disableOrder('판매완료', 'is-sold');
-        } else if (status === 'ACTIVE') {
-          // 정상 주문 가능
-          orderButton.disabled = false;
-          orderButton.textContent = '주문하기';
-          orderButton.classList.remove('is-disabled', 'is-reserved', 'is-sold');
-          orderButton.addEventListener('click', () => {
-            window.location.href = `/order/order.html?listingId=${encodeURIComponent(listingId)}`;
-          });
-        } else {
-          // 알 수 없는 상태면 안전하게 비활성화
-          disableOrder('주문 불가');
-        }
-      }
-      // === 상태 제어 끝 ===
-    }
-  }
