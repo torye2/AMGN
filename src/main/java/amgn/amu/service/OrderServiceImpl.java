@@ -87,11 +87,25 @@ public class OrderServiceImpl implements OrderService {
         order.setReceiverAddress2(req.recvAddr2());
         order.setReceiverZip(req.recvZip());
 
+        // 결제 수단 처리 (기본값 KG_INICIS)
+        PaymentRequest.PaymentMethod paymentMethod;
+        if (req.paymentMethod() == null || req.paymentMethod().isBlank()) {
+            paymentMethod = PaymentRequest.PaymentMethod.KG_INICIS;
+        } else {
+            try {
+                paymentMethod = PaymentRequest.PaymentMethod.valueOf(req.paymentMethod());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("유효하지 않은 결제 수단입니다: " + req.paymentMethod());
+            }
+        }
+        order.setPaymentMethod(paymentMethod);
+
         orderRepository.save(order);
         updateListingStatus(order.getListingId(), order.getStatus());
 
         return toDto(order);
     }
+
 
     // ---------------- 결제 ----------------
     // 결제 처리 로직
