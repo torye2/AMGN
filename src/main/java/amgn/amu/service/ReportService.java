@@ -14,6 +14,8 @@ import amgn.amu.repository.UserSuspensionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +32,7 @@ public class ReportService {
     private final LoginUser  loginUser;
 
     @Transactional
-    public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpSession session, HttpServletRequest request) {
+    public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpServletRequest request) {
         Long reporterId = loginUser.userId(request);
         Long reportedUserId = userDirectory.findUserIdByNickNameOrThrow(req.reportedNickname());
 
@@ -51,7 +53,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void addEvidence(Long reportId, ReportDtos.AddEvidenceRequest req, HttpSession session, HttpServletRequest request) {
+    public void addEvidence(Long reportId, ReportDtos.AddEvidenceRequest req, HttpServletRequest request) {
         Long uid = loginUser.userId(request);
         var evidence = ReportEvidence.builder()
                 .reportId(reportId)
@@ -69,7 +71,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void addAction(Long reportId, ReportDtos.AddActionRequest req, HttpSession session, HttpServletRequest request) {
+    public void addAction(Long reportId, ReportDtos.AddActionRequest req, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
 
         var action = ReportAction.builder()
@@ -99,7 +101,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void suspendFromReport(Long reportId, ReportDtos.SuspendUserRequest req, HttpSession session, HttpServletRequest request) {
+    public void suspendFromReport(Long reportId, ReportDtos.SuspendUserRequest req, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
 
         var report = reportRepository.findById(reportId).orElse(null);
@@ -136,12 +138,48 @@ public class ReportService {
     }
 
     @Transactional
-    public void revokeSuspension(Long suspensionId, String reason, HttpSession session, HttpServletRequest request) {
+    public void revokeSuspension(Long suspensionId, String reason, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
         var suspension = suspensionRepository.findById(suspensionId).orElse(null);
         if (suspension != null) {
             suspension.setStatus(UserSuspension.SuspensionStatus.REVOKED);
             suspension.setRevokedAt(Instant.now());
+            suspension.setRevokeReason(reason);
+            suspensionRepository.save(suspension);
         }
+
+        boolean stillHasActive = suspensionRepository.existsByUserIdAndStatusAndEndAtAfterOrEndAtIsNull(
+                suspension.getUserId(), UserSuspension.SuspensionStatus.ACTIVE, Instant.now()
+        );
+        if (!stillHasActive) userDirectory.setUserStatusActive(suspension.getUserId());
+    }
+
+    @Transactional
+    public Page<ReportDtos.ReportListItem> listReports(Report.ReportStatus status, Pageable pageable) {
+        var page = (status == null)
+                ? reportRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : reportRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        return page.map(r -> new ReportDtos.ReportListItem(
+                r.getReportId(), r.getReporterId(), r.getReportedUserId(), r.getListingId(),
+                r.getReasonCode(), r.getReasonText(), r.getStatus(), r.getCreatedAt()
+        ));
+    }
+
+    @Transactional
+    public ReportDtos.ReportDetail getReportDetail(Long reportId) {
+        var r = reportRepository.findById(reportId).orElse(null);
+        var evidence = evidenceRepository.findByReportIdOrderByCreatedAtDesc(reportId).stream()
+                .map(e -> new ReportDtos.ReportDetail.EvidenceItem(
+                        e.getEvidenceId(), e.getFilePath(), e.getMimeType(), e.getFileSize(), e.getUploadedBy(), e.getCreatedAt()
+                )).toList();
+        var actions = actionRepository.findByReportIdOrderByCreatedAtAsc(reportId).stream()
+                .map(a -> new ReportDtos.ReportDetail.ActionItem(
+                        a.getActionId(), a.getActorUserId(), a.getActionType(), a.getActionPayload(), a.getComment(), a.getCreatedAt()
+                )).toList();
+        return new ReportDtos.ReportDetail(
+                r.getReportId(), r.getReporterId(), r.getReportedUserId(), r.getListingId(), r.getChatRoomId(),
+                r.getReasonCode(), r.getReasonText(), r.getDescription(), r.getStatus(), r.getEvidenceCount(),
+                r.getHandledBy(), r.getHandledAt(), r.getCreatedAt(), r.getUpdatedAt(), evidence, actions
+        );
     }
 }
