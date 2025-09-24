@@ -593,9 +593,9 @@ async function loadSales() {
             rows.push(`<tr>
                 <td>${o.id}</td>
                 <td><a href="/productDetail.html?id=${o.listingId}">${o.listingTitle ?? '-'}</a></td>
-                <td>${tradeMethodMap[o.method] ?? o.method}</td>
-                <td>${orderStatusMap[o.status] ?? o.status}</td>
+                <td>${o.buyerName ?? '-'}</td>
                 <td>${toWon(o.finalPrice)}</td>
+                <td>${orderStatusMap[o.status] ?? o.status}</td>
                 <td>${o.createdAt ?? '-'}</td>
             </tr>`);
         });

@@ -6,6 +6,7 @@ public record OrderDto(
         Long id,
         Long listingId,
         Long buyerId,
+        String buyerName,
         Long sellerId,
         Long finalPrice,
         TradeMethod method,
