@@ -81,7 +81,7 @@ public class SecurityConfig {
                                 "/search", "/category/**", "/footer.html", "/api/pw-reset/**",
                                 "/api/csrf", "/header.html","/list.html", "/api/find-id",
                                 "/oauth2/authorization/**","/login/oauth2/code/**", "/signup",
-                                "/shop.html"
+                                "/shop.html", "/main"
                         ).permitAll()
                         // 읽기 전용 공개 API (HTTP GET만)
                         .requestMatchers(HttpMethod.GET,
@@ -99,8 +99,10 @@ public class SecurityConfig {
                                 "/api/oauth/me",
                                 "/api/oauth/link/confirm",
                                 "/api/oauth/unlink",
-                                "/myPage.html"
+                                "/myPage.html",
+                                "/admin/**"
                         ).authenticated()
+                        .requestMatchers("/api/reports/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/onboarding").authenticated()
                         .anyRequest().authenticated()
                 )

@@ -165,7 +165,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // 내가 올린 상품은 신고 못하게
       reportBtn.disabled = true;
       reportBtn.classList.add('is-disabled');
-      reportBtn.title = '본인 게시글은 신고할 수 없습니다.';
+      reportBtn.classList.add('hidden');
+      reportBtn.hidden = true;
     } else {
       reportBtn.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -176,6 +177,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('로그인이 필요합니다.');
           const next = encodeURIComponent(location.pathname + location.search + location.hash);
           location.href = `/login.html?next=${next}`;
+          return;
+        }
+        if (isSellerViewing) {
+          alert('본인 게시글은 신고할 수 없습니다.');
           return;
         }
 

@@ -1,5 +1,7 @@
 package amgn.amu.service;
 
+import amgn.amu.common.AppException;
+import amgn.amu.common.ErrorCode;
 import amgn.amu.common.LoginUser;
 import amgn.amu.component.UserDirectory;
 import amgn.amu.dto.ReportDtos;
@@ -18,8 +20,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +44,14 @@ public class ReportService {
     public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpServletRequest request) {
         Long reporterId = loginUser.userId(request);
         Long reportedUserId = userDirectory.findUserIdByNickNameOrThrow(req.reportedNickname());
+
+        if (reportedUserId == null) {
+            throw new AppException(ErrorCode.NOT_FOUND_USER);
+        }
+
+        if (reporterId.equals(reportedUserId)) {
+            throw new AppException(ErrorCode.SELF_REPORT_NOT_ALLOWED);
+        }
 
         Report report = Report.builder()
                 .reporterId(reporterId)
@@ -68,6 +85,59 @@ public class ReportService {
         var report = reportRepository.findById(reportId).orElse(null);
         report.setEvidenceCount((int) cnt);
         reportRepository.save(report);
+    }
+
+    @Transactional
+    public void uploadEvidenceFiles(Long reportId, MultipartFile[] files, HttpServletRequest request) throws IOException {
+        Long uid = loginUser.userId(request);
+
+        if (files == null || files.length == 0) return;
+
+        var report = reportRepository.findById(reportId).orElse(null);
+
+        Path baseDir = Paths.get("C:/amu/uploads/reports");
+        LocalDate today = LocalDate.now();
+        Path dayDir = baseDir.resolve(String.valueOf(today.getYear()))
+                .resolve(String.format("%02d", today.getMonthValue()))
+                .resolve(String.format("%02d", today.getDayOfMonth()));
+        Files.createDirectories(dayDir);
+
+        int saved = 0;
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) continue;
+            if (!file.getContentType().startsWith("image/")) continue;
+            if (file.getSize() > 5 * 1024 * 1024) continue;
+
+            String original = file.getOriginalFilename();
+            String safeName = (original == null ? "image" : original).replaceAll("[\\\\/:*?\"<>|]", "_");
+            String fileName = UUID.randomUUID() + "_" + safeName;
+
+            Path savePath = dayDir.resolve(fileName);
+            Files.createDirectories(savePath.getParent());
+            file.transferTo(savePath.toFile());
+
+            String url = "/uploads/reports/"
+                    + today.getYear() + "/"
+                    + String.format("%02d", today.getMonthValue()) + "/"
+                    + String.format("%02d", today.getDayOfMonth()) + "/"
+                    + fileName;
+
+            var evidence = ReportEvidence.builder()
+                    .reportId(reportId)
+                    .filePath(url)
+                    .mimeType(file.getContentType())
+                    .fileSize((int)file.getSize())
+                    .uploadedBy(uid)
+                    .build();
+            evidenceRepository.save(evidence);
+            saved++;
+
+            if (saved > 0) {
+                long cnt = evidenceRepository.countByReportId(reportId);
+                report.setEvidenceCount((int) cnt);
+                reportRepository.save(report);
+            }
+        }
     }
 
     @Transactional

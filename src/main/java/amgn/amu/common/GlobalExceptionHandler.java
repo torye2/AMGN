@@ -13,7 +13,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
-    public Object handleApp(AppException e, Model model){
+    public Object handleApp(AppException e){
         ErrorCode code = e.getCode();
         return ResponseEntity.status(code.status)
                 .body(ApiResult.fail(e.getMessage()));
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
         String msg = e.getBindingResult().getFieldErrors()
                 .stream().findFirst()
                 .map(f -> f.getField() + " " + f.getDefaultMessage())
-                .orElse("유효성 검사에 실패했습니다.");
+                .orElse("유효성 검사에 실패했습니다. 입력값이 올바르지 않습니다.");
         return ResponseEntity.status(400).body(ApiResult.fail(msg));
     }
 

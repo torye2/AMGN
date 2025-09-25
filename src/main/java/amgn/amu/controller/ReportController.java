@@ -10,9 +10,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -44,6 +49,12 @@ public class ReportController {
     @PreAuthorize("isAuthenticated()")
     public void addEvidence(@PathVariable Long id, @RequestBody @Valid ReportDtos.AddEvidenceRequest req, HttpServletRequest request) {
         reportService.addEvidence(id, req, request);
+    }
+
+    @PostMapping(value = "{id}/evidence", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public void uploadEvidence(@PathVariable Long id, @RequestParam("files") List<MultipartFile> files, HttpServletRequest request) throws IOException {
+        reportService.uploadEvidenceFiles(id, files.toArray(MultipartFile[]::new), request);
     }
 
     @PostMapping("{id}/actions")

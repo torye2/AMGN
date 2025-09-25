@@ -1807,11 +1807,15 @@ function renderFavCard(p) {
   unwishBtn.textContent = '♡ 해제';
   unwishBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+      if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+      const xsrf = getCookie('XSRF-TOKEN');
     try {
       const r = await fetch(`/product/${encodeURIComponent(p.listingId)}/wish`, {
           method: 'DELETE',
           headers: { 'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'},
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-XSRF-TOKEN': xsrf
+          },
           credentials: 'include'
       });
       if (!r.ok) throw new Error('해제 실패');
