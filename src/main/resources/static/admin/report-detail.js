@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const xsrf = getCookie('XSRF-TOKEN');
 
     async function load(){
-        const d = await fetchJson(`/api/reports/${id}`);
+        const d = await fetchJson(`/api/admin/reports/${id}`);
 
         qs('#meta').innerHTML = `
       <div class="kv" style="margin-top:4px">
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.addEventListener('click', async () => {
             const actionType = btn.dataset.act;
             try{
-                await fetchJson(`/api/reports/${id}/actions`, {
+                await fetchJson(`/api/admin/reports/${id}/actions`, {
                     method:'POST',
                     headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                     body: JSON.stringify({ actionType, comment: actionType==='ASSIGN'?'검토 시작':'' })
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const reasonText = qs('#suspendReason').value || null;
         if(!confirm(days===0 ? '영구 정지를 실행할까요?' : `${days}일 정지를 실행할까요?`)) return;
         try{
-            await fetchJson(`/api/reports/${id}/suspend`, {
+            await fetchJson(`/api/admin/reports/${id}/suspend`, {
                 method:'POST',
                 headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                 body: JSON.stringify({ days, reasonText })
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const note = qs('#note').value.trim();
         if(!note) return;
         try{
-            await fetchJson(`/api/reports/${id}/actions`, {
+            await fetchJson(`/api/admin/reports/${id}/actions`, {
                 method:'POST',
                 headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                 body: JSON.stringify({ actionType:'NOTE', comment: note })
