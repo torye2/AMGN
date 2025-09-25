@@ -209,7 +209,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void revokeSuspension(Long suspensionId, String reason, HttpServletRequest request) {
+    public void revokeSuspension(Long suspensionId, String reason, HttpServletRequest request, Long reportIdFormRequest) {
         Long adminId = loginUser.userId(request);
         var suspension = suspensionRepository.findById(suspensionId).orElse(null);
         if (suspension != null) {
@@ -223,6 +223,18 @@ public class ReportService {
                 suspension.getUserId(), UserSuspension.SuspensionStatus.ACTIVE, Instant.now()
         );
         if (!stillHasActive) userDirectory.setUserStatusActive(suspension.getUserId());
+
+        Long reportId = (suspension.getReportId() != null) ? suspension.getReportId() : reportIdFormRequest;
+        if (reportId != null) {
+            var action = ReportAction.builder()
+                    .reportId(reportId)
+                    .actionType(ReportAction.ActionType.REVOKE_SUSPENSION)
+                    .actorUserId(adminId)
+                    .comment((reason == null || reason.isBlank()) ? "정지 해제" : "정지 해제: " + reason)
+                    .createdAt(Instant.now())
+                    .build();
+            actionRepository.save(action);
+        }
     }
 
     @Transactional

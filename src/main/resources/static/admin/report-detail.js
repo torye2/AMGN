@@ -56,17 +56,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         box.querySelectorAll('[data-revoke]').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const id = btn.getAttribute('data-revoke');
+                const sid = btn.getAttribute('data-revoke');
                 const reason = prompt('해제 사유를 입력하세요(선택)');
+                let a = null;
                 if (reason === null) return;
                 try {
-                    await fetchJson(`/api/admin/suspensions/${id}/revoke`, {
+                    await fetchJson(`/api/admin/suspensions/${sid}/revoke`, {
                         method: 'POST',
                         headers: { 'Content-Type':'application/json', ...(getCookie('XSRF-TOKEN') ? {'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')} : {}) },
-                        body: JSON.stringify({ reason })
+                        body: JSON.stringify({ reason, reportId: id})
                     });
                     alert('정지가 해제되었습니다.');
-                    location.reload();
+                    await load();
+                    await loadSuspensions(detail.reportedUserId);
                 } catch(e){
                     alert(e.message || '해제 실패');
                 }
@@ -86,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 await load();
                 alert('상태가 업데이트되었습니다.');
+                location.reload();
             }catch(e){ alert(e.message||'상태 변경 실패'); }
         });
     });
@@ -103,6 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             await load();
             alert('정지 처분이 완료되었습니다.');
+            location.reload();
         }catch(e){ alert(e.message||'정지 실패'); }
     });
 
@@ -118,6 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             qs('#note').value = '';
             await load();
+            location.reload();
         }catch(e){ alert(e.message||'메모 추가 실패'); }
     });
 

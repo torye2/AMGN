@@ -38,6 +38,6 @@ public class ReportAction {
 
     @PrePersist void onCreate() { createdAt = Instant.now(); }
 
-    public enum ActionType { NOTE, ASSIGN, REQUEST_INFO, SUSPEND, REJECT, RESOLVE }
+    public enum ActionType { NOTE, ASSIGN, REQUEST_INFO, SUSPEND, REJECT, RESOLVE, REVOKE_SUSPENSION }
 }
 

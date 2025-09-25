@@ -28,7 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReportController {
 
-    record RevokeRequest(String reason) {}
+    record RevokeRequest(String reason, Long reportId) {}
     private final ReportService reportService;
 
     @PostMapping(value = "/reports", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -84,7 +84,7 @@ public class ReportController {
     public ResponseEntity<Void> revoke(@PathVariable("id") Long suspensionId,
                                        @RequestBody RevokeRequest req,
                                        HttpServletRequest request) {
-        reportService.revokeSuspension(suspensionId, req != null ? req.reason() : null, request);
+        reportService.revokeSuspension(suspensionId, req != null ? req.reason() : null, request, req != null ? req.reportId() : null);
         return ResponseEntity.noContent().build();
     }
 }
