@@ -5,16 +5,22 @@
   // =========================
   // DOM 캐시
   // =========================
+  // (찜 사이드바)
   const wishBox        = document.getElementById('wishSidebar');
   const wishEmpty      = document.getElementById('wishSidebarEmpty');
   const wishGuest      = document.getElementById('wishSidebarGuest');
 
+  // (최근 본 상품 사이드바 - 오른쪽)
+  const recentBox      = document.getElementById('recentSidebar');
+  const recentEmpty    = document.getElementById('recentSidebarEmpty');
+
+  // (리더보드)
   const topCard        = document.getElementById('topSellersCard');
   const topList        = document.getElementById('topSellers');
   const topLoading     = document.getElementById('topSellersLoading');
   const topEmpty       = document.getElementById('topSellersEmpty');
 
-  // 지역 모달
+  // (지역 모달)
   const regionModalEl  = document.getElementById('regionModal');
   const regionSearch   = document.getElementById('regionSearchInput');
   const regionList     = document.getElementById('regionList');
@@ -29,6 +35,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     // 최근 찜 사이드바
     if (wishBox) loadRecentWishes(6);
+
+    // 최근 본 상품(오른쪽)
+    if (recentBox) loadRecentViewed(6);
 
     // 이달의 판매왕
     if (topList && topLoading && topEmpty) loadTopSellers();
@@ -100,6 +109,122 @@
       console.error('최근 찜 불러오기 실패:', e);
       wishBox.innerHTML = '<div class="text-muted small">최근 찜을 불러오지 못했습니다.</div>';
     }
+  }
+
+  // =========================
+  // 최근 본 상품 사이드바 (오른쪽)
+  // =========================
+  async function loadRecentViewed(limit = 6){
+    if (!recentBox) return;
+
+    recentBox.innerHTML = '<div class="text-muted small">불러오는 중...</div>';
+    if (recentEmpty) recentEmpty.style.display = 'none';
+
+    try {
+      // 저장 포맷 지원:
+      // A) ids 배열: ["4","7",...]
+      // B) 객체 배열: [{id:4,title:"",thumb:"/uploads/.."}, ...]
+      const raw = localStorage.getItem('recentViewed');
+      let items = [];
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          if (parsed.length && typeof parsed[0] === 'object') {
+            items = parsed;
+          } else {
+            items = parsed.map(id => ({ id }));
+          }
+        }
+      }
+
+      // 중복 제거 + 최신 우선
+      const seen = new Set();
+      const queue = [];
+      for (const it of items) {
+        const id = String(it.id ?? it.listingId ?? it.listing_id ?? '');
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        queue.push({ id, title: it.title, thumb: it.thumb });
+        if (queue.length >= limit) break;
+      }
+
+      if (queue.length === 0){
+        recentBox.innerHTML = '';
+        if (recentEmpty) recentEmpty.style.display = 'block';
+        return;
+      }
+
+      // 타이틀/썸네일 보충
+      const fetchPromises = queue.map(async (q) => {
+        if (q.title && q.thumb) return q;
+        try {
+          const r = await fetch(`/product/${encodeURIComponent(q.id)}`, { credentials:'include', cache:'no-store' });
+          if (!r.ok) return q;
+          const p = await r.json();
+          const photoRaw = (Array.isArray(p.photoUrls) && p.photoUrls.length) ? p.photoUrls[0] : p.photoUrl;
+          return {
+            id: q.id,
+            title: q.title || (p.title ?? ''),
+            thumb: q.thumb || normalizeImg(photoRaw) || 'https://placehold.co/64x64?text=No+Image'
+          };
+        } catch { return q; }
+      });
+
+      const filled = await Promise.all(fetchPromises);
+
+      // 렌더
+      recentBox.innerHTML = '';
+      filled.forEach(p => {
+        const img = p.thumb || 'https://placehold.co/64x64?text=No+Image';
+        const title = p.title || '';
+        const a = document.createElement('a');
+        a.href = `/productDetail.html?id=${encodeURIComponent(p.id)}`;
+        a.className = 'wish-item';
+        a.innerHTML = `
+          <img src="${img}" alt="${escapeHtml(title)}" />
+          <div class="title">${escapeHtml(title)}</div>
+        `;
+        recentBox.appendChild(a);
+      });
+    } catch (e) {
+      console.error('최근 본 상품 불러오기 실패:', e);
+      recentBox.innerHTML = '<div class="text-muted small">최근 본 상품을 불러오지 못했습니다.</div>';
+    }
+  }
+
+  // 카드 클릭 시 “최근 본 상품”에 즉시 기록 (상세 진입 전 보조)
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a.product-card, a.card.product-card');
+    if (!a) return;
+    try {
+      const url = new URL(a.href, location.origin);
+      const id = url.searchParams.get('id');
+      const titleEl = a.querySelector('.title,.product-title');
+      const imgEl   = a.querySelector('img');
+      if (id) pushRecentViewed({
+        id,
+        title: titleEl ? titleEl.textContent.trim() : '',
+        thumb: imgEl ? imgEl.src : ''
+      });
+    } catch {}
+  });
+
+  // localStorage 기록 유틸
+  function pushRecentViewed(entry){
+    try {
+      const raw = localStorage.getItem('recentViewed');
+      let arr = [];
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) arr = parsed;
+      }
+      const id = String(entry.id);
+      // 맨 앞 삽입 + 중복 제거
+      arr = [{ id, title: entry.title || '', thumb: entry.thumb || '' }, ...arr.filter(it => String(it.id) !== id)];
+      // 최대 30개 유지
+      if (arr.length > 30) arr.length = 30;
+      localStorage.setItem('recentViewed', JSON.stringify(arr));
+    } catch {}
   }
 
   // =========================
@@ -239,11 +364,6 @@
       }));
     });
 
-    // 초기 선택 표시
-    if (savedId || savedLabel) {
-      // 모달 열리면 반영되므로 여기선 패스
-    }
-
     // 내부 함수: 검색 및 렌더
     async function searchAndRender(q) {
       regionList.innerHTML = '<div class="list-group-item text-muted">불러오는 중...</div>';
@@ -258,7 +378,6 @@
             rows = await res.json();
           }
         } else {
-          // 키워드 없으면 인기/최하위 지역 추천이 있으면 좋으나, 없으면 빈 목록
           rows = [];
         }
 
