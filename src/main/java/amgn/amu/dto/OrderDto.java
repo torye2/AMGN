@@ -1,6 +1,7 @@
 package amgn.amu.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record OrderDto(
         Long id,
@@ -12,8 +13,10 @@ public record OrderDto(
         TradeMethod method,
         PaymentRequest.PaymentMethod paymentMethod,
         OrderStatus status,
-        LocalDateTime createdAt
-        , String listingTitle            // Listing 제목
+        LocalDateTime createdAt,
+        String listingTitle, // Listing 제목
+        String transferStatus,
+        List<PaymentLogDto> paymentLogs
 //      ,  boolean reviewed,            // 리뷰 여부
 //        List<ReviewDto> reviews      // 리뷰 목록
 ) {

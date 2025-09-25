@@ -90,4 +90,21 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "buyer_id", referencedColumnName = "user_id", insertable = false, updatable = false)
     private User buyer;
+
+    // 정산 상태
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transfer_status")
+    private TransferStatus transferStatus = TransferStatus.PENDING;
+
+    // 환불 완료 시간(optional)
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
+
+    // TransferStatus enum 정의
+    public enum TransferStatus {
+        PENDING,
+        SUCCESS,
+        FAILED
+    }
+
 }

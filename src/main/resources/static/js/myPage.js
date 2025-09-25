@@ -684,10 +684,10 @@ async function loadPurchases() {
             } else if (o.status === 'CREATED') {
                 // 결제 버튼 항상 활성화
                 actionTd.appendChild(createButton('결제', () => handlePayment(o)));
-                actionTd.appendChild(createButton('취소', () => cancelOrder(o.id, actionTd, o)));
+                actionTd.appendChild(createButton('결제 취소', () => cancelOrder(o.id, actionTd)));
             } else if (o.status === 'PAID') {
                 actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
-                actionTd.appendChild(createButton('결제 취소', () => revertToCreated(o.id, actionTd, o)));
+                actionTd.appendChild(createButton('결제 취소', () => cancelOrder(o.id, actionTd)));
             } else if (o.status === 'CANCELLED') {
                 actionTd.textContent = '취소됨';
             }
@@ -700,7 +700,6 @@ async function loadPurchases() {
         tbody.innerHTML = `<tr><td colspan="6">구매 내역을 불러오는 중 오류가 발생했습니다: ${err.message}</td></tr>`;
     }
 }
-
 // ----------------- 초기화 -----------------
 const { IMP } = window;
 IMP.init('imp50832616'); // 아임포트 테스트용 가맹점 코드
@@ -1641,20 +1640,42 @@ function revertToCreated(orderId, td, order) {
 }
 
 // 주문 취소
-function cancelOrder(orderId, td, order) {
-    fetch(`/orders/${orderId}/cancel`, {
-        method: 'DELETE',
-        headers: acctHeaders()
-    })
-        .then(res => {
-            if (!res.ok) throw new Error('취소 실패');
-            alert('주문이 취소되었습니다.');
-            td.innerHTML = '';
-            td.appendChild(createButton('결제', () => payOrder(order)));
-            td.appendChild(createButton('취소', () => cancelOrder(orderId, td, order)));
-        })
-        .catch(err => console.error(err));
+// ----------------- 결제 취소 / 환불 -----------------
+async function cancelOrder(orderId, actionTd) {
+    if (!confirm('정말 결제를 취소하고 환불하시겠습니까?')) return;
+
+    try {
+        const xsrf = getCookie('XSRF-TOKEN');
+        const res = await fetch(`/orders/${orderId}/cancel`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-XSRF-TOKEN': xsrf
+            }
+        });
+
+        if (!res.ok) throw new Error('결제 취소/환불 실패');
+        const updatedOrder = await res.json();
+        console.log('결제 취소 후 상태:', updatedOrder);
+
+        // UI 갱신
+        actionTd.innerHTML = '';
+        if (updatedOrder.status === 'CANCELLED') {
+            actionTd.textContent = '취소됨';
+        } else {
+            // 혹시 CREATED로 돌아온 경우 버튼 재생성
+            actionTd.appendChild(createButton('결제', () => handlePayment(updatedOrder)));
+            actionTd.appendChild(createButton('결제 취소', () => cancelOrder(orderId, actionTd)));
+        }
+
+        alert('결제 취소 및 환불 처리 완료');
+
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
 }
+
 
 // ----- 주문 내역 불러오기 -----
 async function loadOrders() {

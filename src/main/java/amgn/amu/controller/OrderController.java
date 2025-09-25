@@ -86,9 +86,15 @@ public class OrderController {
 	}
 
 	@DeleteMapping("/{orderId}/cancel")
-	public ResponseEntity<Void> cancel(@PathVariable Long orderId, HttpSession session) {
-		orderService.cancel(getUserIdFromSession(session), orderId);
-		return ResponseEntity.ok().build();
+	public ResponseEntity<OrderDto> cancel(@PathVariable Long orderId, HttpSession session) {
+		Long userId = getUserIdFromSession(session);
+		System.out.println("[Controller] cancel 호출: orderId=" + orderId + ", userId=" + userId);
+
+		OrderDto result = orderService.cancel(userId, orderId);
+
+		System.out.println("[Controller] cancel 결과 상태: " + result.status());
+
+		return ResponseEntity.ok(result);
 	}
 
 	@PostMapping("/{orderId}/dispute")

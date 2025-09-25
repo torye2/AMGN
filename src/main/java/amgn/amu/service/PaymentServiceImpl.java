@@ -4,6 +4,7 @@ import amgn.amu.dto.OrderDto;
 import amgn.amu.dto.PaymentRequest;
 import amgn.amu.dto.PaymentResponse;
 import amgn.amu.entity.PaymentLog;
+import amgn.amu.entity.PaymentType;
 import amgn.amu.repository.PaymentLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,7 +77,7 @@ public class PaymentServiceImpl implements PaymentService {
         // 결제 로그 저장
         PaymentLog log = new PaymentLog();
         log.setOrderId(order.id());
-        log.setType("PAY");
+        log.setType(PaymentType.PAY);
         log.setIdempotencyKey(req.idempotencyKey());
         log.setCreatedAt(LocalDateTime.now());
         paymentLogRepository.save(log);
