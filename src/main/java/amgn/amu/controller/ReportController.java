@@ -1,7 +1,9 @@
 package amgn.amu.controller;
 
+import amgn.amu.common.CustomUserDetails;
 import amgn.amu.dto.ReportDtos;
 import amgn.amu.entity.Report;
+import amgn.amu.entity.UserSuspension;
 import amgn.amu.service.ReportService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -11,7 +13,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReportController {
 
+    record RevokeRequest(String reason) {}
     private final ReportService reportService;
 
     @PostMapping(value = "/reports", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -67,5 +72,19 @@ public class ReportController {
     @PreAuthorize("hasRole('ADMIN')")
     public void suspend(@PathVariable Long id, @RequestBody @Valid ReportDtos.SuspendUserRequest req, HttpServletRequest request) {
         reportService.suspendFromReport(id, req, request);
+    }
+
+    @GetMapping("/admin/users/{userId}/suspensions")
+    public List<UserSuspension> list(@PathVariable Long userId,
+                                     @RequestParam(defaultValue = "false") boolean active) {
+        return reportService.listUserSuspensions(userId, active);
+    }
+
+    @PostMapping("/admin/suspensions/{id}/revoke")
+    public ResponseEntity<Void> revoke(@PathVariable("id") Long suspensionId,
+                                       @RequestBody RevokeRequest req,
+                                       HttpServletRequest request) {
+        reportService.revokeSuspension(suspensionId, req != null ? req.reason() : null, request);
+        return ResponseEntity.noContent().build();
     }
 }

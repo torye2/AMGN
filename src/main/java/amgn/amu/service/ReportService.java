@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -252,4 +253,10 @@ public class ReportService {
                 r.getHandledBy(), r.getHandledAt(), r.getCreatedAt(), r.getUpdatedAt(), evidence, actions
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<UserSuspension> listUserSuspensions(Long userId, boolean activeOnly) {
+        return suspensionRepository.findByUserId(userId, activeOnly);
+    }
+
 }
