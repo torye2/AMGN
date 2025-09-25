@@ -119,19 +119,27 @@
           return res.json();
         })
         .then(products => {
+          // SOLD 제거
+          const visible = (Array.isArray(products) ? products : []).filter(p =>
+            String(p.status || 'ACTIVE').trim().toUpperCase() !== 'SOLD'
+          );
+
           productsAllDiv.innerHTML = '';
-          if (!Array.isArray(products) || products.length === 0) {
+          // ✅ 여기서도 visible로 체크
+          if (visible.length === 0) {
             productsAllDiv.innerHTML = '<p class="text-muted">등록된 상품이 없습니다.</p>';
             return;
           }
-          products.forEach(p => productsAllDiv.appendChild(buildCard(p)));
+
+          // ✅ 렌더도 visible로
+          visible.forEach(p => productsAllDiv.appendChild(buildCard(p)));
         })
         .catch(err => {
           console.error(err);
           productsAllDiv.innerHTML = `<p style="color:red;">${err.message || '상품을 불러오지 못했습니다.'}</p>`;
         });
 
-      // ====== Helpers ======
+      // ====== Helpers (동일) ======
       function buildCard(item) {
         const STATUS = String(item.status || 'ACTIVE').trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
 
@@ -143,7 +151,6 @@
         const listingId = item.listingId ?? item.id;
         const href = `/productDetail.html?id=${encodeURIComponent(listingId)}`;
 
-        // 라벨 맵 (list.js와 동일한 톤)
         const CONDITION_LABEL = {
           NEW: '새상품', LIKE_NEW: '사용감 거의 없음', GOOD: '상태 좋음', FAIR: '보통', POOR: '사용감 많음'
         };
@@ -154,12 +161,10 @@
         const negoY = String(item.negotiable || '').toUpperCase() === 'Y';
         const regionName = item.regionName || item.region?.name || item.addressText || '';
 
-        // 카드(전체 링크)
         const a = document.createElement('a');
         a.href = href;
         a.className = 'card product-card';
 
-        // 이미지 영역 + 가격 배지 + 상태 리본
         const thumbWrap = document.createElement('div');
         thumbWrap.className = 'thumb-wrap';
 
@@ -170,23 +175,21 @@
         img.onerror = () => { img.src = 'https://placehold.co/400x300?text=No+Image'; };
         thumbWrap.appendChild(img);
 
-        // 가격 배지(오버레이)
+        // 가격 배지
         const priceBadge = document.createElement('span');
         priceBadge.className = 'price-badge';
         priceBadge.textContent = formatPrice(item.price);
         thumbWrap.appendChild(priceBadge);
-
         a.appendChild(thumbWrap);
 
-        // 상태 리본
-        if (STATUS === 'RESERVED' || STATUS === 'SOLD') {
+        // 상태 리본 (SOLD는 위에서 이미 제거되므로 RESERVED만 보일 수 있음)
+        if (STATUS === 'RESERVED') {
           const ribbon = document.createElement('div');
-          ribbon.className = 'ribbon' + (STATUS === 'SOLD' ? ' sold' : '');
-          ribbon.textContent = STATUS === 'RESERVED' ? '예약중' : '판매완료';
+          ribbon.className = 'ribbon';
+          ribbon.textContent = '예약중';
           a.appendChild(ribbon);
         }
 
-        // 본문
         const body = document.createElement('div');
         body.className = 'body';
 
@@ -195,13 +198,12 @@
         title.textContent = item.title || '';
         body.appendChild(title);
 
-        // 메타 칩들 (상태/거래/네고/지역)
         const metaRow = document.createElement('div');
         metaRow.className = 'meta-row';
 
         if (cond) {
           const chip = document.createElement('span');
-          chip.className = 'chip cond-new';   // 대표색(새상품 톤) 재사용
+          chip.className = 'chip cond-new';
           chip.textContent = cond;
           metaRow.appendChild(chip);
         }
@@ -227,9 +229,6 @@
         if (metaRow.children.length > 0) body.appendChild(metaRow);
         a.appendChild(body);
 
-        // 상태별 가격 텍스트 흐리게 처리하고 싶으면(선택):
-        if (STATUS !== 'ACTIVE') a.style.opacity = 0.92;
-
         return a;
       }
 
@@ -250,6 +249,7 @@
       }
     });
 </script>
+
 
 <script src="/js/main.js"></script>
 <script src="/js/header.js"></script>

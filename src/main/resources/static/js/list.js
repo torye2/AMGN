@@ -1,4 +1,4 @@
-// /js/list.js — 카테고리/지역 상위 선택 시 하위까지 포함 + 예쁜 카드 UI
+// /js/list.js — 카테고리/지역 상위 선택 시 하위까지 포함 + 예쁜 카드 UI (SOLD 제외)
 (function () {
   'use strict';
 
@@ -137,6 +137,11 @@
           }
         }
       }
+
+      // ✅ 2.5) SOLD 제외 필터 (공통)
+      items = (Array.isArray(items) ? items : []).filter(
+        it => String(it.status || 'ACTIVE').trim().toUpperCase() !== 'SOLD'
+      );
 
       // 3) 정렬 + 렌더
       const sorted = sortProducts(items, sortSelect.value);
