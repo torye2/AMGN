@@ -71,10 +71,11 @@ const orderStatusMap = {
     IN_TRANSIT: '배송 중',
     DELIVERED: '배송 완료',
     MEETUP_CONFIRMED: '주문 확정',
-    CANCELLED: '취소됨',
+    CANCELLED: '거래 취소',
     DISPUTED: '분쟁',
     REFUNDED: '환불됨',
-    COMPLETED: '거래 완료'
+    COMPLETED: '거래 완료',
+    CANCEL_B_S: '거래 취소'
 };
 
 
@@ -580,30 +581,76 @@ async function loadProducts(status) {
 }
 
 async function loadSales() {
-    const body = $('#salesBody');
+    const body = document.querySelector('#salesBody');
     body.innerHTML = '';
+
+    if (!getCookie('XSRF-TOKEN')) await ensureCsrf();
+    const xsrf = getCookie('XSRF-TOKEN');
+
     try {
-        // 판매 내역만 가져오기
         const orders = await fetch('/orders/sell', {
-            headers: { 'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'}
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrf
+            }
         }).then(noAuthGuard).then(r => r.json());
-        const rows = [];
-        (orders || []).forEach(o => {
-            rows.push(`<tr>
+
+        if (!orders || orders.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="empty">판매 내역이 없습니다.</td></tr>`;
+            return;
+        }
+
+        // 필터 적용: CANCELLED/DELETED는 테이블에서 제외
+        const visibleOrders = orders.filter(o => o.status !== 'DELETED');
+
+        if (visibleOrders.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="empty">판매 내역이 없습니다.</td></tr>`;
+            return;
+        }
+
+        for (const o of visibleOrders) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
                 <td>${o.id}</td>
                 <td><a href="/productDetail.html?id=${o.listingId}">${o.listingTitle ?? '-'}</a></td>
-                <td>${o.buyerName ?? '-'}</td>
+                <td>${o.buyerNickName ?? '-'}</td>
                 <td>${toWon(o.finalPrice)}</td>
                 <td>${orderStatusMap[o.status] ?? o.status}</td>
                 <td>${o.createdAt ?? '-'}</td>
-            </tr>`);
-        });
-        body.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="6" class="empty">판매 내역이 없습니다.</td></tr>`;
+            `;
+
+            const actionTd = document.createElement('td');
+            tr.appendChild(actionTd);
+
+            if (o.status === 'CREATED' || o.status === 'PAID') {
+                const cancelBtn = createButton('판매자 취소', async () => {
+                    if (!confirm('정말 판매자가 주문을 취소하시겠습니까?')) return;
+                    try {
+                        const res = await fetch(`/orders/${o.id}/cancel-by-seller`, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
+                        });
+                        if (!res.ok) throw new Error('취소 실패');
+                        alert('판매자에 의해 주문이 취소되었습니다.');
+                        await loadSales();
+                    } catch (err) {
+                        console.error(err);
+                        alert(err.message);
+                    }
+                });
+                actionTd.appendChild(cancelBtn);
+            }
+
+            body.appendChild(tr);
+        }
     } catch (err) {
         body.innerHTML = `<tr><td colspan="6" class="empty">불러오기 실패: ${err.message}</td></tr>`;
+        console.error(err);
     }
 }
+
+
 
 async function loadPurchases() {
     console.log('loadPurchases 호출됨');
@@ -626,7 +673,15 @@ async function loadPurchases() {
             return;
         }
 
-        for (const o of orders) {
+        // DELETED 상태는 숨김
+        const visibleOrders = orders.filter(o => o.status !== 'DELETED');
+
+        if (visibleOrders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6">구매 내역이 없습니다.</td></tr>`;
+            return;
+        }
+
+        for (const o of visibleOrders) {
             const role = inferRole(o, me);
             if (role !== 'BUYER' && role !== 'UNKNOWN') continue;
 
@@ -639,10 +694,44 @@ async function loadPurchases() {
                 <td>${toWon(o.finalPrice)}</td>
                 <td></td>
             `;
-
             const actionTd = tr.querySelector('td:last-child');
 
-            if (o.status === 'COMPLETED') {
+            // ---------------- 상태별 처리 ----------------
+            if (o.status === 'CANCEL_B_S') {
+                actionTd.textContent = '판매자의 거래 취소로 인해 거래가 취소되었습니다.';
+            } else if (o.status === 'CREATED') {
+                actionTd.appendChild(createButton('결제', () => handlePayment(o)));
+                actionTd.appendChild(createButton('주문 취소', async () => {
+                    if (!confirm('정말 주문을 취소하시겠습니까?')) return;
+                    try {
+                        const res = await fetch(`/orders/${o.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
+                        });
+                        if (!res.ok) throw new Error('주문 취소 실패');
+                        await loadPurchases();
+                    } catch (err) {
+                        console.error(err);
+                        alert(err.message);
+                    }
+                }));
+            } else if (o.status === 'PAID') {
+                actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
+                actionTd.appendChild(createButton('결제 취소', async () => {
+                    if (!confirm('정말 결제를 취소하시겠습니까?')) return;
+                    try {
+                        const res = await fetch(`/orders/${o.id}/revert`, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'X-XSRF-TOKEN': xsrf }
+                        });
+                        if (!res.ok) throw new Error('결제 취소 실패');
+                        await loadPurchases();
+                    } catch (err) {
+                        console.error(err);
+                        alert(err.message);
+                    }
+                }));
+            } else if (o.status === 'COMPLETED') {
                 const statusText = document.createElement('span');
                 statusText.textContent = '주문 확정';
                 statusText.style.marginRight = '10px';
@@ -680,16 +769,6 @@ async function loadPurchases() {
                     actionTd.appendChild(editBtn);
                     actionTd.appendChild(deleteBtn);
                 }
-
-            } else if (o.status === 'CREATED') {
-                // 결제 버튼 항상 활성화
-                actionTd.appendChild(createButton('결제', () => handlePayment(o)));
-                actionTd.appendChild(createButton('결제 취소', () => cancelOrder(o.id, actionTd)));
-            } else if (o.status === 'PAID') {
-                actionTd.appendChild(createButton('주문 확정', () => completeOrder(o.id, actionTd)));
-                actionTd.appendChild(createButton('결제 취소', () => cancelOrder(o.id, actionTd)));
-            } else if (o.status === 'CANCELLED') {
-                actionTd.textContent = '취소됨';
             }
 
             tbody.appendChild(tr);
@@ -700,6 +779,8 @@ async function loadPurchases() {
         tbody.innerHTML = `<tr><td colspan="6">구매 내역을 불러오는 중 오류가 발생했습니다: ${err.message}</td></tr>`;
     }
 }
+
+
 // ----------------- 초기화 -----------------
 const { IMP } = window;
 IMP.init('imp50832616'); // 아임포트 테스트용 가맹점 코드

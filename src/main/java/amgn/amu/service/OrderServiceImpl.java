@@ -300,10 +300,6 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto complete(Long actorUserId, Long orderId) {
         Order order = findOrderById(orderId);
 
-        // 1. 상태 검증
-        if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.MEETUP_CONFIRMED) {
-            throw new RuntimeException("배송 완료 또는 직거래 확인 상태에서만 거래 완료 가능합니다.");
-        }
 
         // 2. 상태 변경
         order.setStatus(OrderStatus.COMPLETED);
@@ -450,20 +446,21 @@ public class OrderServiceImpl implements OrderService {
                 .orElse(null);
     }
 
-    @Override
     @Transactional
     public void deleteOrder(Long userId, Long orderId) {
-        Order order = findOrderById(orderId);
-        if (!order.getBuyerId().equals(userId)) throw new RuntimeException("권한이 없습니다.");
-        updateListingStatus(order.getListingId(), OrderStatus.CANCELLED);
-        orderRepository.delete(order);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("주문 없음"));
+        if (!order.getBuyerId().equals(userId)) throw new RuntimeException("권한 없음");
+
+        order.setStatus(OrderStatus.valueOf("DELETED")); // 실제 삭제는 하지 않음
+        orderRepository.save(order);
     }
 
     @Override
     public OrderDto revertCancel(Long userId, Long orderId) {
         Order order = findOrderById(orderId);
         if (!order.getBuyerId().equals(userId)) throw new RuntimeException("권한이 없습니다.");
-        if (order.getStatus() != OrderStatus.PAID) throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
+        if (order.getStatus() != OrderStatus.CREATED) throw new RuntimeException("주문에 오류가 생겨 복원할 수 없습니다.");
         order.setStatus(OrderStatus.CREATED);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
@@ -548,7 +545,7 @@ public class OrderServiceImpl implements OrderService {
             switch (orderStatus) {
                 case CREATED, PAID -> listing.setStatus("RESERVED");
                 case COMPLETED -> listing.setStatus("SOLD");
-                case CANCELLED -> listing.setStatus("ACTIVE");
+                case CANCELLED, CANCEL_B_S -> listing.setStatus("ACTIVE");
                 default -> throw new IllegalStateException("예상하지 못한 상태 전환: " + orderStatus);
             }
             listingRepository.save(listing);
@@ -583,6 +580,59 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 3. DTO 변환 및 반환
+        return toDto(order);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderDto cancelBySeller(Long sellerId, Long orderId) {
+        Order order = findOrderById(orderId);
+
+        if (!order.getSellerId().equals(sellerId)) {
+            throw new RuntimeException("권한이 없습니다.");
+        }
+        if (order.getStatus() == OrderStatus.COMPLETED) {
+            throw new RuntimeException("이미 완료된 주문은 취소할 수 없습니다.");
+        }
+
+        // 결제된 주문이면 환불 처리
+        if (order.getStatus() == OrderStatus.PAID) {
+            String merchantUid = "refund_" + orderId + "_" + System.currentTimeMillis();
+
+            PaymentRequest refundReq = new PaymentRequest(
+                    order.getId(),
+                    order.getFinalPrice(),
+                    order.getPaymentMethod(),
+                    merchantUid,
+                    LocalDateTime.now().plusHours(1),
+                    merchantUid,
+                    order.getImpUid(),
+                    null
+            );
+
+            paymentLogRepository.save(PaymentLog.builder()
+                    .idempotencyKey(refundReq.idempotencyKey())
+                    .orderId(orderId)
+                    .type(PaymentType.REFUND)
+                    .status(PaymentStatus.SUCCESS)
+                    .merchantUid(refundReq.merchantUid())
+                    .impUid(refundReq.impUid())
+                    .pgTransactionId(null)
+                    .amount(BigDecimal.valueOf(order.getFinalPrice()))
+                    .createdAt(LocalDateTime.now())
+                    .build()
+            );
+
+            order.setRefundedAt(LocalDateTime.now());
+        }
+
+        order.setStatus(OrderStatus.CANCEL_B_S);
+        order.setTransferStatus(Order.TransferStatus.FAILED);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        updateListingStatus(order.getListingId(), order.getStatus());
+
         return toDto(order);
     }
 }

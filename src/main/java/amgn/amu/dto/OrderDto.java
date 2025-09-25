@@ -30,7 +30,9 @@ public record OrderDto(
         CANCELLED,
         DISPUTED,
         REFUNDED,
-        COMPLETED
+        COMPLETED,
+        CANCEL_B_S,    // 판매자 취소용
+        DELETED
     }
 
     public enum TradeMethod {

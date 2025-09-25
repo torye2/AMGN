@@ -151,5 +151,18 @@ public class OrderController {
 		return ResponseEntity.ok().build();
 	}
 
+	@PostMapping("/{orderId}/cancel-by-seller")
+	public ResponseEntity<OrderDto> cancelBySeller(@PathVariable Long orderId, HttpSession session) {
+		Long sellerId = getUserIdFromSession(session);
+		OrderDto result = orderService.cancelBySeller(sellerId, orderId);
+		return ResponseEntity.ok(result);
+	}
+
+	@DeleteMapping("/{orderId}")
+	public ResponseEntity<Void> deleteOrder(@PathVariable Long orderId, HttpSession session) {
+		Long userId = getUserIdFromSession(session);
+		orderService.deleteOrder(userId, orderId);
+		return ResponseEntity.ok().build();
+	}
 
 }
