@@ -12,6 +12,7 @@ import amgn.amu.repository.UserRepository;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import amgn.amu.dto.OrderDto.OrderStatus;
 import amgn.amu.repository.ListingRepository;
@@ -28,6 +29,7 @@ public class OrderServiceImpl implements OrderService {
     private final ListingRepository listingRepository;
     private final PaymentLogRepository paymentLogRepository;
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbc;
 
     // PG사 DI
     private final KgpPaymentGateway kgpPaymentGateway;
@@ -305,6 +307,13 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.COMPLETED);
         order.setUpdatedAt(LocalDateTime.now());
 
+        // 완료 시각 컬럼이 있다면 권장
+        try {
+            var completedAtField = Order.class.getDeclaredField("completedAt");
+            completedAtField.setAccessible(true);
+            completedAtField.set(order, LocalDateTime.now());
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {}
+
         // 3. 판매자 정산 처리 (PG사 송금 API 연동 or 내부 로직 시뮬레이션)
         boolean transferred = transferToSeller(order);
 
@@ -331,6 +340,50 @@ public class OrderServiceImpl implements OrderService {
 
 
         updateListingStatus(order.getListingId(), order.getStatus());
+
+
+        // 3) ✅ 이달의 판매왕 갱신 (TOP 3, 'units' 기준)
+        // 이번 달 1일 ~ 다음 달 1일
+        var now = (order.getUpdatedAt() != null ? order.getUpdatedAt() : LocalDateTime.now());
+        var monthStart = now.withDayOfMonth(1).toLocalDate();
+        var nextMonthStart = monthStart.plusMonths(1);
+
+        // Window 함수(ROW_NUMBER)로 Top N 뽑아서 monthly_seller_awards에 업서트
+        final String upsertSql = """
+        INSERT INTO monthly_seller_awards
+          (ym, seller_id, metric, value_num, rank_num, note, created_at, updated_at)
+        SELECT
+          ? AS ym, t.seller_id, 'units' AS metric, t.units AS value_num, t.rnk AS rank_num,
+          NULL, NOW(), NOW()
+        FROM (
+          SELECT
+            o.seller_id,
+            COUNT(*) AS units,
+            ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, o.seller_id ASC) AS rnk
+          FROM orders o
+          WHERE o.status = 'COMPLETED'
+            AND o.updated_at >= ?
+            AND o.updated_at <  ?
+          GROUP BY o.seller_id
+        ) t
+        WHERE t.rnk <= ?
+        ON DUPLICATE KEY UPDATE
+          seller_id = VALUES(seller_id),   -- 현재 유니크키가 (ym,metric,rank_num)이므로 필수
+          value_num = VALUES(value_num),
+          rank_num  = VALUES(rank_num),
+          updated_at = CURRENT_TIMESTAMP
+        """;
+
+        // TOP 3만 유지하고 싶으면 topN=3
+        int topN = 3;
+
+        jdbc.update(
+                upsertSql,
+                java.sql.Date.valueOf(monthStart),                 // ym (YYYY-MM-01)
+                java.sql.Timestamp.valueOf(monthStart.atStartOfDay()),  // >= ymStart
+                java.sql.Timestamp.valueOf(nextMonthStart.atStartOfDay()), // < ymEnd
+                topN
+        );
 
         return toDto(order);
     }
