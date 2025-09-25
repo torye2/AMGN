@@ -543,3 +543,45 @@ body{
   .leader-medal { width: 32px; height: 32px; }
   .leader-avatar { width: 40px; height: 40px; }
 }
+
+/* ====== 고정 최근 본 상품(오른쪽) ====== */
+:root{
+  --rv-w: 160px;       /* 사이드바 너비 */
+  --rv-gap: 12px;      /* 컨테이너와의 간격 */
+  --rv-extra: 200px;     /* 더 오른쪽으로 밀고 싶으면 +값 */
+}
+
+#recentFixedSidebar.recent-fixed{
+  position: fixed;
+  top: 180px;
+  /* 컨테이너 오른쪽 끝 기준으로 배치 */
+  left: calc(50% + 495px + var(--rv-gap) + var(--rv-extra));
+  width: var(--rv-w);
+  max-height: calc(100vh - 200px);
+  overflow: auto;
+  z-index: 1030;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+/* 리스트 아이템은 찜 사이드바 스타일 재사용 */
+#recentFixedSidebar .wish-list .wish-item{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 4px; border-bottom:1px solid #f1f5f9; text-decoration:none;
+}
+#recentFixedSidebar .wish-list .wish-item:last-child{ border-bottom:0; }
+#recentFixedSidebar .wish-list .wish-item img{
+  width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb;
+}
+#recentFixedSidebar .wish-list .wish-item .title{
+  font-size:12px; line-height:1.3; color:#111;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+#recentFixedSidebar .wish-list .wish-item:hover .title{ text-decoration:underline; }
+
+/* 화면 좁으면 숨김 */
+@media (max-width: 1280px){
+  #recentFixedSidebar{ display:none; }
+}

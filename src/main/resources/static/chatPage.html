@@ -3,110 +3,232 @@
 <head>
     <meta charset="UTF-8" />
     <title>채팅방</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <!-- SockJS / STOMP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-    <style>
-        #chat { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 8px; margin-bottom: 12px; }
-        #messageForm { display: flex; gap: 8px; }
-        #messageForm input { flex: 1; padding: 8px; }
-        #messageForm button { padding: 8px 12px; }
-    </style>
+
+    <!-- 공용 CSS (기존) -->
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/header.css" />
+    <link rel="stylesheet" href="/css/chatPage.css" />
 </head>
 <body>
-<h1>채팅방</h1>
-<div id="chat"></div>
+<header id="header"></header>
 
-<form id="messageForm">
-    <input type="text" id="msg" placeholder="메시지 입력..." autocomplete="off" />
-    <button type="submit">보내기</button>
-</form>
+<main class="chat-container">
+    <div class="chat-header">
+        <div class="room-meta" style="min-width:0;">
+            <span class="online-dot" id="onlineDot" aria-hidden="true"></span>
+            <div style="min-width:0;">
+                <div class="room-title" id="roomTitle">채팅방</div>
+                <div class="room-sub" id="roomSub">연결 상태 확인 중…</div>
+            </div>
+        </div>
+        <span class="status-badge off" id="connBadge">오프라인</span>
+    </div>
+
+    <section class="chat-wrap" aria-live="polite">
+        <div id="chat" class="chat-log"></div>
+        <form id="messageForm" class="chat-input" autocomplete="off">
+            <input id="msg" type="text" placeholder="메시지를 입력하세요…" />
+            <button type="submit" id="sendBtn" disabled>보내기</button>
+        </form>
+    </section>
+
+    <div id="error" class="error" role="alert" style="display:none;"></div>
+</main>
 
 <script>
-    const params = new URLSearchParams(window.location.search);
-    const roomId   = Number(params.get('roomId'));
-    const listingId = params.get('listingId'); // 선택적(백엔드 하위호환)
-    const sellerId  = params.get('sellerId');  // 선택적(백엔드 하위호환)
+    (() => {
+      // ----- Params -----
+      const qs        = new URLSearchParams(location.search);
+      const roomId    = Number(qs.get('roomId'));
+      const listingId = qs.get('listingId'); // 선택
+      const sellerId  = qs.get('sellerId');  // 선택
+      if (!roomId || Number.isNaN(roomId)) alert('roomId가 없습니다. 채팅 목록에서 다시 들어와 주세요.');
 
-    if (!roomId || Number.isNaN(roomId)) {
-      alert("roomId가 없습니다. 채팅 목록에서 다시 들어와 주세요.");
-    }
+      // ----- DOM -----
+      const chatEl    = document.getElementById('chat');
+      const formEl    = document.getElementById('messageForm');
+      const inputEl   = document.getElementById('msg');
+      const sendBtn   = document.getElementById('sendBtn');
+      const errEl     = document.getElementById('error');
+      const connBadge = document.getElementById('connBadge');
+      const roomTitle = document.getElementById('roomTitle');
+      const roomSub   = document.getElementById('roomSub');
+      const onlineDot = document.getElementById('onlineDot');
 
-    let stompClient = null;
+      // ----- State -----
+      let stomp = null;
+      let me = { userId: null, nickname: null };
+      let connected = false;
 
-    function connect() {
-      const socket = new SockJS('/ws');
-      stompClient = Stomp.over(socket);
-
-      stompClient.connect({}, function () {
-        console.log('WebSocket 연결됨');
-
-        // 모든 메시지를 구독하되, 현재 roomId의 메시지만 출력
-        stompClient.subscribe('/topic/messages', function (msg) {
-          try {
-            const message = JSON.parse(msg.body);
-            if (message.roomId === roomId) {
-              showMessage(message);
-            }
-          } catch (e) {
-            console.error('메시지 파싱 실패:', e);
-          }
-        });
-      });
-    }
-
-    function loadPreviousMessages() {
-      // ✅ roomId로 이전 메시지 조회
-      fetch(`/chat/messages?roomId=${roomId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('이전 메시지 조회 실패');
-          return res.json();
-        })
-        .then(messages => {
-          messages.forEach(showMessage);
-        })
-        .catch(err => console.error('이전 메시지 불러오기 실패:', err));
-    }
-
-    function sendMessage(event) {
-      event.preventDefault();
-      if (!stompClient) return;
-
-      const input = document.getElementById('msg');
-      const content = input.value.trim();
-      if (!content) return;
-
-      // ✅ 기본은 roomId & 내용만 전송
-      const chatMessage = {
-        roomId: roomId,
-        msgType: 'TEXT',
-        content: content
+      // ----- Utils -----
+      const fmtTime = (isoOrTs) => {
+        try{
+          const d = isoOrTs ? new Date(isoOrTs) : new Date();
+          const HH = String(d.getHours()).padStart(2,'0');
+          const mm = String(d.getMinutes()).padStart(2,'0');
+          return `${HH}:${mm}`;
+        }catch{ return ''; }
       };
+      const setConn = (on) => {
+        connected = !!on;
+        connBadge.textContent = on ? '온라인' : '오프라인';
+        connBadge.classList.toggle('on', on);
+        connBadge.classList.toggle('off', !on);
+        onlineDot.style.background = on ? '#16a34a' : '#9ca3af';
+        sendBtn.disabled = !on;
+      };
+      const scrollToBottom = () => { chatEl.scrollTop = chatEl.scrollHeight; };
 
-      // 🔁 하위호환: URL에 listingId/sellerId가 있으면 같이 보냄
-      if (listingId) chatMessage.listingId = Number(listingId);
-      if (sellerId)  chatMessage.sellerId  = Number(sellerId);
+      // ----- Message DOM -----
+      function appendMessage({ content, senderNickName, senderId, createdAt }) {
+        const isMe = me.userId != null && senderId != null && String(me.userId) === String(senderId);
 
-      stompClient.send('/app/chat/send', {}, JSON.stringify(chatMessage));
-      input.value = '';
-    }
+        const row = document.createElement('div');
+        row.className = `msg ${isMe ? 'me' : 'other'}`;
 
-    function showMessage(message) {
-      const chatDiv = document.getElementById('chat');
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        if (!isMe) row.appendChild(avatar);
 
-      const p = document.createElement('p');
-      const nick = message.senderNickName || '알수없음';
-      p.textContent = `${nick}: ${message.content}`;
+        const box = document.createElement('div');
+        box.className = 'msg-box';
 
-      chatDiv.appendChild(p);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
 
-    document.getElementById('messageForm').addEventListener('submit', sendMessage);
+        // 🔑 개행들을 공백 1개로 정리해 가로 확장 유도
+        const cleaned = String(content ?? '').replace(/(\r\n|\r|\n)+/g, ' ');
+        bubble.textContent = cleaned;
 
-    if (roomId && !Number.isNaN(roomId)) {
-      loadPreviousMessages();
-      connect();
-    }
+        const meta = document.createElement('div');
+        meta.className = 'meta-line';
+        meta.innerHTML = `${!isMe ? `<span class="nick">${senderNickName || '상대'}</span>` : ''}<span class="time">${fmtTime(createdAt)}</span>`;
+
+        box.appendChild(bubble);
+        box.appendChild(meta);
+        row.appendChild(box);
+        chatEl.appendChild(row);
+      }
+
+      // ----- Header Info -----
+      async function hydrateHeader() {
+        try {
+          const r = await fetch('/api/user/me', { credentials:'include', cache:'no-store' });
+          if (r.ok) {
+            const j = await r.json();
+            me.userId  = j.userId ?? j.user_id ?? null;
+            me.nickname = j.nickname ?? j.nickName ?? null;
+          }
+        } catch {}
+
+        try {
+          if (listingId) {
+            const r = await fetch(`/product/${encodeURIComponent(listingId)}`, { credentials:'include' });
+            if (r.ok) {
+              const p = await r.json();
+              roomTitle.textContent = p.title ?? '채팅방';
+              roomSub.textContent   = `상품 #${p.listingId ?? listingId}`;
+              return;
+            }
+          }
+          roomTitle.textContent = '채팅방';
+          roomSub.textContent   = `Room #${roomId}`;
+        } catch {
+          roomTitle.textContent = '채팅방';
+          roomSub.textContent   = `Room #${roomId}`;
+        }
+      }
+
+      // ----- WebSocket -----
+      function connect() {
+        const socket = new SockJS('/ws');
+        stomp = Stomp.over(socket);
+        stomp.debug = () => {}; // quiet
+
+        stomp.connect({}, () => {
+          setConn(true);
+          stomp.subscribe('/topic/messages', (msg) => {
+            try {
+              const payload = JSON.parse(msg.body);
+              if (Number(payload.roomId) === Number(roomId)) {
+                appendMessage(payload);
+                scrollToBottom();
+              }
+            } catch(e) { console.error('메시지 파싱 실패:', e); }
+          });
+        }, () => {
+          setConn(false);
+          setTimeout(connect, 1500);
+        });
+      }
+
+      // ----- History -----
+      async function loadPreviousMessages() {
+        try{
+          const res = await fetch(`/chat/messages?roomId=${encodeURIComponent(roomId)}`, { credentials:'include' });
+          if (!res.ok) throw new Error('이전 메시지 조회 실패');
+          const arr = await res.json();
+          chatEl.innerHTML = '';
+
+          let lastDay = '';
+          (arr || []).forEach(m => {
+            const d = new Date(m.createdAt);
+            const day = [d.getFullYear(), d.getMonth()+1, d.getDate()].join('-');
+            if (day !== lastDay) {
+              const sep = document.createElement('div');
+              sep.className = 'day-sep';
+              sep.textContent = day;
+              chatEl.appendChild(sep);
+              lastDay = day;
+            }
+            appendMessage(m);
+          });
+          scrollToBottom();
+        }catch(e){
+          errEl.style.display = 'block';
+          errEl.textContent = e.message || '이전 메시지를 불러오지 못했습니다.';
+        }
+      }
+
+      // ----- Send -----
+      formEl.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        if (!connected || !stomp) return;
+
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        const msg = {
+          roomId: roomId,
+          msgType: 'TEXT',
+          content: text
+        };
+        if (listingId) msg.listingId = Number(listingId);
+        if (sellerId)  msg.sellerId  = Number(sellerId);
+
+        stomp.send('/app/chat/send', {}, JSON.stringify(msg));
+        inputEl.value = '';
+        inputEl.focus();
+      });
+
+      inputEl.addEventListener('input', () => {
+        sendBtn.disabled = !inputEl.value.trim() || !connected;
+      });
+
+      // ----- Boot -----
+      if (roomId && !Number.isNaN(roomId)) {
+        hydrateHeader();
+        loadPreviousMessages();
+        connect();
+      }
+    })();
 </script>
+
+<script src="/js/header.js"></script>
 </body>
 </html>

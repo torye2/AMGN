@@ -1,6 +1,7 @@
 package amgn.amu.common;
 
 public enum ErrorCode {
+    SELF_REPORT_NOT_ALLOWED(400, "본인 계정은 신고할 수 없습니다."),
     NOT_FOUND_USER(404, "일치하는 회원 정보를 찾을 수 없습니다."),
     NOT_LOGGED_IN(401, "로그인 되어있는 회원 정보를 찾을 수 없습니다."),
     DUPLICATE_ID(400, "이미 사용 중인 아이디입니다."),

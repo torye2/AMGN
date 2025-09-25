@@ -1,93 +1,58 @@
+
 .report-box {
   width: 100%;
-  max-width: 400px; /* 최대 너비를 400px로 설정 */
-  height: 630px;
-  margin: 0 auto; /* 화면 중앙 정렬 */
-  margin-top: 0%;
-  padding: 20px;
-  border-radius: 8px; /* 모서리 둥글게 */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 부드러운 그림자 */
+  max-width: 640px;
+  margin: 24px auto;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 14px rgba(0,0,0,.08);
+  background: #fff;
 }
 
-.report-box div {
-  margin-bottom: 15px; /* 각 항목 사이에 간격 추가 */
-}
+.report-box .form-group { margin-bottom: 16px; }
 
-.report-box label {
-  font-size: 14px;
-  font-weight: bold;
-  color: #333; /* 글자 색 */
-  display: block;
-  margin-bottom: 5px; /* 레이블과 입력란 사이 간격 */
-}
+.report-box label { font-size: 14px; font-weight: 600; color: #222; display: block; margin-bottom: 6px; }
 
-.report-box input {
-  width: 100%; /* 전체 너비를 차지하게 설정 */
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc; /* 테두리 색 */
-  border-radius: 4px; /* 테두리 둥글게 */
-  box-sizing: border-box; /* 패딩과 테두리가 포함되도록 */
-}
-
-.report-box h1 {
-  text-align: center;
-}
-
-.report-box input:focus {
-  border-color: #007bff; /* 포커스 시 테두리 색 변경 */
-  outline: none; /* 포커스 상태의 외곽선 제거 */
-}
-
-.report-box button {
-  background-color: black; /* 기본 배경 색 */
-  color: white; /* 글자 색 */
-  border: none; /* 테두리 없애기 */
-  cursor: pointer; /* 마우스를 올렸을 때 손 모양으로 */
-  padding: 12px 15px; /* 상하, 좌우 여백 */
-  border-radius: 4px; /* 둥근 테두리 */
-  font-size: 16px; /* 글자 크기 */
-  width: 100%; /* 버튼 너비를 100%로 설정 */
-  margin-top: 10px; /* 입력란과 버튼 사이 간격 */
-  transition: background-color 0.3s ease; /* 호버 시 배경 색 변화에 애니메이션 추가 */
-}
-
-/* 버튼 호버 시 스타일 */
-.report-box button:hover {
-  background-color: gray; /* 호버 시 배경 색 */
-}
-
-.form-group select {
-  width: 360px;
-  appearance: none;
-  font: inherit;
-  padding: 1rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  line-height: 1;
-}
-
-.form-group select option {
-  width: 50px;
-  padding: 0.5rem;
-  font: inherit;
-  background-color: #fff;
-  color: #333;
-  border: none;
-}
-
+.report-box input,
+.report-box select,
 .report-box textarea {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
   box-sizing: border-box;
-  resize: vertical; /* 사용자가 세로로 크기 조절 가능 */
-  font-family: inherit; /* 폰트 일관성 유지 */
 }
 
-.report-box textarea:focus {
-  border-color: #007bff;
-  outline: none;
+.report-box input:focus,
+.report-box select:focus,
+.report-box textarea:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,.12); }
+
+.report-box button {
+  background: #111;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  width: 100%;
+  margin-top: 8px;
+  transition: opacity .2s ease;
+}
+.report-box button:disabled { opacity: .5; cursor: not-allowed; }
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.preview-grid img {
+  width: 100%; height: 88px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e5e5;
+}
+.help-text { margin-top: 6px; font-size: 12px; color: #666; }
+
+@media (max-width: 480px) {
+  .report-box { margin: 12px auto; padding: 16px; }
 }

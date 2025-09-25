@@ -1,22 +1,71 @@
 package amgn.amu.controller;
 
+import amgn.amu.dto.ReportDtos;
+import amgn.amu.entity.Report;
+import amgn.amu.service.ReportService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-@Controller
+import java.io.IOException;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/reports")
+@RequiredArgsConstructor
 public class ReportController {
-    @GetMapping("/reportForm")
-    public String showReportForm() {
-        return "redirect:/report/reportForm.html";
+
+    private final ReportService reportService;
+
+    @PostMapping
+    public ReportDtos.CreateReportResponse create(@RequestBody @Valid ReportDtos.CreateReportRequest req, HttpServletRequest request) {
+        return reportService.createReport(req, request);
     }
 
-    @GetMapping("/reportList")
-    public String showReportList() {
-        return "redirect:/report/reportList.html";
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<ReportDtos.ReportListItem> list(@RequestParam(required = false) Report.ReportStatus status,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "20") int size) {
+        return reportService.listReports(status, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
-    @GetMapping("/reportDetail")
-    public String showReportDetail() {
-        return "redirect:/report/reportDetail.html";
+    @GetMapping("{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ReportDtos.ReportDetail detail(@PathVariable Long id){
+        return reportService.getReportDetail(id);
+    }
+
+    @PostMapping("{id}/evidence")
+    @PreAuthorize("isAuthenticated()")
+    public void addEvidence(@PathVariable Long id, @RequestBody @Valid ReportDtos.AddEvidenceRequest req, HttpServletRequest request) {
+        reportService.addEvidence(id, req, request);
+    }
+
+    @PostMapping(value = "{id}/evidence", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public void uploadEvidence(@PathVariable Long id, @RequestParam("files") List<MultipartFile> files, HttpServletRequest request) throws IOException {
+        reportService.uploadEvidenceFiles(id, files.toArray(MultipartFile[]::new), request);
+    }
+
+    @PostMapping("{id}/actions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void addAction(@PathVariable Long id, @RequestBody @Valid ReportDtos.AddActionRequest req, HttpServletRequest request) {
+        reportService.addAction(id, req, request);
+    }
+
+    @PostMapping("{id}/suspend")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void suspend(@PathVariable Long id, @RequestBody @Valid ReportDtos.SuspendUserRequest req, HttpServletRequest request) {
+        reportService.suspendFromReport(id, req, request);
     }
 }

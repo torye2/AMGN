@@ -1,5 +1,7 @@
 package amgn.amu.service;
 
+import amgn.amu.common.AppException;
+import amgn.amu.common.ErrorCode;
 import amgn.amu.common.LoginUser;
 import amgn.amu.component.UserDirectory;
 import amgn.amu.dto.ReportDtos;
@@ -14,10 +16,19 @@ import amgn.amu.repository.UserSuspensionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,9 +41,17 @@ public class ReportService {
     private final LoginUser  loginUser;
 
     @Transactional
-    public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpSession session, HttpServletRequest request) {
+    public ReportDtos.CreateReportResponse createReport(ReportDtos.CreateReportRequest req, HttpServletRequest request) {
         Long reporterId = loginUser.userId(request);
         Long reportedUserId = userDirectory.findUserIdByNickNameOrThrow(req.reportedNickname());
+
+        if (reportedUserId == null) {
+            throw new AppException(ErrorCode.NOT_FOUND_USER);
+        }
+
+        if (reporterId.equals(reportedUserId)) {
+            throw new AppException(ErrorCode.SELF_REPORT_NOT_ALLOWED);
+        }
 
         Report report = Report.builder()
                 .reporterId(reporterId)
@@ -51,7 +70,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void addEvidence(Long reportId, ReportDtos.AddEvidenceRequest req, HttpSession session, HttpServletRequest request) {
+    public void addEvidence(Long reportId, ReportDtos.AddEvidenceRequest req, HttpServletRequest request) {
         Long uid = loginUser.userId(request);
         var evidence = ReportEvidence.builder()
                 .reportId(reportId)
@@ -69,7 +88,60 @@ public class ReportService {
     }
 
     @Transactional
-    public void addAction(Long reportId, ReportDtos.AddActionRequest req, HttpSession session, HttpServletRequest request) {
+    public void uploadEvidenceFiles(Long reportId, MultipartFile[] files, HttpServletRequest request) throws IOException {
+        Long uid = loginUser.userId(request);
+
+        if (files == null || files.length == 0) return;
+
+        var report = reportRepository.findById(reportId).orElse(null);
+
+        Path baseDir = Paths.get("C:/amu/uploads/reports");
+        LocalDate today = LocalDate.now();
+        Path dayDir = baseDir.resolve(String.valueOf(today.getYear()))
+                .resolve(String.format("%02d", today.getMonthValue()))
+                .resolve(String.format("%02d", today.getDayOfMonth()));
+        Files.createDirectories(dayDir);
+
+        int saved = 0;
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) continue;
+            if (!file.getContentType().startsWith("image/")) continue;
+            if (file.getSize() > 5 * 1024 * 1024) continue;
+
+            String original = file.getOriginalFilename();
+            String safeName = (original == null ? "image" : original).replaceAll("[\\\\/:*?\"<>|]", "_");
+            String fileName = UUID.randomUUID() + "_" + safeName;
+
+            Path savePath = dayDir.resolve(fileName);
+            Files.createDirectories(savePath.getParent());
+            file.transferTo(savePath.toFile());
+
+            String url = "/uploads/reports/"
+                    + today.getYear() + "/"
+                    + String.format("%02d", today.getMonthValue()) + "/"
+                    + String.format("%02d", today.getDayOfMonth()) + "/"
+                    + fileName;
+
+            var evidence = ReportEvidence.builder()
+                    .reportId(reportId)
+                    .filePath(url)
+                    .mimeType(file.getContentType())
+                    .fileSize((int)file.getSize())
+                    .uploadedBy(uid)
+                    .build();
+            evidenceRepository.save(evidence);
+            saved++;
+
+            if (saved > 0) {
+                long cnt = evidenceRepository.countByReportId(reportId);
+                report.setEvidenceCount((int) cnt);
+                reportRepository.save(report);
+            }
+        }
+    }
+
+    @Transactional
+    public void addAction(Long reportId, ReportDtos.AddActionRequest req, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
 
         var action = ReportAction.builder()
@@ -99,7 +171,7 @@ public class ReportService {
     }
 
     @Transactional
-    public void suspendFromReport(Long reportId, ReportDtos.SuspendUserRequest req, HttpSession session, HttpServletRequest request) {
+    public void suspendFromReport(Long reportId, ReportDtos.SuspendUserRequest req, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
 
         var report = reportRepository.findById(reportId).orElse(null);
@@ -136,12 +208,48 @@ public class ReportService {
     }
 
     @Transactional
-    public void revokeSuspension(Long suspensionId, String reason, HttpSession session, HttpServletRequest request) {
+    public void revokeSuspension(Long suspensionId, String reason, HttpServletRequest request) {
         Long adminId = loginUser.userId(request);
         var suspension = suspensionRepository.findById(suspensionId).orElse(null);
         if (suspension != null) {
             suspension.setStatus(UserSuspension.SuspensionStatus.REVOKED);
             suspension.setRevokedAt(Instant.now());
+            suspension.setRevokeReason(reason);
+            suspensionRepository.save(suspension);
         }
+
+        boolean stillHasActive = suspensionRepository.existsByUserIdAndStatusAndEndAtAfterOrEndAtIsNull(
+                suspension.getUserId(), UserSuspension.SuspensionStatus.ACTIVE, Instant.now()
+        );
+        if (!stillHasActive) userDirectory.setUserStatusActive(suspension.getUserId());
+    }
+
+    @Transactional
+    public Page<ReportDtos.ReportListItem> listReports(Report.ReportStatus status, Pageable pageable) {
+        var page = (status == null)
+                ? reportRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : reportRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        return page.map(r -> new ReportDtos.ReportListItem(
+                r.getReportId(), r.getReporterId(), r.getReportedUserId(), r.getListingId(),
+                r.getReasonCode(), r.getReasonText(), r.getStatus(), r.getCreatedAt()
+        ));
+    }
+
+    @Transactional
+    public ReportDtos.ReportDetail getReportDetail(Long reportId) {
+        var r = reportRepository.findById(reportId).orElse(null);
+        var evidence = evidenceRepository.findByReportIdOrderByCreatedAtDesc(reportId).stream()
+                .map(e -> new ReportDtos.ReportDetail.EvidenceItem(
+                        e.getEvidenceId(), e.getFilePath(), e.getMimeType(), e.getFileSize(), e.getUploadedBy(), e.getCreatedAt()
+                )).toList();
+        var actions = actionRepository.findByReportIdOrderByCreatedAtAsc(reportId).stream()
+                .map(a -> new ReportDtos.ReportDetail.ActionItem(
+                        a.getActionId(), a.getActorUserId(), a.getActionType(), a.getActionPayload(), a.getComment(), a.getCreatedAt()
+                )).toList();
+        return new ReportDtos.ReportDetail(
+                r.getReportId(), r.getReporterId(), r.getReportedUserId(), r.getListingId(), r.getChatRoomId(),
+                r.getReasonCode(), r.getReasonText(), r.getDescription(), r.getStatus(), r.getEvidenceCount(),
+                r.getHandledBy(), r.getHandledAt(), r.getCreatedAt(), r.getUpdatedAt(), evidence, actions
+        );
     }
 }

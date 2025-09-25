@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <title>관리자 | 신고 목록</title>
+    <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="admin-header">
+    <h1>신고 목록</h1>
+    <nav>
+        <a href="/admin/index.html">Dashboard</a>
+        <a class="active" href="/admin/reports.html">Reports</a>
+    </nav>
+</header>
+
+<div class="container">
+    <section class="card">
+        <div class="filters">
+            <select id="status">
+                <option value="">전체 상태</option>
+                <option value="PENDING">PENDING</option>
+                <option value="IN_REVIEW">IN_REVIEW</option>
+                <option value="RESOLVED">RESOLVED</option>
+                <option value="REJECTED">REJECTED</option>
+            </select>
+            <input id="reporter" placeholder="신고자 ID"/>
+            <input id="reported" placeholder="피신고자 ID"/>
+            <input id="listingId" placeholder="Listing ID"/>
+            <button class="btn" id="btnSearch">검색</button>
+        </div>
+
+        <div class="table-wrap">
+            <table class="list">
+                <thead>
+                <tr>
+                    <th>ID</th><th>Status</th><th>Reason</th><th>Reporter</th><th>Reported</th><th>Listing</th><th>Created</th><th></th>
+                </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="pager">
+            <button class="btn" id="prev">이전</button>
+            <span id="pageInfo"></span>
+            <button class="btn" id="next">다음</button>
+        </div>
+    </section>
+</div>
+
+<script src="/admin/common.js"></script>
+<script src="/admin/reports.js"></script>
+</body>
+</html>

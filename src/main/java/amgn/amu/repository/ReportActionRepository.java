@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ReportActionRepository extends JpaRepository<ReportAction, Long> {
-    List<ReportAction> findByReportIdOrderByCreatedAtDesc(Long reportId);
+    List<ReportAction> findByReportIdOrderByCreatedAtAsc(Long reportId);
 }

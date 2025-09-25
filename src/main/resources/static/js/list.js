@@ -1,4 +1,4 @@
-// /js/list.js  — 카테고리/지역 상위 선택 시 하위까지 포함해 목록을 보여주는 버전
+// /js/list.js — 카테고리/지역 상위 선택 시 하위까지 포함 + 예쁜 카드 UI (SOLD 제외)
 (function () {
   'use strict';
 
@@ -35,12 +35,13 @@
       await resolveRegionIdIfNeeded();   // URL에 없으면 localStorage/검색어로 역매핑
       await updateBreadcrumb();          // 상단 경로 표시
 
-      gridEl.innerHTML = '<div style="padding:24px; text-align:center; color:#64748b;">불러오는 중...</div>';
+      gridEl.innerHTML = '';
+      renderSkeleton(8);                 // 스켈레톤 임시 표시
       emptyEl.style.display = 'none';
 
       let items = [];
 
-      // 1) 통합 엔드포인트 (서버에서 상/하위 확장 처리하는 경우)
+      // 1) 통합 엔드포인트 (서버에서 상/하위 확장 처리)
       const qs = new URLSearchParams();
       if (categoryId) qs.set('categoryId', categoryId);
       if (regionId)   qs.set('regionId',   regionId);
@@ -59,7 +60,7 @@
                   : (Array.isArray(body) ? body : []);
             usedCombined = true;
 
-            // ✅ 서버가 200을 주지만(성공) 빈 결과면 폴백으로 강제 전환해 하위 카테고리 직접 합치기
+            // 서버가 200인데 결과가 비면 폴백으로 전환 (하위 카테고리 직접 병합)
             if ((items?.length ?? 0) === 0 && categoryId) {
               usedCombined = false;
               console.debug('[list.js] combined returned empty; switching to fallback');
@@ -80,7 +81,7 @@
           const catIds = await getDescendantCategoryIds(String(categoryId)); // 자신 포함
           console.debug('[list.js] fallback categoryIds:', catIds);
 
-          // (b) 각 카테고리로 호출하여 결과 병합 + 중복 제거
+          // (b) 각 카테고리 호출 → 병합 + 중복 제거
           const map = new Map(); // listingId 기준 dedupe
           for (const cid of catIds) {
             try {
@@ -136,6 +137,11 @@
           }
         }
       }
+
+      // ✅ 2.5) SOLD 제외 필터 (공통)
+      items = (Array.isArray(items) ? items : []).filter(
+        it => String(it.status || 'ACTIVE').trim().toUpperCase() !== 'SOLD'
+      );
 
       // 3) 정렬 + 렌더
       const sorted = sortProducts(items, sortSelect.value);
@@ -327,34 +333,6 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function productCard(item) {
-    const CONDITION_LABEL = { NEW: '새상품', LIKE_NEW: '사용감 거의 없음', GOOD: '상태 좋음', FAIR: '보통', POOR: '사용감 많음' };
-    const TRADE_LABEL     = { MEETUP: '직거래', DELIVERY: '택배', BOTH: '직거래/택배' };
-    const label = (v, map) => (v == null ? '' : (map[String(v).trim().toUpperCase()] ?? v));
-
-    const photo     = (item.photoUrls && item.photoUrls.length > 0) ? item.photoUrls[0] : null;
-    const imgSrc    = normalizeImg(photo);
-    const listingId = item.listingId ?? item.id;
-    const href      = `/productDetail.html?id=${encodeURIComponent(listingId)}`;
-
-    const a = document.createElement('a');
-    a.href = href;
-    a.className = 'card';
-    a.innerHTML = `
-      <img class="thumb" src="${imgSrc}" alt="${escapeHtml(item.title ?? '상품 이미지')}" onerror="this.src='/images/placeholder.png'"/>
-      <div class="body">
-        <h3 class="title">${escapeHtml(item.title ?? '')}</h3>
-        <div class="price">${formatPrice(item.price)}</div>
-        <div class="meta">
-          ${label(item.itemCondition, CONDITION_LABEL)}
-          ${(item.itemCondition && item.tradeType) ? ' · ' : ''}
-          ${label(item.tradeType, TRADE_LABEL)}
-        </div>
-      </div>
-    `;
-    return a;
-  }
-
   // 서버 DTO가 가진 다양한 모양 지원: regionId / region?.id / region_id / regionName 등
   function matchRegion(item, wantId) {
     const want = String(wantId);
@@ -372,5 +350,91 @@
     if (!savedLabel) return false;
 
     return label.includes(savedLabel);
+  }
+
+  // =========================
+  // 카드 UI
+  // =========================
+  function productCard(item) {
+    const CONDITION_LABEL = { NEW:'새상품', LIKE_NEW:'사용감 거의 없음', GOOD:'상태 좋음', FAIR:'보통', POOR:'사용감 많음' };
+    const TRADE_LABEL     = { MEETUP:'직거래', DELIVERY:'택배', BOTH:'직거래/택배' };
+    const label = (v, map) => (v == null ? '' : (map[String(v).trim().toUpperCase()] ?? v));
+
+    const status = String(item.status || '').trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+    const negotiable = String(item.negotiable || '').trim().toUpperCase() === 'Y';
+
+    // 이미지
+    const photo  = (item.photoUrls && item.photoUrls.length > 0) ? item.photoUrls[0] : null;
+    const imgSrc = normalizeImg(photo);
+
+    const listingId = item.listingId ?? item.id;
+    const href      = `/productDetail.html?id=${encodeURIComponent(listingId)}`;
+
+    // 지역/부가 메타 (있으면 노출)
+    const regionText = item.regionName || item.addressText || '';
+
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'card';
+
+    const ribbonHtml = (status === 'RESERVED')
+      ? `<div class="ribbon">예약중</div>`
+      : (status === 'SOLD')
+        ? `<div class="ribbon sold">판매완료</div>`
+        : '';
+
+    const condCode = String(item.itemCondition || '').trim().toUpperCase();
+    const condChipClass = condCode === 'NEW' ? 'chip cond-new' : 'chip';
+    const condChip = item.itemCondition
+        ? `<span class="${condChipClass}">${label(item.itemCondition, CONDITION_LABEL)}</span>` : '';
+
+    const tradeChip = item.tradeType
+        ? `<span class="chip trade">${label(item.tradeType, TRADE_LABEL)}</span>` : '';
+
+    const negoChip = negotiable
+        ? `<span class="chip neg-y">네고 가능</span>` : '';
+
+    const regionChip = regionText
+        ? `<span class="chip">${escapeHtml(regionText)}</span>` : '';
+
+    a.innerHTML = `
+      <div class="thumb-wrap">
+        ${ribbonHtml}
+        <img class="thumb" src="${imgSrc}" alt="${escapeHtml(item.title ?? '상품 이미지')}"
+             onerror="this.classList.add('skeleton'); this.src='/images/placeholder.png'"/>
+        <div class="price-badge">${formatPrice(item.price)}</div>
+      </div>
+      <div class="body">
+        <h3 class="title">${escapeHtml(item.title ?? '')}</h3>
+        <div class="meta-row">
+          ${condChip}
+          ${tradeChip}
+          ${negoChip}
+          ${regionChip}
+        </div>
+      </div>
+    `;
+    return a;
+  }
+
+  // =========================
+  // 스켈레톤
+  // =========================
+  function renderSkeleton(n=8){
+    gridEl.innerHTML = '';
+    for(let i=0;i<n;i++){
+      const s = document.createElement('div');
+      s.className = 'card';
+      s.innerHTML = `
+        <div class="thumb-wrap skeleton"></div>
+        <div class="body">
+          <div class="skeleton" style="height:16px; width:80%; border-radius:8px;"></div>
+          <div class="meta-row" style="margin-top:8px;">
+            <div class="skeleton" style="height:22px; width:70px; border-radius:999px;"></div>
+            <div class="skeleton" style="height:22px; width:60px; border-radius:999px;"></div>
+          </div>
+        </div>`;
+      gridEl.appendChild(s);
+    }
   }
 })();

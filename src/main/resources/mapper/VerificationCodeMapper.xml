@@ -5,13 +5,13 @@
         <selectKey keyProperty="vcId" resultType="long" order="BEFORE">
             SELECT VERIF_CODES_SEQ.NEXTVAL FROM dual
         </selectKey>
-        INSERT INTO VERIFICATION_CODES (VC_ID, CHANNEL, DESTINATION, CODE, PURPOSE, EXPIRES_AT)
+        INSERT INTO verification_codes (VC_ID, CHANNEL, DESTINATION, CODE, PURPOSE, EXPIRES_AT)
         VALUES (#{vcId}, #{channel}, #{dest}, #{code}, #{purpose}, #{expiresAt})
     </insert>
 
     <select id="findValidCode" resultType="string">
         SELECT CODE FROM (
-                             SELECT CODE FROM VERIFICATION_CODES
+                             SELECT CODE FROM verification_codes
                              WHERE CHANNEL=#{channel} AND DESTINATION=#{dest} AND PURPOSE=#{purpose}
                                AND USED_YN='N' AND EXPIRES_AT > SYSTIMESTAMP
                              ORDER BY CREATED_AT DESC
@@ -19,12 +19,12 @@
     </select>
 
     <update id="markUsed">
-        UPDATE VERIFICATION_CODES SET USED_YN='Y'
+        UPDATE verification_codes SET USED_YN='Y'
         WHERE CHANNEL=#{channel} AND DESTINATION=#{dest} AND CODE=#{code} AND PURPOSE=#{purpose} AND USED_YN='N'
     </update>
 
     <select id="countSendsLastMinute" resultType="int">
-        SELECT COUNT(*) FROM VERIFICATION_CODES
+        SELECT COUNT(*) FROM verification_codes
         WHERE CHANNEL=#{channel} AND DESTINATION=#{dest} AND CREATED_AT > SYSTIMESTAMP - INTERVAL '60' SECOND
     </select>
 </mapper>

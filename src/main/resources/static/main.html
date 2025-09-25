@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/product.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/product.css">
 </head>
 <body>
 <div id="skip">
@@ -21,8 +21,7 @@
 </div>
 <div id="wrap">
     <div>
-        <header id="header">
-        </header>
+        <header id="header"></header>
     </div>
     <!-- 고정 최근 찜 사이드바 -->
     <aside id="wishFixedSidebar" class="wish-fixed card">
@@ -32,6 +31,15 @@
             <div id="wishSidebarEmpty" class="text-muted small" style="display:none;">찜한 상품이 없습니다.</div>
             <div id="wishSidebarGuest" class="text-muted small" style="display:none;">로그인하면 최근 찜을 볼 수 있어요.</div>
             <a class="small text-decoration-none" href="/myPage.html#favorites">더보기</a>
+        </div>
+    </aside>
+
+    <!-- 고정 최근 본 상품 사이드바 (오른쪽) -->
+    <aside id="recentFixedSidebar" class="recent-fixed card">
+        <div class="card-body">
+            <h5 class="mb-2">최근 본 상품</h5>
+            <div id="recentSidebar" class="wish-list"></div>
+            <div id="recentSidebarEmpty" class="text-muted small" style="display:none;">최근 본 상품이 없습니다.</div>
         </div>
     </aside>
 
@@ -72,12 +80,12 @@
                                     </div>
                                 </div>
                                 <div class="carousel-item" data-bs-interval="3000">
-                                    <img src="https://placehold.co/1200x350?text=Banner+2" class="d-block w-100" alt="배너 2">
+                                    <img src="/img/banner2.jpg" class="d-block w-100" alt="배너 2">
                                     <div class="carousel-caption d-none d-md-block">
                                     </div>
                                 </div>
                                 <div class="carousel-item" data-bs-interval="3000">
-                                    <img src="https://placehold.co/1200x350?text=Banner+3" class="d-block w-100" alt="배너 3">
+                                    <img src="/img/banner3.jpg" class="d-block w-100" alt="배너 3">
                                     <div class="carousel-caption d-none d-md-block">
                                     </div>
                                 </div>
@@ -108,74 +116,152 @@
     </div>
 </div>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const productsAllDiv = document.getElementById('productsAll');
+    document.addEventListener('DOMContentLoaded', () => {
+      const productsAllDiv = document.getElementById('productsAll');
+      if (!productsAllDiv) return;
 
-    fetch('/product/all') // 백엔드 API 호출
+      productsAllDiv.innerHTML = '<div class="skeleton" style="height:120px;border-radius:12px;"></div>';
+
+      fetch('/product/all', { credentials: 'include', cache: 'no-store' })
         .then(res => {
-            if (!res.ok) throw new Error('모든 상품을 불러오는 데 실패했습니다.');
-            return res.json();
+          if (!res.ok) throw new Error('모든 상품을 불러오는 데 실패했습니다.');
+          return res.json();
         })
         .then(products => {
-            if (!products.length) {
-                productsAllDiv.innerHTML = '<p>등록된 상품이 없습니다.</p>';
-                return;
-            }
+          // SOLD 제거
+          const visible = (Array.isArray(products) ? products : []).filter(p =>
+            String(p.status || 'ACTIVE').trim().toUpperCase() !== 'SOLD'
+          );
 
-            products.forEach(product => {
-                const productItem = document.createElement('div');
-                productItem.classList.add('product-item');
+          productsAllDiv.innerHTML = '';
+          // ✅ 여기서도 visible로 체크
+          if (visible.length === 0) {
+            productsAllDiv.innerHTML = '<p class="text-muted">등록된 상품이 없습니다.</p>';
+            return;
+          }
 
-                // 첫 번째 사진만 가져오기
-                let photoUrl = 'https://placehold.co/300x200?text=No+Image';
-                if (product.photoUrls && product.photoUrls.length > 0) {
-                    photoUrl = product.photoUrls[0].startsWith('/uploads')
-                        ? product.photoUrls[0]
-                        : `/uploads/listings/${product.photoUrls[0]}`;
-                } else if (product.photoUrl) {
-                    photoUrl = product.photoUrl.startsWith('/uploads')
-                        ? product.photoUrl
-                        : `/uploads/listings/${product.photoUrl}`;
-                }
-
-                productItem.innerHTML = `
-                    <a href="/productDetail.html?id=${product.listingId}">
-                        <img src="${photoUrl}" alt="${product.title}" />
-                        <h4 class="product-title">${product.title}</h4>
-                        <p class="product-price">${product.price.toLocaleString()} 원</p>
-                    </a>
-                `;
-                productsAllDiv.appendChild(productItem);
-            });
+          // ✅ 렌더도 visible로
+          visible.forEach(p => productsAllDiv.appendChild(buildCard(p)));
         })
-        .catch(error => {
-            console.error('Error fetching products:', error);
-            productsAllDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+        .catch(err => {
+          console.error(err);
+          productsAllDiv.innerHTML = `<p style="color:red;">${err.message || '상품을 불러오지 못했습니다.'}</p>`;
         });
-});
+
+      // ====== Helpers (동일) ======
+      function buildCard(item) {
+        const STATUS = String(item.status || 'ACTIVE').trim().toUpperCase(); // ACTIVE | RESERVED | SOLD
+
+        const photoRaw = (Array.isArray(item.photoUrls) && item.photoUrls.length > 0)
+          ? item.photoUrls[0]
+          : item.photoUrl;
+        const imgSrc = normalizeImg(photoRaw);
+
+        const listingId = item.listingId ?? item.id;
+        const href = `/productDetail.html?id=${encodeURIComponent(listingId)}`;
+
+        const CONDITION_LABEL = {
+          NEW: '새상품', LIKE_NEW: '사용감 거의 없음', GOOD: '상태 좋음', FAIR: '보통', POOR: '사용감 많음'
+        };
+        const TRADE_LABEL = { MEETUP: '직거래', DELIVERY: '택배', BOTH: '직거래/택배' };
+
+        const cond = mapLabel(item.itemCondition, CONDITION_LABEL);
+        const trade = mapLabel(item.tradeType, TRADE_LABEL);
+        const negoY = String(item.negotiable || '').toUpperCase() === 'Y';
+        const regionName = item.regionName || item.region?.name || item.addressText || '';
+
+        const a = document.createElement('a');
+        a.href = href;
+        a.className = 'card product-card';
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'thumb-wrap';
+
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.src = imgSrc;
+        img.alt = (item.title || '상품 이미지').replace(/"/g, '&quot;');
+        img.onerror = () => { img.src = 'https://placehold.co/400x300?text=No+Image'; };
+        thumbWrap.appendChild(img);
+
+        // 가격 배지
+        const priceBadge = document.createElement('span');
+        priceBadge.className = 'price-badge';
+        priceBadge.textContent = formatPrice(item.price);
+        thumbWrap.appendChild(priceBadge);
+        a.appendChild(thumbWrap);
+
+        // 상태 리본 (SOLD는 위에서 이미 제거되므로 RESERVED만 보일 수 있음)
+        if (STATUS === 'RESERVED') {
+          const ribbon = document.createElement('div');
+          ribbon.className = 'ribbon';
+          ribbon.textContent = '예약중';
+          a.appendChild(ribbon);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'body';
+
+        const title = document.createElement('h3');
+        title.className = 'title';
+        title.textContent = item.title || '';
+        body.appendChild(title);
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'meta-row';
+
+        if (cond) {
+          const chip = document.createElement('span');
+          chip.className = 'chip cond-new';
+          chip.textContent = cond;
+          metaRow.appendChild(chip);
+        }
+        if (trade) {
+          const chip = document.createElement('span');
+          chip.className = 'chip trade';
+          chip.textContent = trade;
+          metaRow.appendChild(chip);
+        }
+        if (negoY) {
+          const chip = document.createElement('span');
+          chip.className = 'chip neg-y';
+          chip.textContent = '네고가능';
+          metaRow.appendChild(chip);
+        }
+        if (regionName) {
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = regionName;
+          metaRow.appendChild(chip);
+        }
+
+        if (metaRow.children.length > 0) body.appendChild(metaRow);
+        a.appendChild(body);
+
+        return a;
+      }
+
+      function normalizeImg(u) {
+        if (!u) return 'https://placehold.co/400x300?text=No+Image';
+        if (u.startsWith('http://') || u.startsWith('https://')) return u;
+        if (u.startsWith('/uploads')) return u;
+        return `/uploads/${u}`.replace('/uploads//uploads', '/uploads');
+      }
+      function formatPrice(v) {
+        const n = Number(v);
+        return Number.isFinite(n) ? `${n.toLocaleString()}원` : '-';
+      }
+      function mapLabel(v, map) {
+        if (v == null) return '';
+        const key = String(v).trim().toUpperCase();
+        return map[key] || v;
+      }
+    });
 </script>
+
+
 <script src="/js/main.js"></script>
 <script src="/js/header.js"></script>
-
-<!-- 지역 선택 모달 -->
-<div class="modal fade" id="regionModal" tabindex="-1" aria-labelledby="regionModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="regionModalLabel">지역 선택</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" class="form-control mb-3" id="regionSearchInput" placeholder="지역 검색 (예: 위례동)">
-        <div id="regionList" class="list-group" style="max-height: 320px; overflow:auto;"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
-        <button type="button" class="btn btn-primary" id="applyRegionBtn" data-bs-dismiss="modal">적용</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script src="/js/footer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

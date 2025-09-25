@@ -8,6 +8,16 @@
     const headerContainer = document.getElementById('header');
     if (!headerContainer) return;
 
+    // ★ 메인 페이지 진입 시 지역 필터 강제 초기화
+    if (isMainPage()) {
+      try {
+        localStorage.removeItem('selectedRegionId');
+        localStorage.removeItem('selectedRegionLabel');
+      } catch (e) {
+        console.warn('지역 초기화 실패(스토리지 접근 불가?)', e);
+      }
+    }
+
     // 헤더가 이미 페이지에 있으면 재주입 생략
     const alreadyLoaded = !!headerContainer.querySelector('.header-icon');
     if (!alreadyLoaded) {
