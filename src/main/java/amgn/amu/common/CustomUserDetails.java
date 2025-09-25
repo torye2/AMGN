@@ -12,12 +12,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
     private final User user;
+    private final Collection<? extends GrantedAuthority> authorities;
 
     @Override public boolean isEnabled() { return user.getStatus().equals("ACTIVE"); }
     @Override public boolean isAccountNonLocked() { return !user.getStatus().equals("BANNED"); }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return authorities;
     }
     @Override public String getPassword() { return user.getPasswordHash(); }
     @Override public String getUsername() { return user.getLoginId(); }

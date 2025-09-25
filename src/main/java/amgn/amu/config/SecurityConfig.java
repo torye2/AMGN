@@ -18,6 +18,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
@@ -56,6 +59,7 @@ import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean @Order(1)
@@ -91,7 +95,7 @@ public class SecurityConfig {
                                 "/region/**", "/api/region/**", "/api/user/**",
                                 "/api/listings/**", "/listing/**",
                                 "/api/search/**", "/product/**", "/api/system/**",
-                                "/awards/**", "/api/shop/**"
+                                "/awards/**", "/api/shop/**", "/notice", "/notice-l.html"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/oauth/connect/**",
@@ -164,11 +168,12 @@ public class SecurityConfig {
                                 res.sendRedirect("/login.html?error=bad_credentials");
                             } else if (ex instanceof UsernameNotFoundException) {
                                 res.sendRedirect("/login.html?error=user_not_found");
+                            } else if (ex instanceof InternalAuthenticationServiceException) {
+                                res.sendRedirect("/login.html?error=locked");
                             } else {
                                 res.sendRedirect("/login.html?error");
                             }
                         })
-                        .failureUrl("/login.html?error")
                 )
                 .oauth2Login(o -> o.userInfoEndpoint(u -> u.userService(oAuth2UserService(userRepository)))
                         .loginPage("/login.html")

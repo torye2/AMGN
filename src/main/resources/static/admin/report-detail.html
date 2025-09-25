@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <title>관리자 | 신고 상세</title>
+    <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="admin-header">
+    <h1>신고 상세</h1>
+    <nav>
+        <a href="/admin/index.html">Dashboard</a>
+        <a class="active" href="/admin/reports.html">Reports</a>
+    </nav>
+</header>
+
+<div class="container">
+    <main class="detail-layout">
+        <section class="detail-main">
+            <div class="card" id="meta"></div>
+
+            <div class="card">
+                <h3>신고 내용</h3>
+                <pre id="desc" class="pre"></pre>
+            </div>
+
+            <div class="card">
+                <h3>증거</h3>
+                <div id="evidence" class="thumb-grid"></div>
+            </div>
+
+            <div class="card">
+                <h3>처리 로그</h3>
+                <ul id="actions" class="timeline"></ul>
+            </div>
+        </section>
+
+        <aside class="detail-side">
+            <div class="card">
+                <h3>상태 변경</h3>
+                <div class="grid">
+                    <button class="btn" data-act="ASSIGN">검토 시작(IN_REVIEW)</button>
+                    <button class="btn" data-act="RESOLVE">처리 완료(RESOLVED)</button>
+                    <button class="btn" data-act="REJECT">반려(REJECTED)</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>정지 처분</h3>
+                <label>정지 일수(0=영구)</label>
+                <input id="suspendDays" type="number" value="30" min="0"/>
+                <label>사유 메모(선택)</label>
+                <input id="suspendReason" type="text"/>
+                <button class="btn primary" id="btnSuspend">정지 실행</button>
+            </div>
+
+            <div class="card">
+                <h3>메모 남기기</h3>
+                <input id="note" placeholder="메모"/>
+                <button class="btn" id="btnNote">추가</button>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script src="/admin/common.js"></script>
+<script src="/admin/report-detail.js"></script>
+</body>
+</html>

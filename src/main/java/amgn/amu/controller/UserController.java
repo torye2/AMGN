@@ -12,29 +12,35 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
 
+    record MeResponse(boolean loggedIn, Long userId, String nickname, List<String> roles, boolean isAdmin) {}
     private final UserRepository userRepository;
     private final UserService userService;
 
     @GetMapping("/me")
-    public Map<String, Object> getLoginUser(HttpSession session) {
+    public MeResponse getLoginUser(@AuthenticationPrincipal UserDetails principal, HttpSession session) {
+        boolean loggedIn = principal != null;
         LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
-        if (loginUser == null) {
-            return Map.of("loggedIn", false);
-        }
-        return Map.of(
-            "loggedIn", true,
-            "userId", loginUser.getUserId(),
-            "nickname", loginUser.getNickName()
-        );
+        Long userId = loginUser != null ? loginUser.getUserId() : null;
+        String nickname = loginUser != null ? loginUser.getNickName() : null;
+
+        List<String> roles = principal == null ? List.of() :
+                principal.getAuthorities().stream().map(a -> a.getAuthority()).toList();
+        boolean isAdmin = roles.stream().anyMatch(role -> role.contains("ADMIN"));
+
+        return new MeResponse(loggedIn, userId, nickname, roles, isAdmin);
     }
 
     @GetMapping("/nickname/{userId}")

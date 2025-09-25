@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 폼 상단 공통 에러 박스에 표시
     if (errorMsg) {
+        if (errorMsg == 'locked') alert("정지/휴면 상태인 계정입니다.");
+        if (errorMsg == 'user_not_found') alert("일치하는 유저 정보를 찾을 수 없습니다.");
+        if (errorMsg == 'account_disabled') alert("사용할 수 없는 계정입니다.");
+        if (errorMsg == 'bad_credentials') alert("일치하는 유저 정보를 찾을 수 없습니다.");
+
         const formError = document.getElementById('formError');
         if (formError) {
             formError.textContent = decodeURIComponent(errorMsg);

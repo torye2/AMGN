@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <title>관리자 | 대시보드</title>
+    <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="admin-header">
+    <h1>AMUGEONA 관리자</h1>
+    <nav>
+        <a class="active" href="/admin/index.html">Dashboard</a>
+        <a href="/admin/reports.html">Reports</a>
+    </nav>
+</header>
+
+<div class="container">
+    <div class="grid cols-2">
+        <section class="card">
+            <h3>오늘 신고 요약</h3>
+            <div id="stats" class="kv" style="margin-top:8px">
+                <div class="k">신규 접수</div><div class="v" id="s_new">-</div>
+                <div class="k">미처리(PENDING)</div><div class="v" id="s_pending">-</div>
+                <div class="k">검토중(IN_REVIEW)</div><div class="v" id="s_review">-</div>
+                <div class="k">처리 완료(RESOLVED)</div><div class="v" id="s_done">-</div>
+            </div>
+        </section>
+        <section class="card">
+            <h3>빠른 이동</h3>
+            <p>운영 중 자주 쓰는 화면으로 바로 이동하세요.</p>
+            <a class="btn primary" href="/admin/reports.html">신고 목록 열기</a>
+        </section>
+    </div>
+
+    <section class="card" style="margin-top:16px">
+        <h3>최근 신고 5건</h3>
+        <div class="table-wrap">
+            <table class="list">
+                <thead>
+                <tr><th>ID</th><th>Status</th><th>Reason</th><th>Reporter</th><th>Reported</th><th>Created</th><th></th></tr>
+                </thead>
+                <tbody id="recent"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script src="/admin/common.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        await requireAdmin();
+        // (선택) 통계 API가 아직 없다면 간단히 목록에서 파생
+        try{
+            const page = await fetchJson('/api/reports?page=0&size=5');
+            const rows = page.content || [];
+            qs('#recent').innerHTML = rows.map(r=>`
+        <tr>
+          <td>${r.reportId}</td>
+          <td><span class="badge ${r.status.toLowerCase()}">${r.status}</span></td>
+          <td>${r.reasonCode}</td>
+          <td>${r.reporterId}</td>
+          <td>${r.reportedUserId}</td>
+          <td>${new Date(r.createdAt).toLocaleString()}</td>
+          <td><a class="btn" href="/admin/report-detail.html?id=${r.reportId}">열기</a></td>
+        </tr>
+      `).join('');
+            // 임시 통계(샘플): 첫 페이지 기준
+            const c = {PENDING:0,IN_REVIEW:0,RESOLVED:0,REJECTED:0};
+            rows.forEach(r=> c[r.status]=(c[r.status]||0)+1);
+            qs('#s_new').textContent = rows.length;
+            qs('#s_pending').textContent = c.PENDING||0;
+            qs('#s_review').textContent = c.IN_REVIEW||0;
+            qs('#s_done').textContent = c.RESOLVED||0;
+        }catch(e){
+            console.error(e); alert(e.message||'대시보드 로드 실패');
+        }
+    });
+</script>
+</body>
+</html>
