@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el.reported.value) params.set('reportedId', el.reported.value.trim());
         if (el.listingId.value) params.set('listingId', el.listingId.value.trim());
 
-        const data = await fetchJson(`/api/reports?${params.toString()}`);
+        const data = await fetchJson(`/api/admin/reports?${params.toString()}`);
         const rows = data.content || [];
         el.tbody.innerHTML = rows.map(r => `
       <tr>

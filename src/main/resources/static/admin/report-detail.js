@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const xsrf = getCookie('XSRF-TOKEN');
 
     async function load(){
-        const d = await fetchJson(`/api/reports/${id}`);
+        const d = await fetchJson(`/api/admin/reports/${id}`);
 
         qs('#meta').innerHTML = `
       <div class="kv" style="margin-top:4px">
@@ -38,12 +38,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     `).join('') : '<li class="muted">처리 로그가 없습니다.</li>';
     }
 
+    async function loadSuspensions(userId){
+        const list = await fetchJson(`/api/admin/users/${userId}/suspensions?active=true`);
+        const box = document.createElement('div');
+        box.className = 'card';
+        box.innerHTML = `<h3>활성 정지</h3>` + (list.length ? `
+    <ul>
+      ${list.map(s => `
+        <li>
+          #${s.suspensionId} · ${s.reasonCode} ·
+          ${s.endAt ? `~ ${new Date(s.endAt).toLocaleString()}` : '영구'}
+          <button class="btn" data-revoke="${s.suspensionId}">해제</button>
+        </li>
+      `).join('')}
+    </ul>` : `<div class="muted">활성 정지가 없습니다.</div>`);
+        document.querySelector('.detail-side').prepend(box);
+
+        box.querySelectorAll('[data-revoke]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-revoke');
+                const reason = prompt('해제 사유를 입력하세요(선택)');
+                if (reason === null) return;
+                try {
+                    await fetchJson(`/api/admin/suspensions/${id}/revoke`, {
+                        method: 'POST',
+                        headers: { 'Content-Type':'application/json', ...(getCookie('XSRF-TOKEN') ? {'X-XSRF-TOKEN': getCookie('XSRF-TOKEN')} : {}) },
+                        body: JSON.stringify({ reason })
+                    });
+                    alert('정지가 해제되었습니다.');
+                    location.reload();
+                } catch(e){
+                    alert(e.message || '해제 실패');
+                }
+            });
+        });
+    }
+
     // 상태 전환 버튼
     qsa('[data-act]').forEach(btn => {
         btn.addEventListener('click', async () => {
             const actionType = btn.dataset.act;
             try{
-                await fetchJson(`/api/reports/${id}/actions`, {
+                await fetchJson(`/api/admin/reports/${id}/actions`, {
                     method:'POST',
                     headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                     body: JSON.stringify({ actionType, comment: actionType==='ASSIGN'?'검토 시작':'' })
@@ -60,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const reasonText = qs('#suspendReason').value || null;
         if(!confirm(days===0 ? '영구 정지를 실행할까요?' : `${days}일 정지를 실행할까요?`)) return;
         try{
-            await fetchJson(`/api/reports/${id}/suspend`, {
+            await fetchJson(`/api/admin/reports/${id}/suspend`, {
                 method:'POST',
                 headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                 body: JSON.stringify({ days, reasonText })
@@ -75,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const note = qs('#note').value.trim();
         if(!note) return;
         try{
-            await fetchJson(`/api/reports/${id}/actions`, {
+            await fetchJson(`/api/admin/reports/${id}/actions`, {
                 method:'POST',
                 headers:{ 'Content-Type':'application/json', ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                 body: JSON.stringify({ actionType:'NOTE', comment: note })
@@ -86,4 +122,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     await load();
+    const detail = await fetchJson(`/api/admin/reports/${id}`);
+    await loadSuspensions(detail.reportedUserId);
 });

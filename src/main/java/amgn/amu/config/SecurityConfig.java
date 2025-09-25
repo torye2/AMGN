@@ -106,8 +106,10 @@ public class SecurityConfig {
                                 "/myPage.html",
                                 "/admin/**"
                         ).authenticated()
-                        .requestMatchers("/api/reports/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/onboarding").authenticated()
+                        .requestMatchers("/api/admin/reports/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/onboarding", "/api/reports/**")
+                        .authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(nextParamCaptureFilter(userRepository), OAuth2AuthorizationRequestRedirectFilter.class)

@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     const p = new URLSearchParams(location.search);
     const listingId = p.get('listingId');
     const nick = p.get('reportedNickname');
@@ -32,8 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let me = null;
     try {
         const meRes = fetch('/api/user/me', { credentials: 'include' });
-        if (meRes.ok) me = meRes.json();
-        if (me.userId == uid) submitBtn.disabled = true;
+        if (meRes.ok) {
+            me = await meRes.json();
+            if (me.userId && uid && String(me.userId) === String(uid)) submitBtn.disabled = true;
+        }
     } catch (e) {
         console.error('현재 사용자 조회 실패:', e);
     }
@@ -96,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             const xsrf = getCookie('XSRF-TOKEN'); // 서버 설정에 맞게 이름 확인
-            const res = await fetchJson('/api/reports', {
+            const created = await fetchJson('/api/reports', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -106,28 +108,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify(createBody)
             });
 
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(err.message || '신고 생성에 실패했습니다.');
-            }
-            const { reportId } = await res.json();
+            const reportId = created?.reportId ?? created?.id;
+            if (!reportId) throw new Error('신고 생성 응답이 올바르지 않습니다.');
 
             // 2) 증거 업로드(있으면)
             const files = Array.from(evidence.files || []);
             if (files.length) {
                 const form = new FormData();
                 for (const f of files) form.append('files', f);
-                const evRes = await fetchJson(`/api/reports/${reportId}/evidence`, {
+                await fetchJson(`/api/reports/${reportId}/evidence`, {
                     method: 'POST',
                     headers: { ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {}) },
                     credentials: 'include',
                     body: form
                 });
-                if (!evRes.ok) {
-                    // 실패해도 신고 자체는 생성됨 → 사용자에게 안내
-                    console.warn('증거 업로드 실패', await evRes.text());
-                    alert(err.message || '신고는 접수되었지만 증거 업로드에 실패했습니다. 고객센터로 문의해 주세요.');
-                }
             }
 
             alert('신고가 접수되었습니다. 감사합니다.');
@@ -147,24 +141,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function fetchJson(url, options = {}) {
     const res = await fetch(url, { credentials: 'include', ...options });
-    if (res.ok) return res.json();
+    const ok = res.ok;
 
-    // 에러 응답 파싱: JSON 우선, 실패하면 text
+    // 204 No Content or Content-Length: 0 방어
+    const noBody = res.status === 204 || res.headers.get('content-length') === '0';
+
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    const text = noBody ? '' : await res.text(); // 한 번만 읽기
+
+    const tryParse = (t) => { try { return JSON.parse(t); } catch { return null; } };
+
+    if (ok) {
+        if (noBody) return null;
+        if (ct.includes('application/json')) return tryParse(text) ?? text;
+        // 헤더가 틀려도 실제로는 JSON일 수 있으니 한 번 시도
+        const maybeJson = tryParse(text);
+        return maybeJson ?? text;
+    }
+
+    // 에러 응답
     let msg = `요청 처리 중 오류가 발생했습니다. (HTTP ${res.status})`;
-    try {
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
-            const err = await res.json();
-            // 서버 표준: { success:false, code, message }
-            if (err?.message) msg = err.message;
-            else if (err?.error) msg = err.error;
-        } else {
-            const text = await res.text();
-            if (text) msg = text;
-        }
-    } catch (_) { /* ignore */ }
-
-    const error = new Error(msg);
-    error.status = res.status;
-    throw error;
+    if (ct.includes('application/json')) {
+        const err = tryParse(text);
+        if (err?.message) msg = err.message;
+    } else if (text) {
+        msg = text;
+    }
+    const e = new Error(msg);
+    e.status = res.status;
+    throw e;
 }

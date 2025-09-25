@@ -120,6 +120,14 @@ async function initHeaderFeatures() {
         authLinksDiv.innerHTML = `<a href="/login.html">로그인</a><a href="/signup.html">회원가입</a>`;
         authLinksDiv.dataset.loaded = 'true';
       });
+
+    const me = await fetch('/api/user/me', {credentials:'include'}).then(r=>r.json());
+    const isAdmin = (me.roles||[]).some(r => (''+r).includes('ADMIN'));
+    const adminLink = document.querySelector('#nav-admin'); // <a id="nav-admin" href="/admin/index.html">관리자</a>
+    if (adminLink) adminLink.style.display = isAdmin ? 'inline-flex' : 'none';
+
+    const adminMenu = document.getElementById('admin-menu');
+    if (adminMenu) adminMenu.style.display = isAdmin ? 'inline-block' : 'none';
   }
 
   async function ensureCsrf() {
