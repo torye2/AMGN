@@ -17,6 +17,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByUserName(String userName);
+
     // 아이디 찾기: 이름/생년월일/휴대폰 + ACTIVE
     Optional<User> findByUserNameAndBirthYearAndBirthMonthAndBirthDayAndPhoneNumber(
             String userName, Integer birthYear, Integer birthMonth, Integer birthDay, String phoneNumber

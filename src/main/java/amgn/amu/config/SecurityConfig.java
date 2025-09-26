@@ -44,12 +44,14 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -64,7 +66,8 @@ public class SecurityConfig {
 
     @Bean @Order(1)
     SecurityFilterChain oauth(HttpSecurity http,
-                              AuthenticationSuccessHandler success,
+                              OauthBridgeService bridge,
+                              OAuth2AuthorizedClientService clientService,
                               AuthenticationFailureHandler failure,
                               LoginHelper loginHelper,
                               UserRepository userRepository) throws Exception {
@@ -180,7 +183,7 @@ public class SecurityConfig {
                 .oauth2Login(o -> o.userInfoEndpoint(u -> u.userService(oAuth2UserService(userRepository)))
                         .loginPage("/login.html")
                         .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
-                        .successHandler(success)
+                        .successHandler(successHandler(bridge, clientService, loginHelper, userRepository))
                         .failureHandler(failure)
                 )
                 .csrf(csrf -> csrf
@@ -340,6 +343,44 @@ public class SecurityConfig {
             }
         };
     }
+
+    public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+        private final UserRepository userRepository; // 사용자 조회용
+
+        public OAuth2LoginSuccessHandler(UserRepository userRepository) {
+            this.userRepository = userRepository;
+        }
+
+        @Override
+        public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                            Authentication authentication) throws IOException, ServletException {
+            Object principal = authentication.getPrincipal();
+
+            Long userId = null;
+            String nickname = null;
+
+            if (principal instanceof org.springframework.security.oauth2.core.user.OAuth2User ou) {
+                String email = (String) ou.getAttributes().get("email");
+                // provider별 키가 다르면 적절히 분기 (kakao/naver는 id/response 구조 주의)
+                var user = userRepository.findByEmail(email).orElseThrow();
+                userId = user.getUserId();
+                nickname = user.getNickName();
+            } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails ud) {
+                var user = userRepository.findByUserName(ud.getUsername()).orElseThrow();
+                userId = user.getUserId();
+                nickname = user.getNickName();
+            }
+
+            var dto = new LoginUserDto();
+            dto.setUserId(userId);
+            dto.setNickName(nickname);
+
+            request.getSession(true).setAttribute("loginUser", dto);
+
+            super.onAuthenticationSuccess(request, response, authentication);
+        }
+    }
+
 
     @Bean
     AuthenticationFailureHandler failureHandler() {

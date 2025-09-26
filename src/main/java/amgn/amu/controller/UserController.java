@@ -12,8 +12,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,15 +34,26 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/me")
-    public MeResponse getLoginUser(@AuthenticationPrincipal UserDetails principal, HttpSession session) {
-        boolean loggedIn = principal != null;
+    public MeResponse getLoginUser(Authentication authentication, HttpSession session) {
+        boolean loggedIn = authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+        var authorities = loggedIn ? authentication.getAuthorities() : List.<GrantedAuthority>of();
+        List<String> roles = authorities.stream().map(GrantedAuthority::getAuthority).toList();
+        boolean isAdmin = roles.stream().anyMatch(r -> r.contains("ADMIN"));
+
         LoginUserDto loginUser = (LoginUserDto) session.getAttribute("loginUser");
         Long userId = loginUser != null ? loginUser.getUserId() : null;
         String nickname = loginUser != null ? loginUser.getNickName() : null;
 
-        List<String> roles = principal == null ? List.of() :
-                principal.getAuthorities().stream().map(a -> a.getAuthority()).toList();
-        boolean isAdmin = roles.stream().anyMatch(role -> role.contains("ADMIN"));
+        if (loginUser == null && loggedIn) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails userDetails) {
+                String username = userDetails.getUsername();
+            } else if (principal instanceof OAuth2User ou) {
+                // ou.getAttributes()
+            }
+        }
 
         return new MeResponse(loggedIn, userId, nickname, roles, isAdmin);
     }
