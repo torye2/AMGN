@@ -94,7 +94,7 @@ spring:
         enabled: true
 server:
   port: 8080
-
+```
 ### 3) database
 mysql -h localhost -P 3306 -u root -p --default-character-set=utf8mb4 \
   {{amugeona}} < ./db/schema.sql
