@@ -20,10 +20,10 @@ A production-like second-hand marketplace focusing on **secure authentication (O
 ---
 
 ## 🏗 Architecture
-Client (HTML/CSS/JS)
-↓ REST/JSON
-Spring Boot (Security, OAuth2, TOTP, Services)
-↓ JPA/MyBatis
+Client (HTML/CSS/JS) \
+↓ REST/JSON \
+Spring Boot (Security, OAuth2, TOTP, Services) \
+↓ JPA/MyBatis \
 MySQL 8 (InnoDB, utf8mb4, indexes)
 
 ![Architecture Diagram](./docs/architecture.png) <!-- 이미지가 없으면 주석 처리하거나 나중에 추가 -->
