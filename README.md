@@ -75,24 +75,84 @@ OAUTH_GOOGLE_CLIENT_SECRET=...
 OAUTH_KAKAO_CLIENT_ID=...
 OAUTH_NAVER_CLIENT_ID=...
 
-`src/main/resources/application.yml`
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:amugeona}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
-    username: ${DB_USER:root}
-    password: ${DB_PASS:password}
-  jpa:
-    hibernate:
-      ddl-auto: none
-    properties:
-      hibernate.format_sql: true
-  mvc:
-    hiddenmethod:
-      filter:
-        enabled: true
-server:
-  port: 8080
+`src/main/resources/application.properties`
+```
+spring.application.name=PJ_AMUGEONA
+
+# DB
+spring.datasource.url=jdbc:mysql://localhost:3306/amugeona?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.username=root
+spring.datasource.password=123456
+
+
+# MyBatis
+mybatis.type-aliases-package=amgn.amu.domain
+mybatis.mapper-locations=classpath:/mapper/*.xml
+mybatis.configuration.map-underscore-to-camel-case=true
+mybatis.configuration.default-fetch-size=100
+mybatis.configuration.default-statement-timeout=30
+
+# Kakao Local API
+KAKAO_REST_API_KEY=baaa3a6a76db4d9142c1e2617f531915
+
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.security.authentication.ProviderManager=DEBUG
+logging.level.org.springframework.security.authentication.dao.DaoAuthenticationProvider=DEBUG
+logging.level.org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder=TRACE
+logging.level.org.springframework.security.oauth2=DEBUG
+
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+logging.level.org.mybatis=DEBUG
+logging.level.java.sql=DEBUG
+logging.level.jdbc.sqlonly=DEBUG
+
+server.error.include-message=always
+server.error.include-stacktrace=always
+server.error.include-binding-errors=ALWAYS
+
+logging.level.amgn.amu=DEBUG
+logging.level.org.springframework.jdbc.core=DEBUG
+logging.level.org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver=TRACE
+
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=300MB
+
+kakao.rest.key=6f22b80447108cd2cb082746fa4d29b3
+
+spring.security.oauth2.client.registration.google.client-id=71157529807-n3hp5sscmcia27sq7eiigoh2vb8q1rq4.apps.googleusercontent.com
+spring.security.oauth2.client.registration.google.client-secret=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
+spring.security.oauth2.client.registration.google.scope=openid,email,profile
+spring.security.oauth2.client.registration.google.redirect-uri={baseUrl}/login/oauth2/code/google
+
+spring.security.oauth2.client.registration.kakao.client-id=baaa3a6a76db4d9142c1e2617f531915
+spring.security.oauth2.client.registration.kakao.client-authentication-method=client_secret_post
+spring.security.oauth2.client.registration.kakao.authorization-grant-type=authorization_code
+spring.security.oauth2.client.registration.kakao.redirect-uri={baseUrl}/login/oauth2/code/kakao
+spring.security.oauth2.client.registration.kakao.scope=profile_nickname,account_email
+spring.security.oauth2.client.provider.kakao.authorization-uri=https://kauth.kakao.com/oauth/authorize
+spring.security.oauth2.client.provider.kakao.token-uri=https://kauth.kakao.com/oauth/token
+spring.security.oauth2.client.provider.kakao.user-info-uri=https://kapi.kakao.com/v2/user/me
+spring.security.oauth2.client.provider.kakao.user-name-attribute=id
+
+spring.security.oauth2.client.registration.naver.client-id=tV1grnIR3Vmzc_Oj6n3t
+spring.security.oauth2.client.registration.naver.client-secret=1ouYUT09lL
+spring.security.oauth2.client.registration.naver.client-authentication-method=client_secret_post
+spring.security.oauth2.client.registration.naver.authorization-grant-type=authorization_code
+spring.security.oauth2.client.registration.naver.redirect-uri={baseUrl}/login/oauth2/code/naver
+spring.security.oauth2.client.registration.naver.scope=name,email
+spring.security.oauth2.client.provider.naver.authorization-uri=https://nid.naver.com/oauth2.0/authorize
+spring.security.oauth2.client.provider.naver.token-uri=https://nid.naver.com/oauth2.0/token
+spring.security.oauth2.client.provider.naver.user-info-uri=https://openapi.naver.com/v1/nid/me
+spring.security.oauth2.client.provider.naver.user-name-attribute=response
+
+# v2 API
+imp.key=store-5a5febb7-cd4d-4dba-80e1-45137984ce13
+imp.secret=4jn1G2WglgCMMEuJCiej1oYXutvESuWBK4OSUvQVnz1h2SdEGzAGIsmbYHK2ASSSqttW9egIgaglndMp
+
+kakao.admin-key=YOUR_TEST_ADMIN_KEY
 ```
 ### 3) database
 mysql -h localhost -P 3306 -u root -p --default-character-set=utf8mb4 \
