@@ -40,19 +40,19 @@ MySQL 8 (InnoDB, utf8mb4, indexes)
 ---
 
 ## 📂 Project Structure (excerpt)
-src/
-├─ main/
-│ ├─ java/amgn/amu/...
-│ │ ├─ controller/ # REST controllers
-│ │ ├─ service/ # business logic
-│ │ ├─ repository/ # JPA/MyBatis repositories
-│ │ ├─ security/ # Security config, handlers, filters
-│ │ └─ dto/entity/...
-│ └─ resources/
-│ ├─ application.yml
-│ ├─ mapper/ # MyBatis mappers (if any)
-│ └─ static/ # HTML/CSS/JS (if served)
-└─ test/...
+src/ \
+├─ main/ \
+│ ├─ java/amgn/amu/... \
+│ │ ├─ controller/ # REST controllers \
+│ │ ├─ service/ # business logic \
+│ │ ├─ repository/ # JPA/MyBatis repositories \
+│ │ ├─ security/ # Security config, handlers, filters \
+│ │ └─ dto/entity/... \
+│ └─ resources/ \
+│ ├─ application.yml \
+│ ├─ mapper/ # MyBatis mappers (if any) \ 
+│ └─ static/ # HTML/CSS/JS (if served) \
+└─ test/... \
 
 ---
 
