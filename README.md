@@ -5,7 +5,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1)]()
 [![License](https://img.shields.io/badge/License-MIT-blue)]()
 
-A production-like second-hand marketplace focusing on **secure authentication (OAuth2 + MFA/TOTP)**, clean **MySQL schema**, and pragmatic **performance tuning**.
+A production-like second-hand marketplace focusing on **secure authentication (OAuth2)**, clean **MySQL schema**, and pragmatic **performance tuning**.
 
 ---
 
@@ -46,13 +46,13 @@ src/ \
 │ │ ├─ controller/ # REST controllers \
 │ │ ├─ service/ # business logic \
 │ │ ├─ repository/ # JPA/MyBatis repositories \
-│ │ ├─ security/ # Security config, handlers, filters \
+│ │ ├─ config/ # Security config, handlers, filters, Web config, PaymentConfig \
 │ │ └─ dto/entity/... \
 │ └─ resources/ \
 │ ├─ application.yml \
 │ ├─ mapper/ # MyBatis mappers (if any) \ 
 │ └─ static/ # HTML/CSS/JS (if served) \
-└─ test/... \
+└─ test/... 
 
 ---
 
@@ -74,7 +74,6 @@ OAUTH_GOOGLE_CLIENT_ID=...
 OAUTH_GOOGLE_CLIENT_SECRET=...
 OAUTH_KAKAO_CLIENT_ID=...
 OAUTH_NAVER_CLIENT_ID=...
-TOTP_ISSUER=AMUGEONA
 
 `src/main/resources/application.yml`
 ```yaml
