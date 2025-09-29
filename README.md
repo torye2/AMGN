@@ -177,11 +177,8 @@ OAuth2: Google/Kakao/Naver 지원 (리다이렉트 URI 환경별 분리)
 
 ## 📊 Metrics (to be updated) <!-- 갱신 필요 -->
 
-p95 DB query latency: {{Y}} ms
-
-Auth error rate: {{X}} % → Z % 개선
-
-Page load time (listings): {{N}} ms
+HTTP p95 ~74ms · Error 0.00% · Login 100% (k6 5VU×1m, local)
+List/Detail p95 ~15.6ms
 
 ## 요약
 Spring Security 기반 인증(소셜 로그인),
