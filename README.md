@@ -26,7 +26,7 @@ Spring Boot (Security, OAuth2, TOTP, Services) \
 ↓ JPA/MyBatis \
 MySQL 8 (InnoDB, utf8mb4, indexes)
 
-![Architecture Diagram](./docs/architecture.png) <!-- 이미지가 없으면 주석 처리하거나 나중에 추가 -->
+![Architecture Diagram](./docs/architecture.png) <!-- 나중에 추가 -->
 
 ---
 
@@ -64,15 +64,15 @@ src/ \
 
 ### 2) Environment
 
-`.env.example` (필요 시 프로젝트 루트에)
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME={{amugeona}}
-DB_USER={{root}}
-DB_PASS={{your-password}}
-OAUTH_GOOGLE_CLIENT_ID=...
-OAUTH_GOOGLE_CLIENT_SECRET=...
-OAUTH_KAKAO_CLIENT_ID=...
+`.env.example`
+DB_HOST=localhost \
+DB_PORT=3306 \
+DB_NAME={{amugeona}} \
+DB_USER={{root}} \
+DB_PASS={{password}} \
+OAUTH_GOOGLE_CLIENT_ID=... \
+OAUTH_GOOGLE_CLIENT_SECRET=... \
+OAUTH_KAKAO_CLIENT_ID=... \
 OAUTH_NAVER_CLIENT_ID=...
 
 `src/main/resources/application.properties`
@@ -123,4 +123,4 @@ List/Detail p95 ~15.6ms
 ## 요약
 Spring Security 기반 인증(소셜 로그인),
 MySQL 8 스키마/인덱스 최적화,
-간단한 부하 측정 결과 등을 포함한 중고거래 플랫폼 예제입니다.
+간단한 부하 측정 결과 등을 포함한 중고거래 플랫폼입니다.
