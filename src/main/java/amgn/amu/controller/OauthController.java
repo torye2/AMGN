@@ -64,11 +64,12 @@ public class OauthController {
 
     // 연결 해제 (여러 로그인 수단 중 하나를 끊을 때)
     @PostMapping("/unlink")
-    public ApiResult<Void> unlink(@RequestBody @Valid OauthUnlinkRequest oreq,
+    public ResponseEntity<Void> unlink(@RequestBody @Valid OauthUnlinkRequest oreq,
                                   HttpServletRequest req) {
         Long uid = loginUser.userId(req);
         bridge.unlink(uid, oreq.getProvider().toLowerCase());
-        return ApiResult.ok(null);
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/connect/{provider}")

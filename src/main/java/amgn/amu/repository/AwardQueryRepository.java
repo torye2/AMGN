@@ -31,4 +31,22 @@ public interface AwardQueryRepository extends JpaRepository<MonthlySellerAward, 
             @Param("metric") String metric,
             Pageable pageable
     );
+
+    @Query(value = """
+        SELECT seller_id,
+               units,
+               rank_num
+        FROM (
+          SELECT l.seller_id AS seller_id,
+                 COUNT(*) AS units,
+                 ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, l.seller_id) AS rank_num
+          FROM listings l
+          WHERE l.status = 'SOLD'
+            AND l.updated_at >= (NOW() - INTERVAL 30 DAY)
+          GROUP BY l.seller_id
+        ) t
+        ORDER BY rank_num
+        """, nativeQuery = true)
+    List<TopSellerRow> findTopSellersRolling(int limit);
+
 }

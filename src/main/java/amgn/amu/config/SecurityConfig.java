@@ -23,6 +23,7 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -88,7 +89,7 @@ public class SecurityConfig {
                                 "/search", "/category/**", "/footer.html", "/api/pw-reset/**",
                                 "/api/csrf", "/header.html","/list.html", "/api/find-id",
                                 "/oauth2/authorization/**","/login/oauth2/code/**", "/signup",
-                                "/shop.html", "/main"
+                                "/shop.html", "/main", "/swagger-ui/**", "/v3/api-docs/**"
                         ).permitAll()
                         // 읽기 전용 공개 API (HTTP GET만)
                         .requestMatchers(HttpMethod.GET,
@@ -116,6 +117,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(nextParamCaptureFilter(userRepository), OAuth2AuthorizationRequestRedirectFilter.class)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .formLogin(f -> f
                         .loginPage("/login.html")
                         .loginProcessingUrl("/login")
@@ -126,6 +128,7 @@ public class SecurityConfig {
                             Object pending = req.getSession(false).getAttribute("PENDING_OAUTH");
                             if (pending != null) { log.info(pending.toString()); }
 
+                            log.info("sessionId={}", req.getSession(true).getId());
                             log.info("LOGIN SUCCESS authName={}, principalClass={}",
                                     auth.getName(), auth.getPrincipal().getClass().getName());
 
